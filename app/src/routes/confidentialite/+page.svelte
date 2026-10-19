@@ -1,5 +1,6 @@
 <script>
   import { tx } from '#lib/i18n/index.js';
+  import { CONTACT_EMAIL } from '#lib/config.js';
   // Page « Qui voit quoi » : ce que l'app envoie, à qui, et ce que chaque service en fait (vérifié le 13/10/2026).
   const rows = [
     [tx('confidentialite.fond_de_carte'), tx('confidentialite.openfreemap_projet_independant'), tx('confidentialite.votre_adresse_ip_et_la_zone_de_carte'), tx('confidentialite.journaux_anonymises_sans_ip_effaces'), 'https://openfreemap.org/privacy/'],
@@ -8,7 +9,7 @@
     [tx('confidentialite.vue_satellite'), tx('confidentialite.geoplateforme_ign_service_public'), tx('confidentialite.votre_ip_et_la_zone_satellite'), tx('confidentialite.service_public_francais'), 'https://geoservices.ign.fr/bdortho'],
     [tx('confidentialite.adresses'), tx('confidentialite.geoplateforme_ign_service_public'), tx('confidentialite.votre_ip_et_adresse_tapee'), tx('confidentialite.service_public_francais'), 'https://www.data.gouv.fr/dataservices/api-geoplateforme-geocodage'],
     [tx('confidentialite.noms_de_lieux'), tx('confidentialite.photon_instance_publique_de_komoot'), tx('confidentialite.votre_ip_et_le_texte_tape'), tx('confidentialite.aucune_politique_publiee_a_remplacer'), 'https://photon.komoot.io'],
-    [tx('confidentialite.itineraires_a_pied_velo_voiture'), tx('confidentialite.valhalla_serveur_public_fossgis'), tx('confidentialite.votre_ip_le_depart_souvent_votre'), tx('confidentialite.aucune_politique_publiee_a_remplacer'), 'https://routing.openstreetmap.de/about.html'],
+    [tx('confidentialite.itineraires_a_pied_velo_voiture'), tx('confidentialite.valhalla_serveur_public_fossgis'), tx('confidentialite.votre_ip_le_depart_souvent_votre'), tx('confidentialite.fossgis_conditions'), 'https://www.fossgis.de/arbeitsgruppen/osm-server/nutzungsbedingungen/'],
     [tx('confidentialite.transports_en_commun'), tx('confidentialite.transitous_projet_libre'), tx('confidentialite.votre_ip_le_depart_et_arrivee_la'), tx('confidentialite.aucune_politique_publiee_a_remplacer'), 'https://transitous.org'],
     [tx('confidentialite.photos_et_textes_des_monuments'), tx('confidentialite.wikimedia_wikidata_wikipedia_commons'), tx('confidentialite.votre_ip_et_le_lieu_consulte'), tx('confidentialite.fondation_a_but_non_lucratif_sans'), 'https://foundation.wikimedia.org/wiki/Policy:Privacy_policy']
   ];
@@ -52,6 +53,8 @@
     <li>{tx('confidentialite.les_liens_de_partage_les_sauvegardes')}</li>
     <li>{tx('confidentialite.une_faille_signalez_la_sans_la')} <a href="https://github.com/hfreryr/untracked/security" target="_blank" rel="noopener">{tx('confidentialite.page_securite_du_code_source')}</a>.</li>
   </ul>
+  <h2 id="contact">{tx('confidentialite.contact')}</h2>
+  <p>{tx('confidentialite.nous_ecrire')} <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a></p>
   <p class="foot">{tx('confidentialite.code_source_libre_agpl_3_0')} <a href="https://github.com/hfreryr/untracked" target="_blank" rel="noopener">{tx('confidentialite.github_com_hfreryr_untracked')}</a>{tx('confidentialite.donnees_contributeurs_openstreetmap')}</p>
 </main>
 </div>

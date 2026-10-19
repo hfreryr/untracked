@@ -5,6 +5,7 @@
   import { tx } from '#lib/i18n/index.js';
   import { getContext } from 'svelte';
   import Dialog from '#lib/ui/Dialog.svelte';
+  import { CONTACT_EMAIL } from '#lib/config.js';
 
   // État et actions de la page (voir le bloc « app » de +page.svelte)
   const app = getContext('app');
@@ -12,11 +13,9 @@
   let view = $state('main');          // main | sources
 
   const ext = { target: '_blank', rel: 'noopener' };
-  // Signaler une erreur : note OpenStreetMap à l'endroit regardé (sans compte ; c'est la personne qui l'écrit et l'envoie)
-  const noteUrl = () => {
-    const c = app.map?.getCenter?.();
-    return c ? `https://www.openstreetmap.org/note/new#map=18/${c.lat.toFixed(5)}/${c.lng.toFixed(5)}` : 'https://www.openstreetmap.org/note/new';
-  };
+  // Signaler une erreur : la page « fixthemap » d'OpenStreetMap, demandée par les conditions de FOSSGIS
+  // (elle explique comment laisser une note, sans compte, ou corriger soi-même). Rien n'est envoyé par l'app.
+  const FIX_URL = 'https://www.openstreetmap.org/fixthemap';
   const DATA = [
     [tx('apropos.n_osm'), tx('apropos.s_osm'), 'https://www.openstreetmap.org/copyright'],
     [tx('apropos.n_openfreemap'), tx('apropos.s_openfreemap'), 'https://openfreemap.org'],
@@ -65,12 +64,14 @@
 
     <h3>{tx('apropos.aider')}</h3>
     <ul class="grp">
-      <li><a class="it" href={noteUrl()} {...ext}><span class="ico gray" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 4 21 19.5H3z" /><path d="M12 10v4.5" /><circle cx="12" cy="17" r=".6" /></svg></span>
+      <li><a class="it" href={FIX_URL} {...ext}><span class="ico gray" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 4 21 19.5H3z" /><path d="M12 10v4.5" /><circle cx="12" cy="17" r=".6" /></svg></span>
         <span class="txt">{tx('apropos.signaler')}</span>{@render chev()}</a></li>
       <li><button class="it" onclick={importer}><span class="ico gray" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 19.5h14" /></svg></span>
         <span class="txt">{tx('apropos.importer')}</span>{@render chev()}</button></li>
       <li><a class="it" href="https://github.com/hfreryr/untracked" {...ext}><span class="ico gray" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m8.5 7.5-5 4.5 5 4.5M15.5 7.5l5 4.5-5 4.5" /></svg></span>
         <span class="txt">{tx('apropos.code_source')}</span>{@render chev()}</a></li>
+      <li><a class="it" href={`mailto:${CONTACT_EMAIL}`}><span class="ico gray" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3.5" y="5.5" width="17" height="13" rx="2" /><path d="m4 7 8 6 8-6" /></svg></span>
+        <span class="txt">{tx('apropos.nous_ecrire')}<small>{CONTACT_EMAIL}</small></span>{@render chev()}</a></li>
     </ul>
     <p class="foot"><a href="https://www.openstreetmap.org/copyright" {...ext}>{tx('apropos.credits_osm')}</a> {tx('apropos.credits_reste')}</p>
   {:else}

@@ -576,6 +576,9 @@ const tests = {
     assert(await p.isVisible('.credit'), 'mention © OpenStreetMap absente au démarrage');
     await p.tap('.promise .info'); await p.waitForSelector('.dlg');
     assert(/Untracked Maps/.test(await p.textContent('.dlg')), 'fenêtre À propos non ouverte');
+    // conditions de FOSSGIS (serveur d'itinéraires) : e-mail de l'éditeur visible, lien « fixthemap »
+    assert(await p.$('.dlg a[href="mailto:contact@untrackedmaps.app"]'), 'e-mail de contact absent');
+    assert(await p.$('.dlg a[href="https://www.openstreetmap.org/fixthemap"]'), 'lien fixthemap absent');
     await p.keyboard.press('Escape'); await p.waitForTimeout(300);
     assert(!(await p.$('.dlg')) && !(await p.$('.promise')), 'fenêtre ou bandeau restés ouverts');
     await p.reload(); await p.waitForTimeout(2500);
