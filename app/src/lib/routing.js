@@ -1,13 +1,16 @@
 import { rankTransit } from '#lib/transitrank.js';
 import { tx } from '#lib/i18n/index.js';
 import { city, inBox } from './cities/index.js';
-import { dataBase } from './config.js';
+import { dataBase, ROUTING_URL } from './config.js';
+import { createLimiter } from './ratelimit.js';
 // Itinéraires.
 //  - À pied et à vélo : Valhalla (serveur public FOSSGIS, données OpenStreetMap).
 //  - Transports en commun : Transitous (MOTIS 2, données ouvertes des réseaux de transport).
 // Prototype : serveurs publics à usage léger. Transitous demande d'être prévenu avant un usage large.
 
-const VALHALLA = 'https://valhalla1.openstreetmap.de/route';
+const VALHALLA = ROUTING_URL;
+// FOSSGIS : une demande par seconde au plus (conditions d'utilisation ; marge de 100 ms)
+const valhallaTurn = createLimiter(1100);
 const TRANSITOUS = 'https://api.transitous.org/api/v5/plan';
 
 // ——— Lissage des tracés ———
@@ -76,9 +79,10 @@ export function decodePolyline(str, precision = 6) {
 
 /**
  * À pied, à vélo ou en voiture, avec un arrêt intermédiaire facultatif (`via`).
+ * `priority` : 0 pour le trajet affiché à l'écran (il passe devant les autres dans la file d'attente).
  * @returns {{duration:number, distance:number, coords:number[][], steps:{text:string, distance:number, stop?:boolean}[]}}
  */
-export async function streetRoute(from, to, mode, signal, via = null) {
+export async function streetRoute(from, to, mode, signal, via = null, priority = 1) {
   const costing = mode === 'bike' ? 'bicycle' : mode === 'car' ? 'auto' : 'pedestrian';
   const pts = via ? [from, via, to] : [from, to];
   const body = {
@@ -90,6 +94,7 @@ export async function streetRoute(from, to, mode, signal, via = null) {
     ...(via ? {} : { alternates: 2 })      // itinéraires de rechange (pas possible avec un arrêt)
   };
   const url = `${VALHALLA}?json=${encodeURIComponent(JSON.stringify(body))}`;
+  await valhallaTurn(priority, signal);
   const res = await fetch(url, { signal });
   if (!res.ok) throw new Error(res.status === 400 ? 'no-route' : `valhalla-${res.status}`);
   const json = await res.json();

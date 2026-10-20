@@ -143,7 +143,7 @@ export function createNav(app) {
     app.rerouting = true;
     try {
       const passedVia = !app.showVia || !app.via || app.nav.steps.findIndex((st) => st.type === 'stop') <= app.nav.k;
-      const r = await streetRoute({ lat: app.me.lat, lon: app.me.lon }, app.to, app.nav.mode, undefined, passedVia ? null : app.via);
+      const r = await streetRoute({ lat: app.me.lat, lon: app.me.lon }, app.to, app.nav.mode, undefined, passedVia ? null : app.via, 0);
       if (!app.nav) return;
       let route = r;
       if (app.nav.mode === 'car') { const t = await trafficEstimate(app.me, app.to); route = { ...r, duration: r.duration * t.factor }; }

@@ -110,14 +110,16 @@ export function createDirections(app) {
       if (id === app.mode) app.drawRoute();
     };
     const v = app.showVia ? app.via : null;
-    run('walk', () => streetRoute(app.from, app.to, 'walk', signal, v));
-    run('bike', () => streetRoute(app.from, app.to, 'bike', signal, v));
+    // serveur FOSSGIS : une demande par seconde ; le mode affiché passe en premier
+    const prio = (m) => (m === app.mode ? 0 : 1);
+    run('walk', () => streetRoute(app.from, app.to, 'walk', signal, v, prio('walk')));
+    run('bike', () => streetRoute(app.from, app.to, 'bike', signal, v, prio('bike')));
     const modes = transitModesFor(app.transitPref);
     // heure choisie (when.js) : maintenant, partir à, ou arriver à
     const w = app.when, at = new Date(w ? w.t : Date.now()), arrive = !!w?.arrive;
     run('transit', () => (v ? transitWithStop(app.from, v, app.to, signal, at, modes, arrive) : transitRoutes(app.from, app.to, signal, at, modes, arrive)));
     run('car', async () => {
-      const r = await streetRoute(app.from, app.to, 'car', signal, v);
+      const r = await streetRoute(app.from, app.to, 'car', signal, v, prio('car'));
       // trafic habituel à l'heure du départ (pour « arriver à » : départ estimé sans trafic, à l'heure près)
       const t = await trafficEstimate(app.from, app.to, new Date(arrive ? +at - r.duration * 1000 : +at));
       const withTraffic = (x) => ({ ...x, freeDuration: x.duration, duration: x.duration * t.factor, traffic: t.label });
