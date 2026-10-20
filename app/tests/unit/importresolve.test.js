@@ -32,3 +32,14 @@ test('quelques recherches à la fois, toutes faites', async () => {
   assert.equal(seen.length, 7);
   assert.equal(max, 3);
 });
+
+// Bug du 20/10 : un lieu Google avec position doit retrouver son identifiant OSM, sinon sa fiche ignore ses listes
+import { snapToOsm } from '#lib/importresolve.js';
+test('lieu Google avec position : identifiant OSM retrouvé dans nos données (même nom, tout près)', async () => {
+  const local = async () => [
+    { name: 'Café de Flore', lat: 48.8542, lon: 2.3327, osmType: 'node', osmId: 7 },
+    { name: 'Café de Flore', lat: 48.8700, lon: 2.3327, osmType: 'node', osmId: 8 }
+  ];
+  assert.equal((await snapToOsm({ name: 'Café de Flore', lat: 48.8541, lon: 2.3326 }, { local }))?.osmId, 7);
+  assert.equal(await snapToOsm({ name: 'Autre café', lat: 48.8541, lon: 2.3326 }, { local }), null);
+});

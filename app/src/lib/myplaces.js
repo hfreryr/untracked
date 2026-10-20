@@ -11,6 +11,36 @@ export const DEFAULT_LISTS = [
 export const LIST_ICONS = ['heart', 'flag', 'star', 'utensils', 'cup', 'bed', 'tree', 'bag', 'ticket', 'book'];
 export const LIST_COLORS = ['#D63A7A', '#E0862F', '#2A5BD7', '#1E8E3E', '#7A4FC4', '#0E8A94', '#C7972B', '#5F6B7A'];
 
+// Identifiant de liste unique, même pour plusieurs listes créées dans la même milliseconde.
+// (Bug du 20/10 : l'import Google créait plusieurs listes au même identifiant, et l'écran « Mes lieux » plantait.)
+let seq = 0;
+export const newListId = () => `l${Date.now().toString(36)}${(seq++).toString(36)}${Math.random().toString(36).slice(2, 5)}`;
+/** Répare des listes qui partagent un identifiant : la première le garde, les suivantes en reçoivent un nouveau. */
+export function uniqueListIds(lists) {
+  const seen = new Set();
+  return lists.map((l) => {
+    if (!seen.has(l.id)) { seen.add(l.id); return l; }
+    let id = newListId();
+    while (seen.has(id)) id = newListId();
+    seen.add(id);
+    return { ...l, id };
+  });
+}
+
+/** Nom comparable : sans accents, majuscules, ponctuation ni article de tête (« Le Café de Flore » = « Café de Flore »). */
+export function normName(s) {
+  return (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
+    .replace(/^(le|la|les|l|the) /, '');
+}
+/**
+ * Un même lieu : même identifiant OSM ; sinon (lieu importé de Google, sans identifiant), même nom à ~60 m près.
+ * (Bug du 20/10 : un lieu importé n'apparaissait dans aucune liste sur la fiche du lieu OSM, faute d'identifiant.)
+ */
+export function sameSpot(a, b) {
+  if (a.osmType && b.osmType) return a.osmType === b.osmType && String(a.osmId) === String(b.osmId);
+  return normName(a.name) === normName(b.name) && Math.abs(a.lat - b.lat) < 0.00055 && Math.abs(a.lon - b.lon) < 0.0008;
+}
+
 /** Lieux enregistrés : chacun appartient à une ou plusieurs listes (anciens favoris → « Favoris »). */
 export function migratePlaces(places) {
   return places.map((p) => (Array.isArray(p.lists) && p.lists.length ? p : { ...p, lists: ['fav'] }));
@@ -123,7 +153,7 @@ export function mergeInto(cur, inc, same) {
   for (const l of inc.lists) {
     const found = lists.find((x) => x.id === l.id || x.name.toLowerCase() === l.name.toLowerCase());
     if (found) idMap[l.id] = found.id;
-    else { const id = lists.some((x) => x.id === l.id) ? `l${Date.now().toString(36)}${lists.length}` : l.id; lists.push({ ...l, id }); idMap[l.id] = id; }
+    else { const id = lists.some((x) => x.id === l.id) ? newListId() : l.id; lists.push({ ...l, id }); idMap[l.id] = id; }
   }
   const places = cur.places.map((p) => ({ ...p }));
   let added = 0;
@@ -133,5 +163,5 @@ export function mergeInto(cur, inc, same) {
     if (ex) ex.lists = [...new Set([...(ex.lists || []), ...ls])];
     else { places.push({ ...p, lists: ls }); added++; }
   }
-  return { lists, places, added };
+  return { lists: uniqueListIds(lists), places, added };
 }

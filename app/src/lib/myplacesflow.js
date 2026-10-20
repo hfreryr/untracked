@@ -1,17 +1,13 @@
 // Mes lieux : listes, épingles, Maison et Travail, transfert et sauvegarde.
 // Code sorti de +page.svelte : il lit et modifie l'état de l'écran par l'objet « app » (bloc « app » de la page).
 import { tx } from '#lib/i18n/index.js';
-import { LIST_COLORS, backupFile, mergeInto, pack, packList, readBackup, restore, snapshot } from '#lib/myplaces.js';
+import { LIST_COLORS, backupFile, mergeInto, newListId, pack, packList, readBackup, restore, sameSpot, snapshot } from '#lib/myplaces.js';
 import { PARIS } from '#lib/places.js';
 import qrcode from 'qrcode-generator';
 
 /** @param {any} app */
 export function createMyPlaces(app) {
-  // Un même lieu : même identifiant OSM, ou même nom au même endroit (à ~20 m près).
-  function sameSpot(a, b) {
-    if (a.osmType && b.osmType) return a.osmType === b.osmType && String(a.osmId) === String(b.osmId);
-    return a.name === b.name && Math.abs(a.lat - b.lat) < 0.0002 && Math.abs(a.lon - b.lon) < 0.0003;
-  }
+  // Un même lieu : même identifiant OSM, ou même nom au même endroit (sameSpot, myplaces.js)
   function saveAll() {
     app.saveFavorites();
     try {
@@ -70,7 +66,7 @@ export function createMyPlaces(app) {
     if (!n) return null;
     const ex = app.lists.find((l) => l.name.toLowerCase() === n.toLowerCase());
     if (ex) { then?.(ex.id); return ex; }
-    const l = { id: `l${Date.now().toString(36)}`, name: n, icon: 'star',   // (pictogramme sobre ; la couleur distingue les listes)
+    const l = { id: newListId(), name: n, icon: 'star',   // (pictogramme sobre ; la couleur distingue les listes)
       color: LIST_COLORS[app.lists.length % LIST_COLORS.length] };
     app.lists = [...app.lists, l];
     saveAll();
@@ -134,7 +130,7 @@ export function createMyPlaces(app) {
     const { list, places } = app.incoming;
     let name = list.name;
     if (app.lists.some((l) => l.name.toLowerCase() === name.toLowerCase())) name = tx('meslieux.partagee', { name });
-    const l = { id: `l${Date.now().toString(36)}`, name, icon: list.icon || 'star', color: list.color || LIST_COLORS[2] };
+    const l = { id: newListId(), name, icon: list.icon || 'star', color: list.color || LIST_COLORS[2] };
     const m = mergeInto({ lists: app.lists, places: app.favorites }, { lists: [l], places: places.map((p) => ({ ...p, lists: [l.id] })) }, sameSpot);
     app.lists = m.lists;
     app.favorites = m.places;
