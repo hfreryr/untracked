@@ -2,7 +2,7 @@
 // Ils appellent les vrais services (OpenFreeMap, Photon, Géoplateforme, Valhalla, Transitous) : à lancer à la main
 // avant une publication, pas en intégration continue.   Usage : npm run e2e
 import { chromium } from 'playwright';
-import { spawn } from 'node:child_process';
+import { spawn, execFileSync } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 const AXE = readFileSync(createRequire(import.meta.url).resolve('axe-core/axe.min.js'), 'utf8');
@@ -393,6 +393,51 @@ const tests = {
     assert(/1 lieu importé/.test(await p.textContent('.toast')), 'lieu de liste non importé : ' + await p.textContent('.toast'));
     const saved = await p.evaluate(() => localStorage.getItem('lieux-favoris') || '');
     assert(/Café de Flore/.test(saved) && /48\.85/.test(saved), 'position du lieu non retrouvée');
+    await ctx.close();
+  },
+  async 'import Google de plusieurs listes : Mes lieux s’ouvre, et la fiche du lieu montre sa liste (bug Android du 20/10)'() {
+    const { p, ctx, errors } = await page({ geolocation: { latitude: 48.853, longitude: 2.333 } });
+    // archive Takeout avec trois listes, créées en même temps à l'import (avant : même identifiant → écran « 500 »)
+    const zip = `/tmp/untracked-e2e-takeout-${Date.now()}.zip`;
+    execFileSync('python3', ['-c', `import zipfile,sys
+z=zipfile.ZipFile(sys.argv[1],'w',zipfile.ZIP_DEFLATED)
+h='Title,Note,URL,Comment\\n'
+z.writestr('Takeout/Enregistré/Restos.csv',h+'Café de Flore,,https://www.google.com/maps/place/x,\\n')
+z.writestr('Takeout/Enregistré/Musées.csv',h+"Musée d'Orsay,,https://www.google.com/maps/place/y,\\n")
+z.writestr('Takeout/Enregistré/Cafés.csv',h+'Les Deux Magots,,https://www.google.com/maps/place/z,\\n')
+z.close()`, zip]);
+    await p.click('.chip:has-text("Mes lieux")'); await p.waitForTimeout(1000);
+    await p.click('.row-btn:has-text("Importer depuis Google Maps")'); await p.waitForTimeout(600);
+    await p.setInputFiles('label.import-btn input[type=file]', zip);
+    await p.waitForFunction(() => /import/i.test(document.querySelector('.toast')?.textContent || ''), null, { timeout: 90000 });
+    const lists = await p.evaluate(() => JSON.parse(localStorage.getItem('mes-listes')));
+    assert(new Set(lists.map((l) => l.id)).size === lists.length, 'deux listes au même identifiant');
+    // Mes lieux s'ouvre et montre les listes importées
+    if (!(await p.$('.chip.on:has-text("Mes lieux")'))) await p.click('.chip:has-text("Mes lieux")');
+    await p.waitForTimeout(1200);
+    const sheet = await p.textContent('section.sheet');
+    assert(/Restos/.test(sheet) && /Musées/.test(sheet), 'listes importées absentes de Mes lieux : ' + sheet.slice(0, 200));
+    // la fiche du lieu OSM indique la liste
+    await p.click('.chip:has-text("Mes lieux")'); await p.waitForTimeout(400);
+    await p.fill('#search', 'Café de Flore'); await p.waitForSelector('.results li.opt button', { timeout: 20000 }); await pick(p);
+    await p.waitForSelector('.sheet h1', { timeout: 15000 }); await p.waitForTimeout(800);
+    assert(/Restos/.test(await p.textContent('section.sheet')), 'la fiche du lieu ne montre pas sa liste « Restos »');
+    assert(!errors.length, errors.join(' | '));
+    await ctx.close();
+  },
+  async 'listes déjà abîmées (même identifiant) : Mes lieux s’ouvre quand même'() {
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, locale: 'fr-FR' });
+    await ctx.addInitScript(() => {
+      localStorage.setItem('promesse-vue', '1');
+      localStorage.setItem('mes-listes', JSON.stringify([{ id: 'fav', name: 'Favoris', icon: 'heart', color: '#D63A7A' }, { id: 'labc', name: 'Restos', icon: 'star', color: '#2A5BD7' }, { id: 'labc', name: 'Musées', icon: 'star', color: '#1E8E3E' }]));
+      localStorage.setItem('lieux-favoris', JSON.stringify([{ id: 'g1', name: 'Café de Flore', type: 'x', address: '', lat: 48.8541, lon: 2.3326, lists: ['labc'] }]));
+    });
+    const p = await ctx.newPage(); const errors = []; p.on('pageerror', (e) => errors.push(e.message));
+    await p.goto(`http://localhost:${PORT}/`); await p.waitForTimeout(2500);
+    await p.click('.chip:has-text("Mes lieux")'); await p.waitForTimeout(1200);
+    const sheet = await p.textContent('section.sheet');
+    assert(/Restos/.test(sheet) && /Musées/.test(sheet), 'Mes lieux ne s’ouvre pas : ' + (await p.textContent('body')).slice(0, 100));
+    assert(!errors.length, errors.join(' | '));
     await ctx.close();
   },
   async 'lien de liste partagée et lien de transfert'() {

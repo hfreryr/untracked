@@ -249,6 +249,8 @@ export default {
   'fiche.itineraire': 'Itinéraire',
   'fiche.appeler': 'Appeler',
   'fiche.enregistre_dans_listes': 'Enregistré dans {listes} · Modifier',
+  'fiche.dans_listes': 'Dans {listes}',
+  'fiche.modifier_les_listes': 'Listes de ce lieu : modifier',
   'fiche.copier_adresse': 'Copier l\'adresse',
   'fiche.ajouter_a_une_liste': 'Ajouter à une liste',
   'fiche.plus_options': 'Plus d\'options',

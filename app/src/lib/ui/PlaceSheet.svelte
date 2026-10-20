@@ -190,6 +190,13 @@
           ? (app.place.name.split(',').slice(1).join(',').trim() || app.place.address || tx('fiche.adresse'))
           : [app.stationKind || app.info?.kind || app.place.type, app.info?.cuisine && tx('fiche.cuisine', { v: app.info.cuisine.split(';')[0] })].filter(Boolean).join(' · ') || tx('fiche.lieu')}</p>
       </div>
+      {#if app.savedEntry}
+        <!-- les listes du lieu, visibles d'emblée (retour d'une testeuse Android, 20/10 : « la liste n'apparaît dans aucune fiche ») -->
+        <button class="in-lists" onclick={() => (app.listPicker = true)} aria-label={tx('fiche.modifier_les_listes')}>
+          {#each app.savedEntry.lists as id (id)}<span class="ldot" style:background={app.listOf(id).color} aria-hidden="true"></span>{/each}
+          <span>{tx('fiche.dans_listes', { listes: app.savedEntry.lists.map((id) => app.listOf(id).name).join(', ') })}</span>
+        </button>
+      {/if}
 
       <!-- En un coup d'œil : ouvert ? loin ? encore à jour ? -->
       <p class="glance">
@@ -437,4 +444,8 @@
     .dep-times .live { animation: none; }
   }
   .action :global(svg) { width: 21px; height: 21px; flex: none; }
+  .in-lists { display: flex; width: fit-content; align-items: center; gap: 4px; max-width: 100%; min-height: 32px; margin: 2px auto 4px; padding: 0 12px 0 10px;
+    border: 0; border-radius: 16px; background: var(--fill); color: var(--ink); font: inherit; font-size: 14px; font-weight: 500; cursor: pointer; }
+  .in-lists span:last-child { margin-left: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ldot { flex: none; width: 10px; height: 10px; border-radius: 50%; }
 </style>

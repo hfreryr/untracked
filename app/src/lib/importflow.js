@@ -5,7 +5,9 @@ import { PARIS } from '#lib/places.js';
 import { mergeInto } from '#lib/myplaces.js';
 import { readGoogleExport } from '#lib/importgoogle.js';
 import { search } from '#lib/geocode.js';
-import { resolvePlace, eachLimited } from '#lib/importresolve.js';
+import { resolvePlace, eachLimited, snapToOsm } from '#lib/importresolve.js';
+
+const pickIds = (o) => (o?.osmType && o?.osmId ? { osmType: o.osmType, osmId: o.osmId, subclass: o.subclass || undefined } : {});
 
 /** @param {any} app */
 export function createImport(app) {
@@ -35,14 +37,19 @@ export function createImport(app) {
         app.importing = tx('import.recherche_des_lieux_sans_position', { i: done, n: lost.length });
         if (r) { found.set(p, r); if (!r.sure) unsure++; } else missed++;
       });
+      // Lieux qui ont déjà une position : on leur retrouve leur identifiant OSM dans nos données (quatre à la fois)
+      const snapped = new Map();
+      await eachLimited(places.filter((p) => p.lat && p.lon && p.name), 4, async (p) => { const o = await snapToOsm(p); if (o) snapped.set(p, o); });
       const kept = [];
       for (const p of places) {
-        const r = p.lat && p.lon ? { place: p, sure: true } : found.get(p);
+        const r = p.lat && p.lon ? { place: { ...p, ...pickIds(snapped.get(p)) }, sure: true } : found.get(p);
         if (!r) continue;
         const { lat, lon, address } = r.place;
         // un lieu retrouvé seulement par son nom, parmi plusieurs homonymes, est marqué pour être vérifié
         const type = r.sure ? tx('import.importe_de_google_maps') : tx('import.importe_a_verifier');
-        kept.push({ id: `g${lat},${lon}`, name: p.name || p.address, type, address: p.address || address || '', lat, lon, lists: [listFor(p.listName)] });
+        // l'identifiant OSM, quand on l'a, relie le lieu importé à sa fiche (et à ses listes)
+        kept.push({ id: `g${lat},${lon}`, name: p.name || p.address, type, address: p.address || address || '', lat, lon,
+          ...pickIds(r.place), lists: [listFor(p.listName)] });
       }
       const m = mergeInto({ lists: app.lists, places: app.favorites }, { lists: [], places: kept }, app.sameSpot);
       app.favorites = m.places;

@@ -3,6 +3,7 @@
 // (sur le téléphone, rien n'est envoyé), puis, à défaut, le nom seul part au moteur de recherche.
 import { searchLocal } from './localsearch.js';
 import { searchAnywhere } from './geocode.js';
+import { normName } from './myplaces.js';
 
 const norm = (s) => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 
@@ -34,4 +35,15 @@ export async function eachLimited(items, n, fn) {
   await Promise.all(Array.from({ length: Math.min(n, items.length) }, async () => {
     while (next < items.length) { const i = next++; await fn(items[i], i); }
   }));
+}
+
+/**
+ * Lieu de Google qui a déjà une position : on cherche le même lieu dans nos données (même nom, à moins de ~80 m)
+ * pour garder son identifiant OSM. Sans lui, la fiche du lieu ne savait pas qu'il était dans une liste (bug du 20/10).
+ * Rien n'est envoyé : la recherche se fait dans nos fichiers.
+ */
+export async function snapToOsm(p, deps = { local: searchLocal }) {
+  const near = (await deps.local(p.name, p).catch(() => [])) || [];
+  return near.find((r) => r.osmType && normName(r.name) === normName(p.name)
+    && Math.abs(r.lat - p.lat) < 0.0007 && Math.abs(r.lon - p.lon) < 0.001) || null;
 }

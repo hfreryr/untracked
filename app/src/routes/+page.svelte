@@ -25,7 +25,7 @@
   import { FAMILIES, GLYPHS } from '#lib/mapstyle.js';
   import { streetRoute, MODE_NAMES, fmtDuration, fmtTime, fmtDistance } from '#lib/routing.js';
   import { bestExit } from '#lib/exits.js';
-  import { DEFAULT_LISTS, migratePlaces, restore } from '#lib/myplaces.js';
+  import { DEFAULT_LISTS, migratePlaces, restore, uniqueListIds } from '#lib/myplaces.js';
   import { exitForQuay, placeForTransfer } from '#lib/rame.js';
   import { ALL_CATEGORIES, CATEGORY_WORDS, FILLER, loadChipPrefs, categoryFor as catFor } from '#lib/categories.js';
   import { createImport } from '#lib/importflow.js';
@@ -102,7 +102,7 @@
   const PINS_KEY = 'lieux-epingles';
   const BACKUP_KEY = 'derniere-sauvegarde';
   let favorites = $state(migratePlaces(loadList(FAVS_KEY, 5000)));
-  let lists = $state((() => { const l = loadList(LISTS_KEY, 100); return l.length ? l : DEFAULT_LISTS; })());
+  let lists = $state((() => { const l = uniqueListIds(loadList(LISTS_KEY, 100)); return l.length ? l : DEFAULT_LISTS; })());
   let pins = $state(loadList(PINS_KEY, 30));
   let showSaved = $state((() => { try { return localStorage.getItem('mes-lieux-carte') !== 'non'; } catch { return true; } })());
   let lastBackup = $state((() => { try { return Number(localStorage.getItem(BACKUP_KEY)) || 0; } catch { return 0; } })());

@@ -90,3 +90,34 @@ test('restauration : seuls Maison et Travail, listes et raccourcis vérifiés', 
   assert.equal(r.chips.length, 1);
   assert.equal(r.chips[0].label.length, 20);
 });
+
+// ——— Bug du 20/10 (testeuse Android) : import Google de plusieurs listes ———
+import { newListId, uniqueListIds, sameSpot, normName } from '#lib/myplaces.js';
+
+test('listes créées dans la même milliseconde : identifiants tous différents', () => {
+  const ids = Array.from({ length: 500 }, () => newListId());
+  assert.equal(new Set(ids).size, ids.length);
+});
+
+test('listes au même identifiant (données déjà abîmées) : réparées au chargement, noms et ordre gardés', () => {
+  const lists = [{ id: 'fav', name: 'Favoris' }, { id: 'labc', name: 'Restos' }, { id: 'labc', name: 'Musées' }, { id: 'labc', name: 'Bars' }];
+  const r = uniqueListIds(lists);
+  assert.equal(new Set(r.map((l) => l.id)).size, 4);
+  assert.deepEqual(r.map((l) => l.name), ['Favoris', 'Restos', 'Musées', 'Bars']);
+  assert.equal(r[1].id, 'labc');                      // la première garde son identifiant (ses lieux restent rattachés)
+  assert.deepEqual(uniqueListIds(r), r);              // déjà propre : rien ne change
+});
+
+test('fusion : jamais deux listes au même identifiant', () => {
+  const m = mergeInto({ lists: [{ id: 'l1', name: 'A' }], places: [] }, { lists: [{ id: 'l1', name: 'B' }, { id: 'l1', name: 'C' }], places: [] }, () => false);
+  assert.equal(new Set(m.lists.map((l) => l.id)).size, m.lists.length);
+});
+
+test('lieu importé sans identifiant OSM : reconnu sur la fiche du lieu OSM (même nom, à quelques dizaines de mètres)', () => {
+  const osm = { name: 'Café de Flore', lat: 48.85410, lon: 2.33260, osmType: 'node', osmId: 1 };
+  assert.ok(sameSpot({ name: 'Le Café de Flore', lat: 48.85440, lon: 2.33300 }, osm));   // ≈ 40 m, article en plus
+  assert.ok(!sameSpot({ name: 'Les Deux Magots', lat: 48.8541, lon: 2.3326 }, osm));      // autre nom
+  assert.ok(!sameSpot({ name: 'Café de Flore', lat: 48.8600, lon: 2.3326 }, osm));        // trop loin
+  assert.ok(!sameSpot({ ...osm, osmId: 2 }, osm));                                          // deux identifiants OSM différents
+  assert.equal(normName("L'Écume des Pages"), 'ecume des pages');
+});
