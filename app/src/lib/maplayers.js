@@ -46,19 +46,25 @@ export function addRouteLayers(map, dark) {
 
 /** Couches de nos repères : résultats d'une catégorie, Mes lieux, lieu sélectionné. */
 export function addPlaceLayers(map, dark, favs) {
+  // Pastilles et noms en deux couches, comme Plans et Google Maps (retour du 21/10 : noms posés sur d'autres pastilles) :
+  // les pastilles sont placées d'abord et toutes visibles ; un nom se met à droite, à gauche, dessus ou dessous,
+  // là où il ne cache ni une pastille ni un autre nom, et ne s'affiche pas s'il n'a pas de place.
+  const hidSel = ['case', ['boolean', ['feature-state', 'sel'], false], 0, 1];
+  const label = (size, font, offset) => ({ 'text-field': ['get', 'name'], 'text-font': [font], 'text-size': size, 'text-max-width': 8,
+    'text-variable-anchor': ['left', 'right', 'top', 'bottom'], 'text-radial-offset': offset, 'text-justify': 'auto', 'symbol-sort-key': ['get', 'i'] });
   map.addSource('cat-hits', { type: 'geojson', data: empty() });
+  map.addLayer({ id: 'cat-hit-label', type: 'symbol', source: 'cat-hits', layout: label(12.5, 'Inter Bold', 1.5),
+    paint: { 'text-color': ['get', 'tc'], 'text-halo-color': dark ? 'rgba(22,24,28,0.9)' : '#FFFFFF', 'text-halo-width': 1.8, 'text-opacity': hidSel } });
   map.addLayer({ id: 'cat-hit', type: 'symbol', source: 'cat-hits',
-    layout: { 'icon-image': ['get', 'icon'], 'icon-size': 1.15, 'icon-allow-overlap': true, 'symbol-sort-key': ['get', 'i'],
-              'text-field': ['get', 'name'], 'text-font': ['Inter Bold'], 'text-size': 12.5, 'text-anchor': 'left',
-              'text-offset': [1.3, 0], 'text-max-width': 8, 'text-optional': true },
-    paint: { 'text-color': ['get', 'tc'], 'text-halo-color': dark ? 'rgba(22,24,28,0.9)' : '#FFFFFF', 'text-halo-width': 1.8 } });
+    layout: { 'icon-image': ['get', 'icon'], 'icon-size': 1.15, 'icon-allow-overlap': true, 'icon-padding': 0, 'symbol-sort-key': ['get', 'i'] },
+    paint: { 'icon-opacity': hidSel } });
   map.addSource('selected', { type: 'geojson', data: empty() });
   map.addSource('favs', { type: 'geojson', data: favs });
-  map.addLayer({ id: 'fav', type: 'symbol', source: 'favs',
-    layout: { 'icon-image': ['get', 'icon'], 'icon-allow-overlap': true, 'icon-size': ['interpolate', ['linear'], ['zoom'], 11, 0.8, 16, 1.05],
-              'text-field': ['step', ['zoom'], '', 14, ['get', 'name']], 'text-font': ['Inter SemiBold'], 'text-size': 12,
-              'text-anchor': 'left', 'text-offset': [1.1, 0], 'text-optional': true, 'text-max-width': 8 },
+  map.addLayer({ id: 'fav-label', type: 'symbol', source: 'favs', minzoom: 14,
+    layout: { ...label(12, 'Inter SemiBold', 1.4), 'symbol-sort-key': 0 },
     paint: { 'text-color': ['get', 'tc'], 'text-halo-color': dark ? 'rgba(22,24,28,0.9)' : '#FFFFFF', 'text-halo-width': 1.6 } });
+  map.addLayer({ id: 'fav', type: 'symbol', source: 'favs',
+    layout: { 'icon-image': ['get', 'icon'], 'icon-allow-overlap': true, 'icon-padding': 0, 'icon-size': ['interpolate', ['linear'], ['zoom'], 11, 0.8, 16, 1.05] } });
   map.addLayer({ id: 'selected', type: 'symbol', source: 'selected',
     layout: { 'icon-image': ['get', 'icon'], 'icon-allow-overlap': true, 'icon-ignore-placement': true,
               'text-field': ['get', 'name'], 'text-font': ['Inter Bold'], 'text-size': 13.5, 'text-anchor': 'left',

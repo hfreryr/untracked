@@ -225,6 +225,8 @@ const tests = {
     assert(/résultats/.test(await p.textContent('section.sheet .kind')), 'nombre de résultats absent');
     const pins = await p.evaluate(() => window.__map.getSource('cat-hits').serialize().data.features.length);
     assert(pins === n, `pastilles sur la carte (${pins}) ≠ lignes (${n})`);
+    // les noms ne se posent pas sur les autres pastilles : couche à part, placée là où il y a de la place (retour du 21/10)
+    assert(await p.evaluate(() => { const m = window.__map; return !!m.getLayer('cat-hit-label') && m.getLayoutProperty('cat-hit-label', 'text-variable-anchor')?.length === 4 && !m.getLayoutProperty('cat-hit', 'text-field'); }), 'noms des pastilles mal placés');
     assert(await p.$('.open-pills button:has-text("Ouvert maintenant")'), 'filtre « Ouvert maintenant » absent des résultats (décision du 21/10)');
     // toucher une ligne ouvre le lieu, la liste reste derrière
     await p.click('section.sheet .nearby li button >> nth=0'); await p.waitForSelector('.phead h1', { timeout: 10000 });
