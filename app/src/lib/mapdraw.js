@@ -119,6 +119,7 @@ export function createMapDraw(app) {
     }
     const hit = app.map.queryRenderedFeatures(e.point, { layers: ['cat-hit'] })[0];
     if (hit && app.nearby[hit.properties.i]?.saved) return app.openPlace({ ...app.nearby[hit.properties.i].saved, pin: { glyph: app.listOf(app.nearby[hit.properties.i].saved.lists?.[0]).icon, color: app.listOf(app.nearby[hit.properties.i].saved.lists?.[0]).color } });
+    if (hit && app.nearby[hit.properties.i]?.res) return app.openResult(app.nearby[hit.properties.i].res, hit.properties.i);
     if (hit && app.nearby[hit.properties.i]) return openFeature(app.nearby[hit.properties.i].f, 'cat-hit');
     const f = app.map.queryRenderedFeatures(e.point, { layers: ['poi-hit', 'poi', 'poi-other', 'landmark', 'metro'] })[0];
     if (f) return openFeature(f);

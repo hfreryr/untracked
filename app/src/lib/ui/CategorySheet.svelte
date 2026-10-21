@@ -131,12 +131,14 @@
           {tx('liste.ajouter_aux_raccourcis', { nom: app.category.label })}
         </button>
       {/if}
-      {#if app.openAt && app.openCounts}
+      {#if app.category.results}
+        <p class="kind">{tx('resultats.n_resultats', { n: app.nearby.length, ordre: app.nearbyFromMe ? tx('liste.les_plus_proches_de_vous_abord') : tx('liste.par_distance') })}</p>
+      {:else if app.openAt && app.openCounts}
         <p class="kind">{app.openCounts.open ? tx('liste.n_ouverts', { n: app.openCounts.open, quand: app.openAt.now ? tx('horaires.maintenant') : momentLabel(app.openAt.at).replace(/ (\d)/, ' à $1') }) : tx('liste.aucun_ouvert_dans_cette_zone', { quand: app.openAt.now ? tx('horaires.maintenant') : momentLabel(app.openAt.at).replace(/ (\d)/, ' à $1') })}</p>
       {:else}
         <p class="kind">{app.nearby.length ? (app.nearbyFromMe ? tx('liste.les_plus_proches_de_vous') : tx('liste.autour_du_centre_de_la_carte')) : app.nearbyDone ? tx('liste.aucun_dans_cette_zone_deplacez_la') : tx('resultats.recherche')}</p>
       {/if}
-      {#if !app.category.transit}
+      {#if !app.category.transit && !app.category.results}
         <div class="open-pills">
           <button class="opill" class:on={app.openAt?.now} aria-pressed={!!app.openAt?.now} onclick={() => app.setOpenAt(app.openAt?.now ? null : { now: true })}>{tx('liste.ouvert_maintenant')}</button>
           <button class="opill" bind:this={momentBtn} class:on={!!app.openAt?.at} aria-expanded={app.momentPicker} onclick={() => (app.momentPicker = !app.momentPicker)}>
@@ -180,7 +182,7 @@
               </button>
             {/if}
             {#if !(app.category.saved && (app.hubPanel || (!app.savedList && !app.category.shared)))}
-            <button class="n-main" onclick={() => { if (app.swiped) { app.swiped = null; return; } app.nearby.find((n) => n.f === f)?.saved ? app.openPlace({ ...app.nearby.find((n) => n.f === f).saved }) : app.openFeature(f); }}>
+            <button class="n-main" onclick={() => { if (app.swiped) { app.swiped = null; return; } app.nearby.find((n) => n.f === f)?.res ? app.openResult(app.nearby.find((n) => n.f === f).res, app.nearby.findIndex((n) => n.f === f)) : app.nearby.find((n) => n.f === f)?.saved ? app.openPlace({ ...app.nearby.find((n) => n.f === f).saved }) : app.openFeature(f); }}>
               <span class="n-dot" style:--fam={app.category.saved ? (app.category.shared ? app.category.color : app.listOf(app.nearby.find((n) => n.f === f)?.saved?.lists?.[0]).color) : app.famColor(app.category)} aria-hidden="true"></span>
               <span class="r-text">
                 <span class="r-name">{app.displayName(f, app.category)}</span>
@@ -201,7 +203,7 @@
                     <span class="r-meta">{tx('liste.touchez_pour_les_horaires', { type: typeLabel('', f.properties.subclass) || tx('liste.station') })}</span>
                   {/if}
                 {:else}
-                <span class="r-meta">{app.category.saved ? [app.nearby.find((n) => n.f === f)?.saved?.type, app.nearby.find((n) => n.f === f)?.saved?.address].filter(Boolean).join(' · ') || tx('liste.lieu_enregistre') : typeLabel('', f.properties.subclass) || app.category.label}{#if st?.open != null}{' · '}<span class:is-open={st.open} class:is-closed={!st.open}>{st.label}</span>{/if}</span>
+                <span class="r-meta">{app.category.results ? [app.nearby.find((n) => n.f === f)?.res?.type, app.nearby.find((n) => n.f === f)?.res?.address].filter(Boolean).join(' · ') : app.category.saved ? [app.nearby.find((n) => n.f === f)?.saved?.type, app.nearby.find((n) => n.f === f)?.saved?.address].filter(Boolean).join(' · ') || tx('liste.lieu_enregistre') : typeLabel('', f.properties.subclass) || app.category.label}{#if st?.open != null}{' · '}<span class:is-open={st.open} class:is-closed={!st.open}>{st.label}</span>{/if}</span>
                 {/if}
               </span>
               <span class="n-dist">{fmtDistance(d)}</span>

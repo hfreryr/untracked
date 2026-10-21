@@ -179,6 +179,23 @@ export async function search(query, at = city.center, signal, onEarly = null) {
 /** Lieux portant ce nom, partout (proches de « at » d'abord) : pour retrouver un lieu importé dont on n'a que le nom. */
 export const searchAnywhere = (query, at = city.center, signal) => byName(query.trim(), at, signal, 7, true);
 
+/** Un lieu (pas une adresse, une rue ou une zone) : ceux-là seuls se montrent tous ensemble sur la carte. */
+export const isPlaceResult = (r) => !!r && !r.area && !String(r.id).startsWith('ban:') && r.type !== tx('fiche.adresse') && r.type !== tx('resultats.rue');
+
+/**
+ * Touche Entrée : tous les lieux qui portent ce nom autour de « at » (jusqu'à `limit`), cherchés sur le téléphone,
+ * réunis avec ceux déjà affichés (Photon compris), les plus proches d'abord.
+ */
+export async function searchAllPlaces(query, at, shown = [], limit = 40) {
+  const idx = await index();
+  // l'index classe par pertinence sur tout Paris : on en prend large, puis on garde les plus proches
+  const mine = idx ? searchIndex(idx, query.trim(), at, limit * 10) : [];
+  const all = [...shown.filter(isPlaceResult)];
+  for (const r of mine) if (isPlaceResult(r) && !all.some((a) => sameAs(a, r))) all.push(r);
+  const d = (r) => Math.hypot((r.lon - at.lon) * Math.cos((at.lat * Math.PI) / 180), r.lat - at.lat);
+  return all.sort((a, b) => d(a) - d(b)).slice(0, limit);
+}
+
 /** Adresse la plus proche d'un point (nom de rue ou lieu). */
 export async function reverse(lat, lon) {
   if (city.country === 'FR') {
