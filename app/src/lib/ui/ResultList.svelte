@@ -1,14 +1,22 @@
 <script>
   import { tx } from '#lib/i18n/index.js';
   import { getContext } from 'svelte';
-  import { ALL_CATEGORIES } from '#lib/categories.js';
   import ListDot from '#lib/ui/ListDot.svelte';
   import PinnedRow from '#lib/ui/PinnedRow.svelte';
   import { brandOf } from '#lib/brandhit.js';
+  import { normName, sameSpot } from '#lib/myplaces.js';
 
   // État et actions de la page (voir le bloc « app » de +page.svelte)
   const app = getContext('app');
   // une enseigne (plusieurs lieux du même nom et du même type) : une ligne en tête mène à tous ses lieux, comme Google Maps
+  // Vos lieux enregistrés qui correspondent au texte tapé, en tête (comme Plans et Google Maps, 21/10) ;
+  // la barre vide ne les liste plus : seulement Maison / Travail et les récents.
+  const saved = $derived.by(() => {
+    const words = normName(app.activeQuery).split(' ').filter((w) => w.length > 1);
+    if (!words.length || app.assigning) return [];
+    return app.favorites.filter((f) => { const n = normName(f.name); return words.every((w) => n.includes(w)); }).slice(0, 3);
+  });
+  const others = $derived(app.results.filter((r) => !saved.some((f) => sameSpot(f, r))));
   const brand = $derived(!app.editing && !app.assigning && !app.catHit && app.activeQuery.trim().length >= 2 ? brandOf(app.results) : null);
 </script>
 
@@ -44,21 +52,6 @@
         </li>
       {/each}
     {/if}
-    {#if app.activeQuery.trim().length < 2 && app.favorites.length}
-      <li class="note recents-head"><span>{tx('resultats.mes_lieux')}</span>
-        {#if !app.editing}<button class="link" onmousedown={(e) => { e.preventDefault(); app.focused = false; document.activeElement?.blur(); app.pickCategory(ALL_CATEGORIES[0]); }}>{tx('resultats.tout_voir')}</button>{/if}</li>
-      {#each app.favorites.slice(0, 5) as r (r.id + r.lat)}
-        <li class="opt">
-          <button onmousedown={() => app.pickResult(r)}>
-            <ListDot l={app.listOf(r.lists?.[0])} size={32} />
-            <span class="r-text">
-              <span class="r-name">{r.name}</span>
-              <span class="r-meta">{[r.type, r.address].filter(Boolean).join(' · ')}</span>
-            </span>
-          </button>
-        </li>
-      {/each}
-    {/if}
     {#if app.activeQuery.trim().length < 2 && app.recents.length}
       <li class="note recents-head"><span>{tx('resultats.recents')}</span>
         <button class="link" onmousedown={(e) => { e.preventDefault(); app.forgetRecents(); }}>{tx('resultats.effacer')}</button></li>
@@ -76,6 +69,17 @@
         </li>
       {/each}
     {/if}
+    {#each saved as f (f.id + f.lat)}
+      <li class="opt saved-hit">
+        <button onmousedown={() => app.pickResult(f)}>
+          <ListDot l={app.listOf(f.lists?.[0])} size={32} />
+          <span class="r-text">
+            <span class="r-name">{f.name}</span>
+            <span class="r-meta">{[tx('resultats.dans_liste', { liste: f.lists.map((id) => app.listOf(id).name).join(', ') }), f.address].filter(Boolean).join(' · ')}</span>
+          </span>
+        </button>
+      </li>
+    {/each}
     {#if brand}
       <li class="opt brand">
         <button onmousedown={(e) => { e.preventDefault(); app.showBrand(brand.name); }}>
@@ -103,9 +107,9 @@
         </button>
       </li>
     {/if}
-    {#each app.results as r, i (r.id)}
+    {#each others as r (r.id)}
       <li class="opt">
-        <button class:active={i === app.active} onmousedown={() => app.pickResult(r)}>
+        <button class:active={app.results.indexOf(r) === app.active} onmousedown={() => app.pickResult(r)}>
           <span class="r-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z" /><circle cx="12" cy="9.5" r="2.5" /></svg>
           </span>
