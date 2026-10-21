@@ -187,11 +187,14 @@ button { font: inherit; color: inherit; }
 }
 .me.has-heading .me-beam { display: block; }
 .me.navigating .me-beam, .me.navigating .me-dot { display: none; }
-.me.navigating {
-  width: 0; height: 0; border-radius: 0; background: none; box-shadow: none;
-  border-left: 13px solid transparent; border-right: 13px solid transparent; border-bottom: 30px solid var(--accent);
-  filter: drop-shadow(0 0 2px #fff) drop-shadow(0 0 1px #fff) drop-shadow(0 2px 4px rgb(0 0 0 / 0.35));
+/* Pendant le guidage : flèche bleue dans un rond blanc ombré, qui glisse d'une position à l'autre (navglide.js) */
+.me .me-nav { display: none; }
+.me.navigating .me-nav {
+  display: block; position: absolute; left: 50%; top: 50%; width: 44px; height: 44px; margin: -22px 0 0 -22px;
+  filter: drop-shadow(0 2px 3px rgb(0 0 0 / 0.32));
 }
+.me-nav circle { fill: #FFFFFF; stroke: none; }
+.me-nav path { fill: #1F66E5; stroke: none; }
 /* ——— Devantures (Panoramax) ——— */
 .facade { display: block; position: relative; overflow: hidden; container-type: inline-size; aspect-ratio: 4 / 3; background: var(--fill); }
 .facade img { position: absolute; width: 800cqw; height: 400cqw; max-width: none; left: calc(50cqw - var(--fx) * 800cqw); top: -155cqw; }

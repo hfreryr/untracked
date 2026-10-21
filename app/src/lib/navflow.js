@@ -6,9 +6,11 @@ import { empty } from '#lib/maplayers.js';
 import { exitLabel } from '#lib/exits.js';
 import { placeLabel } from '#lib/rame.js';
 import { prepare, progress, remaining, spokenDistance } from '#lib/nav.js';
+import { createGlide } from '#lib/navglide.js';
 
 /** @param {any} app */
 export function createNav(app) {
+  const { glideTo, stopGlide } = createGlide(app);
   function speak(text) {
     if (!app.voice || !text || !('speechSynthesis' in window)) return;
     speechSynthesis.cancel();
@@ -48,7 +50,7 @@ export function createNav(app) {
       app.map.getSource('route-tags')?.setData(empty());
       // pendant le trajet, seul l'itinéraire choisi reste sur la carte
       app.map.getSource('route')?.setData({ type: 'FeatureCollection', features: [app.line(option.coords, app.mode,
-        app.mode === 'bike' ? app.BIKE_COLOR : app.WALK_COLOR, app.mode === 'bike' ? '#1B3F9E' : '#1B3F9E')] });
+        app.mode === 'bike' ? app.BIKE_COLOR : app.WALK_COLOR, app.mode === 'bike' ? '#3F86F6' : '#3F86F6')] });
     }
     app.nav = { ...base, kind, mode: app.mode, option, s: 0, k: 0, off: 0, arrived: false, startedAt: Date.now() };
     app.navFollow = true;
@@ -73,7 +75,6 @@ export function createNav(app) {
     const { latitude: lat, longitude: lon, heading, speed } = pos.coords;
     app.me = { label: tx('resultats.votre_position'), lat, lon, isMe: true };
     app.lastFix = { lat, lon, heading: speed > 1 && heading != null && !Number.isNaN(heading) ? heading : null };
-    app.showMe(lat, lon);
     updateNav();
   }
   function updateNav() {
@@ -94,19 +95,17 @@ export function createNav(app) {
     const prevK = app.nav.k;
     app.nav = { ...app.nav, s: Math.max(p.s, app.nav.s - 30), k, off: p.off, heading, arrived: app.nav.arrived || arrived };
     app.meMarker?.setRotationAlignment('map');      // la flèche suit la carte (qui tourne avec vous)
-    app.meMarker?.setRotation(heading);
     app.meMarker?.getElement().classList.add('navigating');
     // sur la carte : seul le reste du trajet reste en bleu, et le point de départ disparaît (la flèche suffit)
     if (app.nav.kind !== 'transit') {
       const color = app.nav.mode === 'bike' ? app.BIKE_COLOR : app.WALK_COLOR;
-      app.map.getSource('route')?.setData({ type: 'FeatureCollection', features: [app.line(remaining(app.nav, app.nav.s), app.nav.mode, color, '#1B3F9E')] });
+      app.map.getSource('route')?.setData({ type: 'FeatureCollection', features: [app.line(remaining(app.nav, app.nav.s), app.nav.mode, color, '#3F86F6')] });
     }
     app.map.getSource('route-ends')?.setData({ type: 'FeatureCollection', features: app.showVia && app.via && app.nav.steps.findIndex((st) => st.type === 'stop') > app.nav.k
       ? [{ type: 'Feature', geometry: { type: 'Point', coordinates: [app.via.lon, app.via.lat] }, properties: { kind: 'via' } }] : [] });
-    if (app.navFollow) {
-      app.map.easeTo({ center: [app.lastFix.lon, app.lastFix.lat], bearing: heading, pitch: 50, zoom: cfg.zoom,
-        offset: [0, Math.round(window.innerHeight * 0.18)], duration: 900 });
-    }
+    // la flèche (et la carte, si elle suit) glisse jusqu'à la nouvelle position, sans à-coup (navglide.js)
+    glideTo(app.lastFix.lat, app.lastFix.lon, heading,
+      app.navFollow ? { pitch: 50, zoom: cfg.zoom, offset: [0, Math.round(window.innerHeight * 0.18)] } : null);
     if (app.nav.arrived && !app.spoken.has('fin')) { app.spoken.add('fin'); speak(tx('guidage.vous_etes_arrive', { label: app.to.label })); return; }
     if (app.nav.kind === 'transit') {
       if (k !== prevK) speak(app.nav.steps[k].text);
@@ -134,7 +133,7 @@ export function createNav(app) {
     const next = app.nav.steps[k + 1];
     const at = app.nav.coords[Math.min(app.nav.coords.length - 1, next?.idx ?? app.nav.coords.length - 1)];
     const color = app.nav.mode === 'bike' ? app.BIKE_COLOR : app.WALK_COLOR;
-    app.map.getSource('route')?.setData({ type: 'FeatureCollection', features: [app.line(remaining(app.nav, s), app.nav.mode, color, '#1B3F9E')] });
+    app.map.getSource('route')?.setData({ type: 'FeatureCollection', features: [app.line(remaining(app.nav, s), app.nav.mode, color, '#3F86F6')] });
     app.navFollow = false;
     app.map.easeTo({ center: at, zoom: 17, pitch: 0, duration: 700 });
     if (next) speak(next.speak || next.text);
@@ -152,7 +151,7 @@ export function createNav(app) {
       app.offCount = 0;
       app.say(tx('guidage.nouvel_itineraire'));
       speak(tx('guidage.nouvel_itineraire_2') + (route.steps[0]?.speak || ''));
-      app.map.getSource('route')?.setData({ type: 'FeatureCollection', features: [app.line(route.coords, app.nav.mode, app.nav.mode === 'bike' ? app.BIKE_COLOR : app.WALK_COLOR, app.nav.mode === 'bike' ? '#1B3F9E' : '#1B3F9E')] });
+      app.map.getSource('route')?.setData({ type: 'FeatureCollection', features: [app.line(route.coords, app.nav.mode, app.nav.mode === 'bike' ? app.BIKE_COLOR : app.WALK_COLOR, app.nav.mode === 'bike' ? '#3F86F6' : '#3F86F6')] });
     } catch { /* on réessaiera au prochain écart */ }
     app.rerouting = false;
   }
@@ -163,6 +162,7 @@ export function createNav(app) {
     app.wakeLock?.release?.().catch?.(() => {});
     app.wakeLock = null;
     if ('speechSynthesis' in window) speechSynthesis.cancel();
+    stopGlide();
     app.nav = null;
     app.navList = false;
     app.meMarker?.setRotation(app.heading ?? 0);   // retour au faisceau de direction

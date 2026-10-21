@@ -45,6 +45,7 @@ export function createLocation(app) {
       if (app.nav) return;
       app.me = { label: tx('resultats.votre_position'), lat: coords.latitude, lon: coords.longitude, isMe: true };
       app.showMe(app.me.lat, app.me.lon);
+      app.followFrom();                    // itinéraire ouvert depuis votre position : il suit vos déplacements
       if (coords.speed > 1 && coords.heading != null) setHeading(coords.heading, false);
       if (app.followMode !== 'none' && !app.map.isMoving()) app.map.easeTo({ center: [app.me.lon, app.me.lat], duration: 600 });
     }, () => {}, { enableHighAccuracy: true, maximumAge: 5000, timeout: 30000 });

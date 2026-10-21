@@ -39,7 +39,7 @@ export function createMapDraw(app) {
       const sel = opts[app.pickedStreet] || r;
       // variantes en gris dessous (touchables), le trajet choisi en couleur par-dessus
       opts.forEach((o, i) => { if (o !== sel) feats.push({ ...line(o.coords, 'alt', '#A3ADBA', '#7F8A98'), properties: { kind: 'alt', color: '#A3ADBA', edge: '#7F8A98', i } }); });
-      feats.push(app.mode === 'bike' ? line(sel.coords, 'bike', app.BIKE_COLOR, '#1B3F9E') : line(sel.coords, app.mode, app.WALK_COLOR, '#1B3F9E'));
+      feats.push(app.mode === 'bike' ? line(sel.coords, 'bike', app.BIKE_COLOR, '#3F86F6') : line(sel.coords, app.mode, app.WALK_COLOR, '#3F86F6'));
     } else if (r && app.mode === 'transit' && r[app.picked]) {
       for (const leg of r[app.picked].legs) {
         if (leg.coords.length < 2) continue;
@@ -48,7 +48,8 @@ export function createMapDraw(app) {
     }
     src.setData({ type: 'FeatureCollection', features: feats });
     app.map.getSource('route-ends').setData(app.from && app.directions ? { type: 'FeatureCollection', features: [
-      { type: 'Feature', geometry: { type: 'Point', coordinates: [app.from.lon, app.from.lat] }, properties: { kind: 'from' } },
+      // départ = votre position : la flèche de position suffit, pas de second point (porteur, 21/10)
+      ...(app.from.isMe ? [] : [{ type: 'Feature', geometry: { type: 'Point', coordinates: [app.from.lon, app.from.lat] }, properties: { kind: 'from' } }]),
       ...(app.showVia && app.via ? [{ type: 'Feature', geometry: { type: 'Point', coordinates: [app.via.lon, app.via.lat] }, properties: { kind: 'via' } }] : [])] } : empty());
     const all = feats.flatMap((f) => f.geometry.coordinates);
     // zoom d'arrivée (après cadrage) : sert à écarter les étiquettes à l'écran
@@ -56,7 +57,9 @@ export function createMapDraw(app) {
     app.map.getSource('route-tags')?.setData(r && app.mode !== 'transit' && !app.nav ? tagsFor(r, app.pickedStreet, z ?? app.map.getZoom()) : empty());
     if (feats.length && fit) fitTo(all);
   }
-  const line = (coords, kind, color, edge = color) => ({ type: 'Feature', properties: { kind, color, edge }, geometry: { type: 'LineString', coordinates: coords } });
+  // « Mon itinéraire » (à pied, vélo, voiture) : trait en relief, cœur bleu et bords plus clairs, comme Plans (porteur, 21/10)
+  const RIM = { walk: '#A3CBFF', bike: '#A3CBFF', car: '#A3CBFF' };
+  const line = (coords, kind, color, edge = color) => ({ type: 'Feature', properties: { kind, color, edge, rim: RIM[kind] || null }, geometry: { type: 'LineString', coordinates: coords } });
   // Teinte plus foncée d'une couleur, pour le liseré d'un trait.
   function shade(hex, k = 0.7) {
     const n = parseInt(hex.slice(1, 7), 16);
