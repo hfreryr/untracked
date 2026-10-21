@@ -8,6 +8,7 @@
   import MapControls from '#lib/ui/MapControls.svelte';
   import StreetThumb from '#lib/ui/StreetThumb.svelte';
   import PromiseBanner from '#lib/ui/PromiseBanner.svelte';
+  import InstallCard from '#lib/ui/InstallCard.svelte';
   import ChipsEditor from '#lib/ui/ChipsEditor.svelte';
   import ImportSheet from '#lib/ui/ImportSheet.svelte';
   import TransferSheet from '#lib/ui/TransferSheet.svelte';
@@ -145,6 +146,8 @@
     try { localStorage.setItem('promesse-vue', '1'); } catch { /* rien */ }
   }
   let aboutOpen = $state(false);     // fenêtre « À propos » (bouton ⓘ de la carte)
+  let installSteps = $state(false);  // fenêtre « Installer sur l'iPhone » (InstallCard.svelte)
+  let startInstall = null;           // « Installer » (défini par InstallCard.svelte)
 
   // Panorama plein écran : on l'ouvre centré sur le lieu (rel : degrés depuis le centre de la photo)
   function panoScroll(node, rel) {
@@ -172,6 +175,8 @@
   let fieldEl = $state();
   let routes = $state({ walk: null, bike: null, transit: null }); // { status, data?, error? }
   let picked = $state(0);            // proposition de transport choisie
+  let transitDetail = $state(false); // transports : détail de la proposition choisie (sinon la liste des propositions)
+  let focusLeg = $state(null);       // étape du trajet en transport mise en avant sur la carte (index), ou null
   let mapMode = $state('plan');      // 'plan' | 'transit' | 'satellite'
   let themePref = $state(loadTheme()); // 'auto' | 'light' | 'dark' (theme.js)
   let restyle = () => {};
@@ -540,6 +545,8 @@
   // <app> État et actions partagés avec les composants et modules de l'écran (getContext('app')). Bloc généré.
   const app = {
     get aboutOpen() { return aboutOpen; }, set aboutOpen(v) { aboutOpen = v; },
+    get installSteps() { return installSteps; }, set installSteps(v) { installSteps = v; },
+    get startInstall() { return startInstall; }, set startInstall(v) { startInstall = v; },
     get openResult() { return openResult; }, get showAllResults() { return showAllResults; }, get showBrand() { return showBrand; },
     get resultsFor() { return resultsFor; }, get filters() { return filters; }, set filters(v) { filters = v; }, get toggleFilter() { return toggleFilter; },
     get transitPref() { return transitPref; }, set transitPref(v) { transitPref = v; }, get setTransitPref() { return setTransitPref; },
@@ -618,6 +625,9 @@
     get osmNoteUrl() { return osmNoteUrl; }, get panoScroll() { return panoScroll; }, get pickCategory() { return pickCategory; },
     get pickOnMap() { return pickOnMap; }, get pickResult() { return pickResult; }, get pickStreet() { return pickStreet; },
     get picked() { return picked; }, set picked(v) { picked = v; }, get followFrom() { return followFrom; },
+    get transitDetail() { return transitDetail; }, set transitDetail(v) { transitDetail = v; },
+    get focusLeg() { return focusLeg; }, set focusLeg(v) { focusLeg = v; },
+    get openTransit() { return openTransit; }, get closeTransit() { return closeTransit; }, get focusOnLeg() { return focusOnLeg; },
     get pickedStreet() { return pickedStreet; }, set pickedStreet(v) { pickedStreet = v; }, get pickerDay() { return pickerDay; },
     get pickerDays() { return pickerDays; }, get pickerHours() { return pickerHours; }, get pickerTime() { return pickerTime; },
     get pinnedPlaces() { return pinnedPlaces; }, get pins() { return pins; }, set pins(v) { pins = v; },
@@ -686,7 +696,7 @@
   const { clearSearch, hitFilter, catIcon, applyHit, displayName, collectCategory, applyOpenFilter, setOpenAt, momentFrom, quickMoment, nearView, reloadCategoryHere, pickCategory, clearCategory, dist, openCategoryFromSearch, onKey, pickResult, openResult, showAllResults, showBrand, toggleFilter } = createSearch(app);
   const { say, isolate, closeTop, onPopState, onKeyDown, undoToast, showMe } = createScreen(app);
   const { setHeading, onOrientation, startCompass, startWatch, stopWatch, getPosition, startupLocate, locError, locDetail, locate, pickOnMap } = createLocation(app);
-  const { startDirections, openDirections, closeDirections, pointOf, setPoint, addStop, removeStop, editField, useMyPosition, swap, computeRoutes, followFrom, chooseMode, sheetToTop, pickStreet, pickTransit, setTransitPref, setWhen } = createDirections(app);
+  const { startDirections, openDirections, closeDirections, pointOf, setPoint, addStop, removeStop, editField, useMyPosition, swap, computeRoutes, followFrom, chooseMode, sheetToTop, pickStreet, pickTransit, openTransit, closeTransit, focusOnLeg, setTransitPref, setWhen } = createDirections(app);
   const { speak, transitSteps, startNav, onFix, updateNav, stepBy, reroute, endNav } = createNav(app);
   const { importFile } = createImport(app);
 </script>
@@ -706,6 +716,7 @@
   <PhotoViewer />
   {#if toast}<p class="toast" role="status">{toast}{#if toastAction}<button onclick={undoToast}>{toastAction.label}</button>{/if}</p>{/if}
   <PromiseBanner />
+  <InstallCard />
 
   {#if listPicker && place && !directions}
     <ListPicker />

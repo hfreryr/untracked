@@ -41,17 +41,24 @@ export function createMapDraw(app) {
       opts.forEach((o, i) => { if (o !== sel) feats.push({ ...line(o.coords, 'alt', '#A3ADBA', '#7F8A98'), properties: { kind: 'alt', color: '#A3ADBA', edge: '#7F8A98', i } }); });
       feats.push(app.mode === 'bike' ? line(sel.coords, 'bike', app.BIKE_COLOR, '#3F86F6') : line(sel.coords, app.mode, app.WALK_COLOR, '#3F86F6'));
     } else if (r && app.mode === 'transit' && r[app.picked]) {
-      for (const leg of r[app.picked].legs) {
-        if (leg.coords.length < 2) continue;
-        feats.push(leg.mode === 'WALK' ? line(leg.coords, 'transfer', '#6F7A88') : line(leg.coords, 'transit', leg.color, shade(leg.color)));
-      }
+      r[app.picked].legs.forEach((leg, li) => {
+        if (leg.coords.length < 2) return;
+        const f = leg.mode === 'WALK' ? line(leg.coords, 'transfer', '#6F7A88') : line(leg.coords, 'transit', leg.color, shade(leg.color));
+        // li : quelle étape (toucher le trait l'ouvre dans la fiche) ; dim : estompée quand une autre est choisie
+        Object.assign(f.properties, { li, dim: app.focusLeg != null && app.focusLeg !== li });
+        feats.push(f);
+      });
     }
+    const focus = app.mode === 'transit' && app.focusLeg != null ? r?.[app.picked]?.legs[app.focusLeg] : null;
+    // l'étape choisie : ses deux arrêts marqués d'un rond à la couleur de la ligne
+    const stops = focus && focus.mode !== 'WALK' && focus.coords.length > 1 ? [focus.coords[0], focus.coords.at(-1)].map((c) =>
+      ({ type: 'Feature', geometry: { type: 'Point', coordinates: c }, properties: { kind: 'stop', color: focus.color } })) : [];
     src.setData({ type: 'FeatureCollection', features: feats });
     app.map.getSource('route-ends').setData(app.from && app.directions ? { type: 'FeatureCollection', features: [
       // départ = votre position : la flèche de position suffit, pas de second point (porteur, 21/10)
       ...(app.from.isMe ? [] : [{ type: 'Feature', geometry: { type: 'Point', coordinates: [app.from.lon, app.from.lat] }, properties: { kind: 'from' } }]),
-      ...(app.showVia && app.via ? [{ type: 'Feature', geometry: { type: 'Point', coordinates: [app.via.lon, app.via.lat] }, properties: { kind: 'via' } }] : [])] } : empty());
-    const all = feats.flatMap((f) => f.geometry.coordinates);
+      ...(app.showVia && app.via ? [{ type: 'Feature', geometry: { type: 'Point', coordinates: [app.via.lon, app.via.lat] }, properties: { kind: 'via' } }] : []), ...stops] } : empty());
+    const all = focus?.coords.length > 1 ? focus.coords : feats.flatMap((f) => f.geometry.coordinates);
     // zoom d'arrivée (après cadrage) : sert à écarter les étiquettes à l'écran
     const z = all.length && fit ? app.map.cameraForBounds(boundsOf(all), fitOptions())?.zoom ?? app.map.getZoom() : app.map.getZoom();
     app.map.getSource('route-tags')?.setData(r && app.mode !== 'transit' && !app.nav ? tagsFor(r, app.pickedStreet, z ?? app.map.getZoom()) : empty());
@@ -109,6 +116,10 @@ export function createMapDraw(app) {
       const alt = !app.editing && app.map.queryRenderedFeatures([[e.point.x - 8, e.point.y - 8], [e.point.x + 8, e.point.y + 8]], { layers: ['route-line'] })
         .find((f) => f.properties.kind === 'alt');
       if (alt) return app.pickStreet(alt.properties.i);
+      // trajet en transport : toucher un bout du tracé ouvre cette étape dans la fiche (comme Citymapper)
+      const leg = !app.editing && app.mode === 'transit' && app.map.queryRenderedFeatures([[e.point.x - 10, e.point.y - 10], [e.point.x + 10, e.point.y + 10]], { layers: ['route-line', 'route-walk'] })
+        .find((f) => f.properties.li != null);
+      if (leg) return app.focusOnLeg(leg.properties.li);
       const which = app.editing || (Date.now() - app.lastEdit.at < 800 ? app.lastEdit.which : null);
       if (which) app.pickOnMap(which, e.lngLat);
       return;

@@ -25,7 +25,8 @@ const assert = (cond, msg) => { if (!cond) throw new Error(msg); };
 async function page(opts = {}, hash = '') {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, locale: 'fr-FR', timezoneId: 'Europe/Paris',
     geolocation: { latitude: 48.851, longitude: 2.339 }, permissions: ['geolocation'], ...opts });
-  await ctx.addInitScript(() => localStorage.setItem('promesse-vue', '1'));
+  // (bandeau de la première ouverture et invitation à installer déjà vus : ils ne gênent pas les autres tests)
+  await ctx.addInitScript(() => { localStorage.setItem('promesse-vue', '1'); localStorage.setItem('installer-plus-tard', JSON.stringify({ n: 2, at: Date.now() })); });
   const p = await ctx.newPage();
   const errors = [];
   p.on('pageerror', (e) => errors.push(e.message));
@@ -297,6 +298,42 @@ const tests = {
     assert((await p.locator('.results li.opt:has-text("Café de Flore")').count()) === 1, 'Café de Flore en double');
     await p.dispatchEvent('.results li.saved-hit button', 'mousedown'); await p.waitForSelector('.phead h1', { timeout: 10000 });
     assert(/Café de Flore/.test(await p.textContent('.phead h1')), 'fiche non ouverte');
+    assert(!errors.length, errors.join(' | '));
+    await ctx.close();
+  },
+  async 'invitation à installer : après un lieu enregistré, iPhone (deux gestes) et Android (fenêtre du téléphone) (21/10)'() {
+    const fav = JSON.stringify([{ id: 'node1', name: 'Café de Flore', type: 'Café', address: '', lat: 48.85414, lon: 2.33263, lists: ['fav'] }]);
+    // iPhone (Safari) : la carte, puis les deux gestes
+    let ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, locale: 'fr-FR',
+      userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1' });
+    await ctx.addInitScript((f) => { localStorage.setItem('promesse-vue', '1'); if (!sessionStorage.getItem('vide')) localStorage.setItem('lieux-favoris', f); }, fav);
+    let p = await ctx.newPage(); const errors = []; p.on('pageerror', (e) => errors.push(e.message));
+    await p.goto(`http://localhost:${PORT}/`); await p.waitForSelector('.install', { timeout: 8000 });
+    await p.click('.install .go'); await p.waitForSelector('.dlg .steps');
+    assert(/Partager/.test(await p.textContent('.dlg')) && /Sur l.écran d.accueil/.test(await p.textContent('.dlg')), 'étapes iPhone absentes');
+    assert(/sans vos lieux de Safari/.test(await p.textContent('.dlg')), 'avertissement sur les lieux de Safari absent');
+    await p.keyboard.press('Escape'); await p.waitForTimeout(300);
+    assert(!(await p.$('.install')), 'la carte reste après « Installer »');
+    // ⓘ propose aussi l'installation
+    await p.click('.about-btn'); await p.waitForSelector('.dlg');
+    assert(/Installer l.app sur l.écran d.accueil/.test(await p.textContent('.dlg')), 'entrée « Installer » absente de ⓘ');
+    await ctx.close();
+    // « Plus tard » : la carte ne revient pas à l'ouverture suivante
+    ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, locale: 'fr-FR',
+      userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1' });
+    await ctx.addInitScript((f) => { localStorage.setItem('promesse-vue', '1'); localStorage.setItem('lieux-favoris', f); }, fav);
+    p = await ctx.newPage(); await p.goto(`http://localhost:${PORT}/`); await p.waitForSelector('.install', { timeout: 8000 });
+    await p.click('.install .later'); await p.reload(); await p.waitForTimeout(2500);
+    assert(!(await p.$('.install')), 'la carte revient malgré « Plus tard »');
+    await ctx.close();
+    // Android : le navigateur propose l'installation (événement simulé) ; « Installer » ouvre sa fenêtre
+    ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, locale: 'fr-FR' });
+    await ctx.addInitScript((f) => { localStorage.setItem('promesse-vue', '1'); localStorage.setItem('lieux-favoris', f); }, fav);
+    p = await ctx.newPage(); await p.goto(`http://localhost:${PORT}/`); await p.waitForTimeout(2500);
+    assert(!(await p.$('.install')), 'carte affichée alors que le navigateur ne sait pas installer');
+    await p.evaluate(() => { const e = new Event('beforeinstallprompt'); e.prompt = () => { window.__prompted = true; }; e.userChoice = Promise.resolve({ outcome: 'accepted' }); window.dispatchEvent(e); });
+    await p.waitForSelector('.install', { timeout: 5000 }); await p.click('.install .go'); await p.waitForTimeout(500);
+    assert(await p.evaluate(() => window.__prompted === true), 'la fenêtre d’installation du téléphone ne s’ouvre pas');
     assert(!errors.length, errors.join(' | '));
     await ctx.close();
   },
@@ -639,27 +676,40 @@ z.close()`, zip]);
     let valhalla = 0; p.on('request', (r) => { if (r.url().includes('valhalla')) valhalla++; });
     await p.fill('#search', 'Panthéon'); await p.waitForTimeout(3500); await pick(p); await p.waitForTimeout(2500);
     await p.click('.action.primary'); await p.waitForTimeout(2000);
-    await p.click('.mode-tabs .mode-tab >> nth=2'); await p.waitForTimeout(12000);
-    assert((await p.locator('.leg').count()) > 2, 'aucun itinéraire en transports');
+    await p.click('.mode-tabs .mode-tab >> nth=2'); await p.waitForSelector('.t-opt', { timeout: 25000 });
+    // la liste des propositions, puis le détail d'une proposition : une carte par étape (retour Citymapper, 21/10)
+    await p.click('.t-opt >> nth=0'); await p.waitForSelector('.cards .card.ride', { timeout: 5000 }); await p.waitForTimeout(8000);
     // si une sortie est conseillée (métro ou RER), le trajet à pied qui suit a été recalculé depuis cette sortie
     // (la place dans la rame n'existe que là où la RATP la publie : pas d'assertion, la sortie peut venir seule)
-    if (await p.locator('.leg-exit').count()) assert(valhalla >= 4, `trajet à pied depuis la sortie non recalculé (${valhalla} appels Valhalla)`);
-    // la sortie et la place dans la rame figurent aussi dans le résumé, visible sans faire défiler
-    if (await p.locator('.leg-exit').count()) assert((await p.locator('.sum .sum-tip').count()) >= 1, 'sortie absente du résumé');
+    if (await p.locator('.card.off .sub:has-text("Meilleure sortie")').count()) assert(valhalla >= 4, `trajet à pied depuis la sortie non recalculé (${valhalla} appels Valhalla)`);
+    // la rame dessinée, nommée pour les lecteurs d'écran
+    if (await p.locator('.card .rame').count()) assert(/voiture \d+ sur \d+/.test(await p.getAttribute('.card .rame >> nth=0', 'aria-label')), 'rame sans nom');
+    // les arrêts se déplient
+    await p.click('.card.ride .more >> nth=0');
+    assert((await p.locator('.card.ride .stops li').count()) >= 2, 'arrêts de la ligne non dépliés');
+    // toucher une étape : elle est cadrée sur la carte, les autres bouts s'estompent ; retoucher : tout le trajet
+    await p.click('.card.ride .head >> nth=0'); await p.waitForTimeout(400);
+    assert(await p.$('.card.ride.sel'), 'étape touchée non mise en avant');
+    const dims = () => p.evaluate(async () => (await window.__map.getSource('route').getData()).features.filter((f) => f.properties.dim).length);
+    assert((await dims()) > 0, 'les autres étapes ne s\'estompent pas');
+    await p.click('.card.ride .head >> nth=0'); await p.waitForTimeout(400);
+    assert((await dims()) === 0 && !(await p.$('.card.sel')), 'retoucher l\'étape ne revient pas au trajet entier');
+    // retour à la liste des propositions
+    await p.click('.t-head .back'); await p.waitForSelector('.t-opt', { timeout: 3000 });
     await ctx.close();
   },
   async 'transports : prix du trajet et choix des modes (« Bus et tram » seulement)'() {
     const { p, ctx, errors } = await page({ geolocation: { latitude: 48.8867, longitude: 2.3431 } });
     await p.fill('#search', '57 rue de rennes'); await p.waitForSelector('.results li.opt button', { timeout: 30000 }); await pick(p); await p.waitForTimeout(2500);
     await p.click('.action.primary'); await p.waitForTimeout(2000);
-    await p.click('.mode-tabs .mode-tab >> nth=2'); await p.waitForSelector('.route-sheet .sum.transit', { timeout: 25000 });
-    assert(/\d,\d\d €/.test(await p.$eval('.route-sheet .sum', (e) => e.innerText)), 'prix absent du résumé');
+    await p.click('.mode-tabs .mode-tab >> nth=2'); await p.waitForSelector('.t-opt', { timeout: 25000 });
+    assert(/\d,\d\d €/.test(await p.$eval('.t-opt', (e) => e.innerText)), 'prix absent de la proposition');
     // départs comme Citymapper : « dans 1, 4, 7 min de Station » (minutes avant de partir), ou l'heure du train
-    assert(/dans [\d, ]+ min de |\d\d:\d\d.* de /.test(await p.$eval('.route-sheet .sum .depart', (e) => e.innerText)), 'départs absents du résumé');
+    assert(/dans [\d, ]+ min de |\d\d:\d\d.* de /.test(await p.$eval('.t-opt .depart', (e) => e.innerText)), 'départs absents de la proposition');
     // « pas de métro, pas de RER » (P5 : liste excluante) : il reste bus et tram
     await p.click('.t-pref:has-text("Métro")'); await p.waitForTimeout(400); await p.click('.t-pref:has-text("RER")'); await p.waitForTimeout(1000);
-    await p.waitForSelector('.route-sheet .sum.transit', { timeout: 25000 }); await p.waitForTimeout(1500);
-    const metas = await p.$$eval('.legs .leg:not(.walk):not(.stop)', (els) => els.map((e) => e.querySelector('.leg-meta')?.textContent || '').filter((t) => t.trim()));
+    await p.waitForSelector('.t-opt', { timeout: 25000 }); await p.waitForTimeout(1500);
+    const metas = await p.$$eval('.t-opts .chain .badge', (els) => els.map((e) => e.getAttribute('aria-label') || ''));
     assert(metas.length && metas.every((m) => /Bus|Tram/.test(m)), `autre mode que bus ou tram : ${metas.join(' | ')}`);
     assert(!errors.length, errors.join(' | '));
     await ctx.close();
@@ -668,7 +718,7 @@ z.close()`, zip]);
     const { p, ctx, errors } = await page({ geolocation: { latitude: 48.8867, longitude: 2.3431 } });
     await p.fill('#search', '57 rue de rennes'); await p.waitForSelector('.results li.opt button', { timeout: 30000 }); await pick(p); await p.waitForTimeout(2500);
     await p.click('.action.primary'); await p.waitForTimeout(2000);
-    await p.click('.mode-tabs .mode-tab >> nth=2'); await p.waitForSelector('.route-sheet .sum.transit', { timeout: 25000 });
+    await p.click('.mode-tabs .mode-tab >> nth=2'); await p.waitForSelector('.t-opt', { timeout: 25000 });
     assert(/Partir maintenant/.test(await p.textContent('.when-btn')), 'bouton « Partir maintenant » absent');
     await p.click('.when-btn'); await p.click('.seg-btn:has-text("Arriver à")');
     // « demain » selon l'heure du téléphone simulé (le fuseau du navigateur peut différer de celui de la machine)
@@ -676,10 +726,12 @@ z.close()`, zip]);
     await p.fill('.when-field input', `${day}T09:00`);
     await p.click('.when-ok');
     assert(/Arrivée demain à 09:00/.test(await p.textContent('.when-btn')), 'heure choisie non affichée : ' + await p.textContent('.when-btn'));
-    await p.waitForSelector('.route-sheet .sum.transit', { timeout: 25000 }); await p.waitForTimeout(1000);
-    const sum = await p.$eval('.route-sheet .sum', (e) => e.innerText);
-    assert(/Départ \d\d:\d\d/.test(sum), `« Départ HH:MM » absent (comme Citymapper) : ${sum}`);
-    const arr = /Arrivée (\d\d):(\d\d)/.exec(sum);
+    await p.waitForSelector('.t-opt', { timeout: 25000 }); await p.waitForTimeout(1000);
+    const opt = await p.$eval('.t-opt', (e) => e.innerText);
+    assert(/Départ \d\d:\d\d/.test(opt), `« Départ HH:MM » absent (comme Citymapper) : ${opt}`);
+    await p.click('.t-opt >> nth=0'); await p.waitForSelector('.t-head');
+    const sum = await p.$eval('.t-head', (e) => e.innerText);
+    const arr = /→ (\d\d):(\d\d)/.exec(sum);
     assert(arr && +arr[1] * 60 + +arr[2] <= 9 * 60 && +arr[1] >= 7, `arrivée hors de 7 h – 9 h : ${sum}`);
     await p.click('.mode-tabs .mode-tab >> nth=0'); await p.waitForTimeout(1500);
     assert(/Départ \d\d:\d\d/.test(await p.$eval('.route-sheet .sum', (e) => e.innerText)), 'heure de départ à pied absente');

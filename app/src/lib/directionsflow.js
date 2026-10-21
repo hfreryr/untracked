@@ -104,6 +104,8 @@ export function createDirections(app) {
     if (!keep) {
       app.picked = 0;
       app.pickedStreet = 0;
+      app.transitDetail = false;
+      app.focusLeg = null;
       app.routes = { walk: { status: 'loading' }, bike: { status: 'loading' }, transit: { status: 'loading' }, car: { status: 'loading' } };
     }
     const run = async (id, fn) => {
@@ -149,6 +151,8 @@ export function createDirections(app) {
   function chooseMode(m) {
     app.mode = m;
     app.picked = 0;
+    app.transitDetail = false;
+    app.focusLeg = null;
     app.pickedStreet = 0;
     app.showSteps = false;
     app.drawRoute();
@@ -162,8 +166,27 @@ export function createDirections(app) {
   }
   function pickTransit(i) {
     app.picked = i;
+    app.focusLeg = null;
     app.drawRoute();
     sheetToTop();
+  }
+  // Transports : la liste des propositions, puis le détail d'une proposition étape par étape (comme Citymapper).
+  function openTransit(i) {
+    pickTransit(i);
+    app.transitDetail = true;
+  }
+  function closeTransit() {
+    app.transitDetail = false;
+    app.focusLeg = null;
+    app.drawRoute();
+    sheetToTop();
+  }
+  /** Toucher une étape (dans la fiche ou son trait sur la carte) : la carte cadre ce bout, le reste s'estompe ; retoucher : tout le trajet. */
+  function focusOnLeg(li) {
+    app.transitDetail = true;
+    app.focusLeg = app.focusLeg === li ? null : li;
+    app.drawRoute();
+    requestAnimationFrame(() => document.querySelector(`.route-sheet [data-leg="${li}"]`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }));
   }
 
   /** Retirer ou remettre une famille de transports (P4 : « seulement le métro » ; P5 : « pas de bus »). Il en reste toujours une. */
@@ -180,5 +203,5 @@ export function createDirections(app) {
     app.picked = 0;
     computeRoutes();
   }
-  return { startDirections, openDirections, closeDirections, pointOf, setPoint, addStop, removeStop, editField, useMyPosition, swap, computeRoutes, followFrom, chooseMode, sheetToTop, pickStreet, pickTransit, setTransitPref, setWhen };
+  return { startDirections, openDirections, closeDirections, pointOf, setPoint, addStop, removeStop, editField, useMyPosition, swap, computeRoutes, followFrom, chooseMode, sheetToTop, pickStreet, pickTransit, openTransit, closeTransit, focusOnLeg, setTransitPref, setWhen };
 }

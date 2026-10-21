@@ -7,6 +7,9 @@ import { fmtDuration } from './routing.js';
 
 export const empty = () => ({ type: 'FeatureCollection', features: [] });
 
+// Étape touchée dans la fiche (ou sur la carte) : les autres bouts du trajet s'estompent (comme Citymapper).
+const FADE = ['case', ['boolean', ['get', 'dim'], false], 0.3, 1];
+
 export function addRouteLayers(map, dark) {
   map.addSource('route', { type: 'geojson', data: empty() });
   const before = 'water-name-point';
@@ -16,17 +19,17 @@ export function addRouteLayers(map, dark) {
   // Trajets à pied, à vélo et en transport : trait plein, liseré foncé puis bord blanc.
   map.addLayer({ id: 'route-halo', type: 'line', source: 'route', filter: ['!=', ['get', 'kind'], 'transfer'],
     layout: { 'line-cap': 'round', 'line-join': 'round' },
-    paint: { 'line-color': ['coalesce', ['get', 'rim'], dark ? DARK_LAND : '#FFFFFF'], 'line-width': width(7.5, 15) } }, before);
+    paint: { 'line-color': ['coalesce', ['get', 'rim'], dark ? DARK_LAND : '#FFFFFF'], 'line-width': width(7.5, 15), 'line-opacity': FADE } }, before);
   map.addLayer({ id: 'route-case', type: 'line', source: 'route', filter: ['!=', ['get', 'kind'], 'transfer'],
     layout: { 'line-cap': 'round', 'line-join': 'round' },
-    paint: { 'line-color': ['get', 'edge'], 'line-width': width(5.2, 11) } }, before);
+    paint: { 'line-color': ['get', 'edge'], 'line-width': width(5.2, 11), 'line-opacity': FADE } }, before);
   map.addLayer({ id: 'route-line', type: 'line', source: 'route', filter: ['!=', ['get', 'kind'], 'transfer'],
     layout: { 'line-cap': 'round', 'line-join': 'round' },
-    paint: { 'line-color': ['get', 'color'], 'line-width': width(3.4, 7.5) } }, before);
+    paint: { 'line-color': ['get', 'color'], 'line-width': width(3.4, 7.5), 'line-opacity': FADE } }, before);
   // Correspondances à pied dans un trajet en transport : points discrets.
   map.addLayer({ id: 'route-walk', type: 'line', source: 'route', filter: ['==', ['get', 'kind'], 'transfer'],
     layout: { 'line-cap': 'round', 'line-join': 'round' },
-    paint: { 'line-color': '#6F7A88', 'line-width': width(3.2, 5.5), 'line-dasharray': [0, 1.7] } }, before);
+    paint: { 'line-color': '#6F7A88', 'line-width': width(3.2, 5.5), 'line-dasharray': [0, 1.7], 'line-opacity': FADE } }, before);
   // Étiquettes sur les tracés : « 18 min » sur celui choisi, « +2 min » sur les autres (comme Plans et Maps)
   map.addSource('route-tags', { type: 'geojson', data: empty() });
   const tagLayout = { 'text-field': ['get', 'label'], 'text-font': ['Inter Bold'], 'text-size': 13,
@@ -40,8 +43,8 @@ export function addRouteLayers(map, dark) {
     paint: { 'text-color': '#FFFFFF' } });
   map.addSource('route-ends', { type: 'geojson', data: empty() });
   map.addLayer({ id: 'route-start', type: 'circle', source: 'route-ends',
-    paint: { 'circle-radius': 7.5, 'circle-color': ['match', ['get', 'kind'], 'via', '#FFFFFF', '#2A5BD7'],
-             'circle-stroke-color': ['match', ['get', 'kind'], 'via', '#1C1D1F', '#FFFFFF'], 'circle-stroke-width': 3.5 } });
+    paint: { 'circle-radius': ['match', ['get', 'kind'], 'stop', 6, 7.5], 'circle-color': ['match', ['get', 'kind'], 'via', '#FFFFFF', 'stop', '#FFFFFF', '#2A5BD7'],
+             'circle-stroke-color': ['match', ['get', 'kind'], 'via', '#1C1D1F', 'stop', ['get', 'color'], '#FFFFFF'], 'circle-stroke-width': 3.5 } });
 }
 
 /** Couches de nos repères : résultats d'une catégorie, Mes lieux, lieu sélectionné. */
