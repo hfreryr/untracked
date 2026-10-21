@@ -255,6 +255,26 @@ const tests = {
     assert(!errors.length, errors.join(' | '));
     await ctx.close();
   },
+  async 'barre de recherche : pas de liste « Mes lieux » à vide ; vos lieux en tête quand le texte leur correspond (21/10)'() {
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, locale: 'fr-FR' });
+    await ctx.addInitScript(() => {
+      localStorage.setItem('promesse-vue', '1');
+      localStorage.setItem('mes-listes', JSON.stringify([{ id: 'fav', name: 'Favoris', icon: 'heart', color: '#D63A7A' }, { id: 'lr', name: 'Restos', icon: 'star', color: '#2A5BD7' }]));
+      localStorage.setItem('lieux-favoris', JSON.stringify([{ id: 'node1', name: 'Café de Flore', type: 'Café', address: '', lat: 48.85414, lon: 2.33263, lists: ['lr'] }]));
+    });
+    const p = await ctx.newPage(); const errors = []; p.on('pageerror', (e) => errors.push(e.message));
+    await p.goto(`http://localhost:${PORT}/`); await p.waitForTimeout(2500);
+    await p.click('#search'); await p.waitForTimeout(600);
+    assert(!(await p.$('.results li.saved-hit')) && !/Café de Flore/.test(await p.textContent('.results')), 'lieux enregistrés listés à vide');
+    await p.fill('#search', 'flore'); await p.waitForSelector('.results li.saved-hit', { timeout: 10000 }); await p.waitForTimeout(1500);
+    const first = await p.textContent('.results li.opt >> nth=0');
+    assert(/Café de Flore/.test(first) && /Dans Restos/.test(first), `votre lieu n'est pas en tête : ${first}`);
+    assert((await p.locator('.results li.opt:has-text("Café de Flore")').count()) === 1, 'Café de Flore en double');
+    await p.dispatchEvent('.results li.saved-hit button', 'mousedown'); await p.waitForSelector('.phead h1', { timeout: 10000 });
+    assert(/Café de Flore/.test(await p.textContent('.phead h1')), 'fiche non ouverte');
+    assert(!errors.length, errors.join(' | '));
+    await ctx.close();
+  },
   async 'filtres des listes : terrasse sur les restaurants, seulement les filtres utiles, lieux sans information à part (21/10)'() {
     const { p, ctx, errors } = await page({ geolocation: { latitude: 48.853, longitude: 2.333 } });
     await p.click('.chip:has-text("Restaurants")'); await p.waitForTimeout(6000);
