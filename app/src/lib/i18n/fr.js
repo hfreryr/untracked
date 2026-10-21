@@ -176,6 +176,7 @@ export default {
   'liste.derniere_sauvegarde_aujourd_hui': 'Dernière sauvegarde aujourd\'hui',
   'liste.derniere_sauvegarde_il_y_a_jour': ({ n }) => `Dernière sauvegarde il y a ${n} ${pluriel(n, 'jour', 'jours')}`,
   'liste.liste_partagee_lieu': ({ n }) => `Liste partagée · ${n} ${pluriel(n, 'lieu', 'lieux')}`,
+  'resultats.n_resultats': ({ n, ordre }) => `${n} ${pluriel(n, 'résultat', 'résultats')}, ${ordre}`,
   'liste.lieu': ({ n, ordre }) => `${n} ${pluriel(n, 'lieu', 'lieux')}, ${ordre}`,
   'liste.aucun_lieu_pour_instant_touchez': 'Aucun lieu pour l\'instant : touchez « Enregistrer » sur la fiche d\'un lieu.',
   'liste.modifier': 'Modifier',

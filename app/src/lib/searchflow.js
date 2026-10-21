@@ -1,12 +1,13 @@
 // Recherche et catégories : résultats, filtres « ouvert », liste autour de la carte.
 // Code sorti de +page.svelte : il lit et modifie l'état de l'écran par l'objet « app » (bloc « app » de la page).
 import { tx } from '#lib/i18n/index.js';
+import { tick } from 'svelte';
 import { ARR_CENTERS, fitsDiet } from '#lib/intent.js';
 import { FAMILIES } from '#lib/mapstyle.js';
 import { departures } from '#lib/routing.js';
 import { empty } from '#lib/maplayers.js';
 import { hoursStatus, statusAt } from '#lib/hours.js';
-import { search } from '#lib/geocode.js';
+import { search, searchAllPlaces, isPlaceResult } from '#lib/geocode.js';
 import { searchCategory } from '#lib/places.js';
 
 /** @param {any} app */
@@ -138,7 +139,7 @@ export function createSearch(app) {
   }
   function reloadCategoryHere() {
     const c = app.category;
-    if (!c || c.saved || app.directions || app.nav) return;
+    if (!c || c.saved || c.results || app.directions || app.nav) return;
     if (app.place) { app.reloadLater = true; return; }   // une fiche est ouverte : on recharge à sa fermeture
     app.reloadLater = false;
     // attendre que la carte ait chargé la nouvelle zone
@@ -227,11 +228,53 @@ export function createSearch(app) {
   }
   function onKey(e) {
     if (e.key === 'Enter' && app.catHit && app.active < 0) { e.preventDefault(); openCategoryFromSearch(); return; }
+    // Entrée avant que la liste n'arrive (on tape vite) : on cherche quand même tous les lieux de ce nom
+    if (e.key === 'Enter' && !app.editing && app.active < 0 && app.activeQuery.trim().length >= 2) { e.preventDefault(); showAllResults(); return; }
     if (!app.showList || !app.results.length) return;
     if (e.key === 'ArrowDown') { app.active = (app.active + 1) % app.results.length; e.preventDefault(); }
     else if (e.key === 'ArrowUp') { app.active = (app.active - 1 + app.results.length) % app.results.length; e.preventDefault(); }
-    else if (e.key === 'Enter') pickResult(app.results[Math.max(app.active, 0)]);
+    else if (e.key === 'Enter') {
+      // une ligne choisie aux flèches, ou un champ de trajet : ce résultat-là ; sinon, tous les lieux de ce nom (comme Google Maps)
+      if (app.active >= 0 || app.editing) pickResult(app.results[Math.max(app.active, 0)]);
+      else showAllResults();
+    }
     else if (e.key === 'Escape') { app.focused = false; app.editing = null; }
+  }
+  /**
+   * Entrée dans la barre de recherche : tous les lieux qui correspondent, sur la carte et en liste
+   * (retour du porteur, 21/10 : Entrée ouvrait le premier résultat). Un seul lieu, une adresse ou une zone : on l'ouvre.
+   */
+  async function showAllResults() {
+    const q = app.activeQuery.trim(), top = app.results[0];
+    if (top && !isPlaceResult(top)) return pickResult(top);
+    const c = app.map.getCenter();
+    const at = app.me && nearView(app.me) ? app.me : { lat: c.lat, lon: c.lng };
+    const all = await searchAllPlaces(q, at, app.results).catch(() => app.results.filter(isPlaceResult));
+    if (app.activeQuery.trim() !== q) return;            // on a continué à taper entre-temps
+    if (!top && !all.length) {                            // une adresse tapée vite : on attend sa réponse
+      const r = (await search(q, at).catch(() => []))[0];
+      if (r && app.activeQuery.trim() === q) pickResult(r);
+      return;
+    }
+    if (all.length <= 1) { pickResult(top || all[0]); return; }
+    app.closePlace();
+    app.focused = false;
+    document.activeElement?.blur();
+    app.category = { key: `recherche:${q}`, label: q, results: true, icon: 'dot', color: '#2A5BD7' };
+    app.nearbyFromMe = at === app.me;
+    app.nearby = all.map((r, i) => ({ f: { id: `r${i}`, properties: { name: r.name, subclass: r.subclass }, geometry: { coordinates: [r.lon, r.lat] } },
+      d: dist(at.lat, at.lon, r.lat, r.lon), res: r }));
+    app.nearbyDone = true;
+    applyHit(app.category);
+    // cadrer sur les plus proches (et vous) : les autres restent sur la carte, un geste plus loin
+    // (après que la liste de la recherche s'est refermée et que la fiche est posée : sinon les marges sont fausses)
+    const pts = app.nearby.slice(0, 6).map((n) => n.f.geometry.coordinates);
+    await tick();
+    requestAnimationFrame(() => app.fitTo(app.nearbyFromMe ? [[at.lon, at.lat], ...pts] : pts));
+  }
+  // Un lieu de cette liste de résultats : sa fiche, avec la pastille de la liste agrandie
+  function openResult(r, i) {
+    app.openPlace({ ...r, pin: { glyph: catIcon(app.category), color: app.famColor(app.category) }, hide: i >= 0 ? [{ source: 'cat-hits', id: i }] : [] });
   }
   function pickResult(r) {
     if (app.editing) {
@@ -265,5 +308,5 @@ export function createSearch(app) {
     app.openPlace(r);
   }
 
-  return { clearSearch, hitFilter, catIcon, applyHit, displayName, collectCategory, applyOpenFilter, setOpenAt, momentFrom, quickMoment, nearView, reloadCategoryHere, pickCategory, clearCategory, dist, openCategoryFromSearch, onKey, pickResult };
+  return { showAllResults, openResult, clearSearch, hitFilter, catIcon, applyHit, displayName, collectCategory, applyOpenFilter, setOpenAt, momentFrom, quickMoment, nearView, reloadCategoryHere, pickCategory, clearCategory, dist, openCategoryFromSearch, onKey, pickResult };
 }

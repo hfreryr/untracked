@@ -215,6 +215,27 @@ const tests = {
     assert(!errors.length, errors.join(' | '));
     await ctx.close();
   },
+  async 'Entrée dans la recherche : tous les lieux de ce nom sur la carte et en liste (retour du 21/10)'() {
+    const { p, ctx, errors } = await page({ geolocation: { latitude: 48.853, longitude: 2.333 } });
+    await p.fill('#search', 'Monoprix'); await p.waitForTimeout(1500); await p.press('#search', 'Enter');
+    await p.waitForSelector('section.sheet .nearby li', { timeout: 15000 }); await p.waitForTimeout(800);
+    assert(!(await p.$('section.sheet h1.title, .phead h1')), 'Entrée a ouvert une fiche au lieu de la liste');
+    const n = await p.locator('section.sheet .nearby li').count();
+    assert(n > 3, `trop peu de Monoprix : ${n}`);
+    assert(/résultats/.test(await p.textContent('section.sheet .kind')), 'nombre de résultats absent');
+    const pins = await p.evaluate(() => window.__map.getSource('cat-hits').serialize().data.features.length);
+    assert(pins === n, `pastilles sur la carte (${pins}) ≠ lignes (${n})`);
+    assert(!(await p.$('.open-pills')), 'filtres d’horaires affichés sur une liste de résultats');
+    // toucher une ligne ouvre le lieu, la liste reste derrière
+    await p.click('section.sheet .nearby li button >> nth=0'); await p.waitForSelector('.phead h1', { timeout: 10000 });
+    assert(/Monoprix/i.test(await p.textContent('.phead h1')), 'mauvais lieu ouvert');
+    // une zone ou une adresse : Entrée l'ouvre directement, comme avant
+    await p.click('.sheet .close'); await p.waitForTimeout(400); await p.click('.sheet .close').catch(() => {});
+    await p.fill('#search', '8e arrondissement'); await p.waitForTimeout(2500); await p.press('#search', 'Enter'); await p.waitForTimeout(1500);
+    assert(!(await p.$('section.sheet .nearby li')), 'une zone a donné une liste de résultats');
+    assert(!errors.length, errors.join(' | '));
+    await ctx.close();
+  },
   async 'adresse via Géoplateforme'() {
     const { p, ctx } = await page();
     await p.fill('#search', '57 rue de rennes'); await p.waitForSelector('.results li.opt', { timeout: 30000 });
