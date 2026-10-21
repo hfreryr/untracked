@@ -43,6 +43,14 @@ Le jeu de référence compte 144 recherches (`app/tests/search/reference.json`) 
   - les recherches des tests utilisateurs : 6 sur 6 contre 4 sur 6 ;
   - la vitesse.
 
+## Adresse dans la liste des résultats
+
+Comme Google Maps, chaque lieu de la liste montre sa rue.
+- Adresse d'OpenStreetMap, ou, à défaut, d'Overture.
+- Sinon, **la rue la plus proche** (à moins de 40 m), affichée « près de Rue X », sans numéro. Elle est calculée par `build_places.py` (étiquette `_rue`) et ne sert qu'à cette liste : la fiche du lieu n'affiche que de vraies adresses.
+- Mesure du 21/10, sur 3 000 lieux dont l'adresse est connue : la rue la plus proche est la bonne dans 78 % des cas, une rue voisine (lieu à un angle, en retrait) dans 19 %, aucune rue à 40 m dans 3 %. D'où le « près de ».
+- Couverture de l'index : environ 95 % des lieux ont une rue, contre environ 48 % avant.
+
 ## Fabrication
 
 - `app/scripts/build_extras.py` (chaque lundi) : notoriété QRank des lieux qui ont un identifiant Wikidata (clé `qrank` d'`extras.json`).

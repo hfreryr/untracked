@@ -3,6 +3,7 @@
 // et corrige ses classements (« élysée » → un salon de massage) : notoriété Wikidata (QRank), fautes de frappe tolérées,
 // doublons fusionnés (une gare = un résultat), lieux utiles avant les arrêts et les parkings.
 import { typeLabel } from './places.js';
+import { tx } from './i18n/index.js';
 
 export const norm = (s) => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 
@@ -93,7 +94,8 @@ export function toResult(idx, i) {
   // un quartier, un arrondissement : une zone (la carte s'y cadre), pas un lieu
   const area = k === 'place' || (k === 'boundary' && v === 'administrative') || undefined;
   return { id: `${letter}${osmId}`, osmType, osmId, name, type: (k && typeLabel(k, v)) || '', subclass: v || null, area,
-    address: [[num, street].filter(Boolean).join(' '), pc].filter(Boolean).join(', '), lat, lon };
+    // « ~ » : pas d'adresse connue, rue la plus proche (build_search.py) → « près de Rue X »
+    address: num === '~' ? (street ? tx('resultats.pres_de', { rue: street }) : '') : [[num, street].filter(Boolean).join(' '), pc].filter(Boolean).join(', '), lat, lon };
 }
 
 /**

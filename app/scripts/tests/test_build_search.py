@@ -35,3 +35,14 @@ def test_adresse_autres_noms_et_regime():
 def test_notoriete_bornee():
     assert notoriety({}, {}) == 0
     assert notoriety({"wikidata": "Q1"}, {"Q1": 10 ** 12}) == 99
+
+
+def test_rue_proche_si_pas_d_adresse():
+    """Sans adresse, la rue la plus proche (« _rue ») s'affiche sans numéro ; une vraie adresse passe avant."""
+    items = [(11, 2.33, 48.85, {"name": "Monoprix", "shop": "supermarket", "_rue": "Rue du Départ"}),
+             (21, 2.34, 48.86, {"name": "Franprix", "shop": "supermarket", "addr:housenumber": "3", "addr:street": "Rue X",
+                                "addr:postcode": "75001", "_rue": "Rue Y"})]
+    types, streets, rows = build(items, {})
+    addr = {r[0]: r[8] for r in rows}
+    assert streets[int(addr["Monoprix"].split("|")[1])] == "Rue du Départ" and addr["Monoprix"].split("|")[0] == "~"
+    assert streets[int(addr["Franprix"].split("|")[1])] == "Rue X"

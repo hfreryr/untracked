@@ -50,12 +50,53 @@ def tile_xy(lon, lat, z):
     return x, y
 
 
+# Rue la plus proche, pour les lieux sans adresse : affichée dans la liste des résultats de recherche
+# (« Monoprix · Rue du Départ », comme Google Maps ; demande du porteur, 21/10). Seulement le nom de la rue,
+# sans numéro, et seulement dans l'index de recherche : la fiche du lieu n'affiche que de vraies adresses.
+STREET_KINDS = {"primary", "secondary", "tertiary", "residential", "unclassified", "living_street", "pedestrian", "trunk"}
+CELL = 0.002          # grille de ≈ 150 × 220 m
+NEAR_M = 40           # au-delà, on ne devine pas
+
+
+def _seg_dist_m(px, py, ax, ay, bx, by):
+    """Distance en mètres d'un point à un segment (coordonnées en degrés, approximation locale)."""
+    k = math.cos(math.radians(py))
+    ax, bx, px = ax * k, bx * k, px * k
+    dx, dy = bx - ax, by - ay
+    t = 0.0 if dx == dy == 0 else max(0.0, min(1.0, ((px - ax) * dx + (py - ay) * dy) / (dx * dx + dy * dy)))
+    return math.hypot(px - ax - t * dx, py - ay - t * dy) * 111320
+
+
+class Streets:
+    """Tronçons de rues nommées, rangés dans une grille pour trouver vite la plus proche d'un point."""
+    def __init__(self):
+        self.grid = defaultdict(list)
+
+    def add(self, name, pts):
+        for (ax, ay), (bx, by) in zip(pts, pts[1:]):
+            for cx in range(int(min(ax, bx) / CELL), int(max(ax, bx) / CELL) + 1):
+                for cy in range(int(min(ay, by) / CELL), int(max(ay, by) / CELL) + 1):
+                    self.grid[(cx, cy)].append((name, ax, ay, bx, by))
+
+    def nearest(self, lon, lat, limit=NEAR_M):
+        best, bd = None, limit
+        cx, cy = int(lon / CELL), int(lat / CELL)
+        for x in (cx - 1, cx, cx + 1):
+            for y in (cy - 1, cy, cy + 1):
+                for name, ax, ay, bx, by in self.grid.get((x, y), ()):
+                    d = _seg_dist_m(lon, lat, ax, ay, bx, by)
+                    if d < bd:
+                        best, bd = name, d
+        return best
+
+
 class Places(osmium.SimpleHandler):
     def __init__(self, zoom):
         super().__init__()
         self.zoom = zoom
         self.tiles = defaultdict(list)
         self.count = 0
+        self.streets = Streets()
 
     def _keep(self, tags):
         t = dict(tags)
@@ -80,6 +121,13 @@ class Places(osmium.SimpleHandler):
     def node(self, n):
         if n.location.valid():
             self._add(n.id, 1, n.tags, n.location.lon, n.location.lat)
+
+    def way(self, w):
+        t = w.tags
+        if t.get("highway") in STREET_KINDS and t.get("name"):
+            pts = [(n.lon, n.lat) for n in w.nodes if n.location.valid()]
+            if len(pts) > 1:
+                self.streets.add(t.get("name"), pts)
 
     def area(self, a):
         # un bâtiment ou un parc : son centre (moyenne des sommets du contour extérieur)
@@ -147,12 +195,18 @@ def main():
         for p in sorted(out.rglob("*"), reverse=True):
             p.unlink() if p.is_file() else p.rmdir()
     sizes = []
-    nf = ne = 0
+    nf = ne = nr = 0
     for (x, y), items in h.tiles.items():
         items.sort(key=lambda it: it[0])
         for it in items:
             if add_extras(it[3], extras.get(str(it[0]))):
                 ne += 1
+            # ni adresse OSM ni adresse Overture : la rue la plus proche, pour la liste des résultats (« _rue »)
+            if it[3].get("name") and not it[3].get("addr:street"):
+                rue = h.streets.nearest(it[1], it[2])
+                if rue:
+                    it[3]["_rue"] = rue
+                    nr += 1
             f = facades.get(str(it[0]))
             if f:
                 it.append(f)
@@ -167,7 +221,7 @@ def main():
         "source": os.path.basename(args.pbf), "tiles": sorted(f"{x}/{y}" for x, y in h.tiles),
     }
     (out / "index.json").write_text(json.dumps(index, separators=(",", ":")))
-    print(f"{nf} devantures ; {ne} lieux complétés hors OSM ; " + f"{h.count} lieux dans {len(h.tiles)} tuiles (zoom {args.zoom}), {sum(sizes)/1e6:.1f} Mo bruts, "
+    print(f"{nf} devantures ; {ne} lieux complétés hors OSM ; {nr} rues proches ; " + f"{h.count} lieux dans {len(h.tiles)} tuiles (zoom {args.zoom}), {sum(sizes)/1e6:.1f} Mo bruts, "
           f"tuile médiane {sorted(sizes)[len(sizes)//2]/1e3:.0f} Ko, en {time.time()-t0:.0f} s")
 
 
