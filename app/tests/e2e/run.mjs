@@ -236,6 +236,23 @@ const tests = {
     assert(!errors.length, errors.join(' | '));
     await ctx.close();
   },
+  async 'ligne « Monoprix · Afficher les lieux » en tête des résultats, comme Google Maps (21/10)'() {
+    const { p, ctx, errors } = await page({ geolocation: { latitude: 48.853, longitude: 2.333 } });
+    await p.fill('#search', 'Monoprix'); await p.waitForSelector('.results li.brand', { timeout: 15000 });   // (« Monop » donne l'enseigne « Monop' », à juste titre)
+    const row = await p.textContent('.results li.brand');
+    assert(/Monoprix/i.test(row) && /Afficher les lieux/.test(row), `ligne enseigne : ${row}`);
+    assert((await p.locator('.results li.opt').first().getAttribute('class')).includes('brand'), 'la ligne enseigne n’est pas en tête');
+    await p.dispatchEvent('.results li.brand button', 'mousedown');
+    await p.waitForSelector('section.sheet .nearby li', { timeout: 15000 }); await p.waitForTimeout(600);
+    assert((await p.locator('section.sheet .nearby li').count()) > 3, 'liste des Monoprix trop courte');
+    assert(/Monoprix/i.test(await p.inputValue('#search')), 'la barre ne montre pas le nom de l’enseigne');
+    // un nom unique : pas de ligne enseigne
+    await p.click('.sheet .close'); await p.waitForTimeout(300);
+    await p.fill('#search', 'Café de Flore'); await p.waitForSelector('.results li.opt button', { timeout: 15000 }); await p.waitForTimeout(800);
+    assert(!(await p.$('.results li.brand')), 'ligne enseigne pour un nom unique');
+    assert(!errors.length, errors.join(' | '));
+    await ctx.close();
+  },
   async 'filtres des listes : terrasse sur les restaurants, seulement les filtres utiles, lieux sans information à part (21/10)'() {
     const { p, ctx, errors } = await page({ geolocation: { latitude: 48.853, longitude: 2.333 } });
     await p.click('.chip:has-text("Restaurants")'); await p.waitForTimeout(6000);

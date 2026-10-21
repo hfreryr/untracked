@@ -300,6 +300,11 @@ export function createSearch(app) {
     await tick();
     requestAnimationFrame(() => app.fitTo(app.nearbyFromMe ? [[at.lon, at.lat], ...pts] : pts));
   }
+  // Ligne « Monoprix · Afficher les lieux » (brandhit.js) : tous les lieux de cette enseigne
+  function showBrand(name) {
+    app.query = name;
+    showAllResults();
+  }
   // Un lieu de cette liste de résultats : sa fiche, avec la pastille de la liste agrandie
   function openResult(r, i) {
     app.openPlace({ ...r, pin: { glyph: catIcon(app.category), color: app.famColor(app.category) }, hide: i >= 0 ? [{ source: 'cat-hits', id: i }] : [] });
@@ -336,5 +341,5 @@ export function createSearch(app) {
     app.openPlace(r);
   }
 
-  return { showAllResults, openResult, toggleFilter, clearSearch, hitFilter, catIcon, applyHit, displayName, collectCategory, applyOpenFilter, setOpenAt, momentFrom, quickMoment, nearView, reloadCategoryHere, pickCategory, clearCategory, dist, openCategoryFromSearch, onKey, pickResult };
+  return { showAllResults, showBrand, openResult, toggleFilter, clearSearch, hitFilter, catIcon, applyHit, displayName, collectCategory, applyOpenFilter, setOpenAt, momentFrom, quickMoment, nearView, reloadCategoryHere, pickCategory, clearCategory, dist, openCategoryFromSearch, onKey, pickResult };
 }

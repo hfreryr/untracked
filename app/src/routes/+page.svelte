@@ -540,7 +540,7 @@
   // <app> État et actions partagés avec les composants et modules de l'écran (getContext('app')). Bloc généré.
   const app = {
     get aboutOpen() { return aboutOpen; }, set aboutOpen(v) { aboutOpen = v; },
-    get openResult() { return openResult; }, get showAllResults() { return showAllResults; },
+    get openResult() { return openResult; }, get showAllResults() { return showAllResults; }, get showBrand() { return showBrand; },
     get resultsFor() { return resultsFor; }, get filters() { return filters; }, set filters(v) { filters = v; }, get toggleFilter() { return toggleFilter; },
     get transitPref() { return transitPref; }, set transitPref(v) { transitPref = v; }, get setTransitPref() { return setTransitPref; },
     get themePref() { return themePref; }, set themePref(v) { themePref = v; }, get restyle() { return restyle; }, set restyle(v) { restyle = v; },
@@ -683,7 +683,7 @@
   const { saveChips, moveChip, toggleChip, renameChip, resetChips, catOf } = createChips(app);
   const { sameSpot, saveAll, keepOf, saveTap, setMembership, togglePin, removeFromList, createList, renameList, setListStyle, deleteList, refreshSaved, openSavedList, shareList, keepIncomingList, makeTransfer, shareTransfer, applyIncoming, makeBackup, doRestore } = createMyPlaces(app);
   const { remember, forgetRecents, openPlace, sharePlace, loadDepartures, closePlace } = createPlace(app);
-  const { clearSearch, hitFilter, catIcon, applyHit, displayName, collectCategory, applyOpenFilter, setOpenAt, momentFrom, quickMoment, nearView, reloadCategoryHere, pickCategory, clearCategory, dist, openCategoryFromSearch, onKey, pickResult, openResult, showAllResults, toggleFilter } = createSearch(app);
+  const { clearSearch, hitFilter, catIcon, applyHit, displayName, collectCategory, applyOpenFilter, setOpenAt, momentFrom, quickMoment, nearView, reloadCategoryHere, pickCategory, clearCategory, dist, openCategoryFromSearch, onKey, pickResult, openResult, showAllResults, showBrand, toggleFilter } = createSearch(app);
   const { say, isolate, closeTop, onPopState, onKeyDown, undoToast, showMe } = createScreen(app);
   const { setHeading, onOrientation, startCompass, startWatch, stopWatch, getPosition, startupLocate, locError, locDetail, locate, pickOnMap } = createLocation(app);
   const { startDirections, openDirections, closeDirections, pointOf, setPoint, addStop, removeStop, editField, useMyPosition, swap, computeRoutes, chooseMode, sheetToTop, pickStreet, pickTransit, setTransitPref, setWhen } = createDirections(app);

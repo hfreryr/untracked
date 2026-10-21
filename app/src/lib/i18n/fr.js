@@ -176,6 +176,7 @@ export default {
   'liste.derniere_sauvegarde_aujourd_hui': 'Dernière sauvegarde aujourd\'hui',
   'liste.derniere_sauvegarde_il_y_a_jour': ({ n }) => `Dernière sauvegarde il y a ${n} ${pluriel(n, 'jour', 'jours')}`,
   'liste.liste_partagee_lieu': ({ n }) => `Liste partagée · ${n} ${pluriel(n, 'lieu', 'lieux')}`,
+  'resultats.afficher_les_lieux': 'Afficher les lieux',
   'resultats.n_resultats': ({ n, ordre }) => `${n} ${pluriel(n, 'résultat', 'résultats')}, ${ordre}`,
   'liste.n_correspondent': ({ n, criteres }) => `${n} ${pluriel(n, 'lieu', 'lieux')} ${criteres}`,
   'liste.les_lieux_sans_information': '{action} les {n} lieux sans information',
