@@ -175,6 +175,8 @@
   let fieldEl = $state();
   let routes = $state({ walk: null, bike: null, transit: null }); // { status, data?, error? }
   let picked = $state(0);            // proposition de transport choisie
+  let transitDetail = $state(false); // transports : détail de la proposition choisie (sinon la liste des propositions)
+  let focusLeg = $state(null);       // étape du trajet en transport mise en avant sur la carte (index), ou null
   let mapMode = $state('plan');      // 'plan' | 'transit' | 'satellite'
   let themePref = $state(loadTheme()); // 'auto' | 'light' | 'dark' (theme.js)
   let restyle = () => {};
@@ -623,6 +625,9 @@
     get osmNoteUrl() { return osmNoteUrl; }, get panoScroll() { return panoScroll; }, get pickCategory() { return pickCategory; },
     get pickOnMap() { return pickOnMap; }, get pickResult() { return pickResult; }, get pickStreet() { return pickStreet; },
     get picked() { return picked; }, set picked(v) { picked = v; },
+    get transitDetail() { return transitDetail; }, set transitDetail(v) { transitDetail = v; },
+    get focusLeg() { return focusLeg; }, set focusLeg(v) { focusLeg = v; },
+    get openTransit() { return openTransit; }, get closeTransit() { return closeTransit; }, get focusOnLeg() { return focusOnLeg; },
     get pickedStreet() { return pickedStreet; }, set pickedStreet(v) { pickedStreet = v; }, get pickerDay() { return pickerDay; },
     get pickerDays() { return pickerDays; }, get pickerHours() { return pickerHours; }, get pickerTime() { return pickerTime; },
     get pinnedPlaces() { return pinnedPlaces; }, get pins() { return pins; }, set pins(v) { pins = v; },
@@ -691,7 +696,7 @@
   const { clearSearch, hitFilter, catIcon, applyHit, displayName, collectCategory, applyOpenFilter, setOpenAt, momentFrom, quickMoment, nearView, reloadCategoryHere, pickCategory, clearCategory, dist, openCategoryFromSearch, onKey, pickResult, openResult, showAllResults, showBrand, toggleFilter } = createSearch(app);
   const { say, isolate, closeTop, onPopState, onKeyDown, undoToast, showMe } = createScreen(app);
   const { setHeading, onOrientation, startCompass, startWatch, stopWatch, getPosition, startupLocate, locError, locDetail, locate, pickOnMap } = createLocation(app);
-  const { startDirections, openDirections, closeDirections, pointOf, setPoint, addStop, removeStop, editField, useMyPosition, swap, computeRoutes, chooseMode, sheetToTop, pickStreet, pickTransit, setTransitPref, setWhen } = createDirections(app);
+  const { startDirections, openDirections, closeDirections, pointOf, setPoint, addStop, removeStop, editField, useMyPosition, swap, computeRoutes, chooseMode, sheetToTop, pickStreet, pickTransit, openTransit, closeTransit, focusOnLeg, setTransitPref, setWhen } = createDirections(app);
   const { speak, transitSteps, startNav, onFix, updateNav, stepBy, reroute, endNav } = createNav(app);
   const { importFile } = createImport(app);
 </script>

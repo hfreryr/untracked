@@ -4,9 +4,10 @@
   import { tx } from '#lib/i18n/index.js';
   import { tripFare, fmtEuros } from '#lib/fares.js';
   import { draggable } from '#lib/sheet.js';
-  import { MODE_NAMES, fmtDuration, fmtTime, fmtDistance } from '#lib/routing.js';
-  import { placeLabel } from '#lib/rame.js';
-  import { MODES, arrival, departure, departInfo, departText, transitTags, badge, streetOpts, altTag, exitPhrase } from '#lib/routeview.js';
+  import { fmtDuration, fmtTime, fmtDistance } from '#lib/routing.js';
+  import { getContext } from 'svelte';
+  import { MODES, arrival, departure, departInfo, departText, transitTags, streetOpts, altTag } from '#lib/routeview.js';
+  import LegCards from './LegCards.svelte';
   import ModeIcon from './ModeIcon.svelte';
   import LegChain from './LegChain.svelte';
   import WhenPicker from './WhenPicker.svelte';
@@ -14,6 +15,7 @@
   let { from, to, mode, routes, picked, pickedStreet, showVia, legExits,
     chooseMode, pickStreet, pickTransit, startNav, addStop, computeRoutes, transitPref = ['metro', 'rail', 'tram', 'bus'], setTransitPref, when = null } = $props();
   const current = $derived(routes[mode]);
+  const app = getContext('app');   // transports : liste des propositions ou détail (transitDetail), étape choisie (focusLeg)
   // les comptes à rebours des départs (« dans 1, 4, 7 min ») avancent tout seuls, comme sur Citymapper
   let now = $state(Date.now());
   $effect(() => { const t = setInterval(() => (now = Date.now()), 15000); return () => clearInterval(t); });
@@ -25,7 +27,7 @@
   <span class="sum-sub depart">{#if d.live}<span class="live" title={tx('itin.horaire_en_temps_reel')}>●</span>{' '}{/if}{departText(d)}</span>
 {/snippet}
 
-<section class="sheet route-sheet" aria-label={tx('fiche.itineraire')} use:draggable={{ key: `${from?.lat},${to?.lat},${mode}`, start: 'peek', min: true, tease: 58 }}>
+<section class="sheet route-sheet" aria-label={tx('fiche.itineraire')} use:draggable={{ key: `${from?.lat},${to?.lat},${mode},${app.transitDetail}`, start: app.transitDetail ? 'half' : 'peek', min: true, tease: 58 }}>
   <button class="grip" aria-label={tx('liste.agrandir_la_fiche')}></button>
   <div class="mode-tabs" data-min-end role="tablist" aria-label={tx('itin.mode_de_deplacement')}>
     {#each MODES as m}
@@ -42,8 +44,9 @@
       </button>
     {/each}
   </div>
-  <WhenPicker />
-  {#if mode === 'transit' && setTransitPref}
+  <!-- détail d'une proposition : l'heure et les modes se règlent depuis la liste (place gagnée pour les étapes) -->
+  {#if !(mode === 'transit' && app.transitDetail)}<WhenPicker />{/if}
+  {#if mode === 'transit' && setTransitPref && !app.transitDetail}
     <!-- chaque mode se retire d'un toucher (P4 : « seulement le métro » ; P5 : « je ne veux pas prendre le bus ») -->
     <div class="t-prefs" role="group" aria-label={tx('itin.modes_de_transport')}>
       {#each [['metro', tx('itin.metro')], ['rail', tx('itin.rer_et_train')], ['tram', tx('itin.tram')], ['bus', tx('itin.bus')]] as [id, label]}
@@ -113,24 +116,38 @@
       {/each}
       <li class="arrive"><span>{tx('itin.arrivee_3', { label: to.label })}</span></li>
     </ol>
+  {:else if !app.transitDetail}
+    <!-- Les propositions (comme Citymapper et Plans) : pictogrammes, prix, durée, prochains départs ; toucher → le détail -->
+    {@const tags = transitTags(current.data, !!when?.arrive)}
+    <ul class="t-opts" aria-label={tx('itin.propositions')}>
+      {#each current.data as o, i}
+        {@const fare = tripFare(o.legs)}
+        <li data-peek-end={i === 0 ? '' : null}>
+          <button class="t-opt" class:sel={i === picked} onclick={() => app.openTransit(i)}>
+            <span class="opt-top">
+              <LegChain it={o} />
+              {#if fare != null}<span class="fare" title={tx('itin.prix_detail')}>{fmtEuros(fare)}</span>{/if}
+              <span class="big-dur">{fmtDuration(o.duration)}</span>
+            </span>
+            {@render depart(o)}
+            {#if tags[i]}<span class="sum-tag best">{tags[i]}</span>{/if}
+          </button>
+        </li>
+      {/each}
+    </ul>
+    {#if !showVia}<button class="soft-btn add-stop" onclick={addStop}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6v12M6 12h12" /></svg>{tx('itin.ajouter_un_arret')}</button>{/if}
   {:else}
     {@const it = current.data[picked] || current.data[0]}
-    {@const tags = transitTags(current.data, !!when?.arrive)}
-    <div class="sum transit" data-peek-end>
-      <div class="sum-text">
-        <span class="opt-top">
-          <LegChain it={it} />
-          <span class="sum-dur small">{fmtDuration(it.duration)}</span>
+    {@const fare = tripFare(it.legs)}
+    <div class="t-head" data-peek-end>
+      <div class="t-top">
+        <button class="back" onclick={app.closeTransit} aria-label={tx('itin.retour_aux_propositions')}>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14.5 6-6 6 6 6" /></svg>
+        </button>
+        <span class="t-sum">
+          <span class="sum-dur">{fmtDuration(it.duration)}</span>
+          <span class="sum-sub">{fmtTime(it.start)} → {fmtTime(it.end)}{#if fare != null}<span title={tx('itin.prix_detail')}>{tx('itin.prix', { prix: fmtEuros(fare) })}</span>{/if}</span>
         </span>
-        <!-- « Partir à » : l'arrivée est déjà sur la ligne suivante, pas de doublon -->
-        {#if !when || when.arrive}{@render depart(it)}{/if}
-        <span class="sum-sub">{tx('itin.arrivee_4', { fmtTime: fmtTime(it.end) })}{#if tripFare(it.legs) != null}<span title={tx('itin.prix_detail')}>{tx('itin.prix', { prix: fmtEuros(tripFare(it.legs)) })}</span>{/if}</span>
-        {#if tags[picked]}<span class="sum-tag best">{tags[picked]}</span>{/if}
-        <!-- l'info la plus attendue (test P3) dès le résumé : où se placer dans la rame et quelle sortie prendre à l'arrivée -->
-        {#each [it.legs.map((leg, li) => ({ leg, tip: legExits[`${picked}|${li}|${leg.to}`] })).filter((x) => x.tip?.exit || x.tip?.place).at(-1)] as last}
-          {#if last?.tip?.place}<span class="sum-tip"><span class="car-ic" aria-hidden="true"></span>{tx('itin.montez', { placeLabel: placeLabel(last.tip.place), suite: '' })}</span>{/if}
-          {#if last?.tip?.exit && exitPhrase(last.tip.exit)}<span class="sum-tip"><span class="exit-sq" aria-hidden="true"></span>{tx('itin.a_station_sortie', { station: last.leg.to, sortie: exitPhrase(last.tip.exit) })}</span>{/if}
-        {/each}
       </div>
       <div class="sum-actions">
         <button class="go" onclick={() => startNav(it)}>
@@ -139,70 +156,7 @@
         {#if !showVia}<button class="soft-btn" onclick={addStop}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6v12M6 12h12" /></svg>{tx('itin.arret')}</button>{/if}
       </div>
     </div>
-    <h3 class="sub-h">{tx('itin.etapes')}</h3>
-    <ol class="legs">
-      {#each it.legs as leg, li}
-        {#if leg.mode === 'STOP'}
-          <li class="leg stop">
-            <span class="leg-time">{fmtTime(leg.start)}</span>
-            <span class="leg-rail stop" aria-hidden="true"></span>
-            <span class="leg-body">
-              <span class="leg-place">{tx('itin.arret_2', { from: leg.from })}</span>
-              <span class="leg-meta">{tx('itin.reprise_a', { fmtTime: fmtTime(leg.end), suite: leg.duration > 90 ? tx('itin.sur_place', { fmtDuration: fmtDuration(leg.duration) }) : '' })}</span>
-            </span>
-          </li>
-        {:else if leg.mode === 'WALK'}
-          <li class="leg walk">
-            <span class="leg-time">{fmtTime(leg.start)}</span>
-            <span class="leg-rail walk" aria-hidden="true"></span>
-            <span class="leg-body">
-              <span class="leg-place">{leg.from}</span>
-              <span class="leg-meta">{tx('itin.marcher', { fmtDuration: fmtDuration(leg.duration), suite: leg.distance ? ` · ${fmtDistance(leg.distance)}` : '' })}</span>
-            </span>
-          </li>
-        {:else}
-          <li class="leg">
-            <span class="leg-time">{fmtTime(leg.start)}</span>
-            <span class="leg-rail" style:background={leg.color} aria-hidden="true"></span>
-            <span class="leg-body">
-              <span class="leg-place">{leg.from}</span>
-              <span class="leg-meta">
-                <span class="badge small" style:background={leg.color} style:color={leg.textColor}>{badge(leg)}</span>
-                {tx('itin.direction', { ligne: MODE_NAMES[leg.mode] || '', headsign: leg.headsign })}
-              </span>
-              <span class="leg-meta">{leg.stops ? tx('itin.arrets', { n: leg.stops + 1 }) : ''}{fmtDuration(leg.duration)}{leg.realTime ? tx('itin.temps_reel') : ''}</span>
-              {#each [legExits[`${picked}|${li}|${leg.to}`]] as tip}
-              {#if tip?.place}
-                <span class="leg-tip"><span class="car-ic" aria-hidden="true"></span>{tx('itin.montez', { placeLabel: placeLabel(tip.place), suite: tip.transfer ? tx('itin.pour_la_correspondance', { ligne: tip.transfer.line ? tx('itin.avec_la_ligne', { line: tip.transfer.line }) : '' }) : '' })}</span>
-              {/if}
-              {#if tip?.exit && exitPhrase(tip.exit)}
-                <span class="leg-exit"><span class="exit-sq" aria-hidden="true"></span>{tx('itin.a_station_sortie', { station: leg.to, sortie: exitPhrase(tip.exit) })}</span>
-              {/if}
-              {/each}
-            </span>
-          </li>
-        {/if}
-      {/each}
-      <li class="leg end">
-        <span class="leg-time">{fmtTime(it.end)}</span>
-        <span class="leg-rail end" aria-hidden="true"></span>
-        <span class="leg-body"><span class="leg-place">{to.label}</span></span>
-      </li>
-    </ol>
-    {#if current.data.length > 1}
-      <h3 class="sub-h">{tx('itin.autres_itineraires')}</h3>
-      <ul class="alt-list">
-        {#each current.data as o, i}
-          {#if i !== picked}
-            <li><button onclick={() => pickTransit(i)}>
-              <span class="opt-top"><LegChain it={o} /><span class="alt-dur">{fmtDuration(o.duration)}</span></span>
-              {#if tags[i]}<span class="alt-sub tag">{tags[i]}</span>{/if}
-              {@render depart(o)}
-            </button></li>
-          {/if}
-        {/each}
-      </ul>
-    {/if}
+    <LegCards {it} {picked} {legExits} {from} {to} {now} />
     <p class="credit">{tx('fiche.horaires')} <a href="https://transitous.org/sources/" target="_blank" rel="noopener">{tx('fiche.transitous_et_reseaux_de_transport')}</a> {tx('itin.place_dans_la_rame_ratp_ile_de')}</p>
   {/if}
 </section>
@@ -245,6 +199,21 @@
   .alt-sub.tag { color: var(--open); font-weight: 600; }
   /* étapes du trajet en transport : pleine largeur de la fiche, sans fond */
   .route-sheet :global(.legs) { margin: 0 calc(-1 * var(--gutter)); padding: 4px var(--gutter) 6px; background: none; }
+  /* Transports : propositions en cartes, puis le détail */
+  .t-opts { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 8px; }
+  .t-opt { display: grid; gap: 3px; width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 14px; background: var(--card); text-align: left; cursor: pointer; color: var(--ink); font: inherit; }
+  .t-opt.sel { border-color: var(--accent); }
+  .t-opt:active { background: var(--fill); }
+  .opt-top { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .opt-top :global(.chain) { flex: 1; min-width: 0; }
+  .fare { font-size: var(--fs-meta); font-weight: 600; color: var(--accent); white-space: nowrap; }
+  .big-dur { font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .add-stop { margin-top: 10px; }
+  .t-head { display: grid; gap: 10px; padding: 10px 0 4px; }
+  .t-top { display: flex; align-items: center; gap: 6px; }
+  .t-sum { display: grid; gap: 1px; }
+  .back { flex: none; width: 40px; height: 40px; margin-left: -10px; border: 0; border-radius: 50%; background: none; color: var(--accent); display: grid; place-items: center; cursor: pointer; }
+  .back svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
   .t-prefs { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding: 10px 16px 2px; margin: 0 -16px; }
   .t-pref { flex: none; height: 30px; padding: 0 12px; border-radius: 15px; border: 1px solid var(--line); background: var(--card); color: var(--ink); font: inherit; font-size: 13.5px; font-weight: 500; cursor: pointer; }
   .t-pref { display: inline-flex; align-items: center; gap: 4px; }

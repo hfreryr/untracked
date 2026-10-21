@@ -223,6 +223,8 @@ export async function transitRoutes(from, to, signal, when = new Date(), modes =
         duration: l.duration,
         distance: l.distance || 0,
         stops: (l.intermediateStops || []).length,
+        stopNames: (l.intermediateStops || []).map((s) => s.name).filter(Boolean),   // arrêts dépliables de l'étape
+        fromPos: l.from?.lat != null ? { lat: l.from.lat, lon: l.from.lon } : null,
         realTime: l.realTime,
         // heure prévue au départ de l'arrêt (le retard se lit par différence avec start)
         scheduled: l.scheduledStartTime ? new Date(l.scheduledStartTime) : null,
