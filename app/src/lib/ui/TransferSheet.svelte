@@ -3,13 +3,15 @@
   import { getContext } from 'svelte';
   import { DEFAULT_LISTS } from '#lib/myplaces.js';
   import ListDot from '#lib/ui/ListDot.svelte';
+  import { draggable } from '#lib/sheet.js';
 
   // État et actions de la page (voir le bloc « app » de +page.svelte)
   const app = getContext('app');
 </script>
 
 
-    <section class="sheet" aria-label={tx('transfert.recuperer_vos_lieux')}>
+    <!-- glisser vers le bas = « Ignorer », comme les autres fiches (21/10) -->
+    <section class="sheet" aria-label={tx('transfert.recuperer_vos_lieux')} use:draggable={{ key: 'transfer', onDismiss: () => (app.incoming = null) , modal: true }}>
       <h1>{tx('transfert.recuperer_vos_lieux')}</h1>
       <p class="kind">{tx('transfert.depuis_un_autre_appareil')}</p>
       <ul class="rows">

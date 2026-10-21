@@ -15,12 +15,16 @@ Elles s'appliquent à **toute** modification de l'app. Une règle marquée 🔒 
    - S'il est plus haut que la place disponible, il défile.
 5. 🔒 **Le bouton qui ouvre un menu indique son état** (`aria-expanded`). Le retoucher ferme le menu.
 6. **Le focus entre dans la fenêtre ouverte et revient au bouton à la fermeture.**
-7. **Une fenêtre modale a un fond assombri, une croix en haut à droite et un titre.** Elle se ferme par la croix, par Échap ou en touchant le fond.
+7. 🔒 **Une fenêtre modale a un fond assombri, une croix en haut à droite et un titre.** Elle se ferme par la croix, par Échap, en touchant le fond, ou **en la glissant vers le bas** (téléphone).
+   - Sur téléphone, toute fenêtre est une fiche qui monte du bas, avec une poignée.
+   - Une fiche-fenêtre (choisir une liste, importer, raccourcis, transfert) se ferme d'un seul glissement vers le bas, sans passer par l'aperçu.
+   - Les fiches de la carte (lieu, catégorie) passent d'abord par l'aperçu, puis se ferment au glissement suivant. Une liste de catégorie s'arrête à l'aperçu sans se fermer : c'est une décision issue des tests utilisateurs.
+   - Les visionneuses de photos se ferment aussi en glissant vers le bas.
 8. **Une seule fiche à la fois en bas d'écran.** On la glisse vers le bas pour la réduire ou la fermer, et sa croix est toujours au même endroit.
 
 **Comment l'appliquer dans le code :**
 - tout menu ou panneau flottant passe par `use:popover` (`app/src/lib/popover.js`), qui applique les règles 1 à 5 ;
-- toute fenêtre passe par `Dialog.svelte` (règles 6 et 7) ;
+- toute fenêtre passe par `Dialog.svelte` (règles 6 et 7, glissement par `swipeclose.js`) ; une fiche-fenêtre par `use:draggable={{ …, modal: true }}` ;
 - un nouveau menu est ajouté au test e2e « règles d'interface ».
 
 ## Contenu visible
@@ -60,6 +64,7 @@ Elles s'appliquent à **toute** modification de l'app. Une règle marquée 🔒 
   - menu ⋯ d'une fiche, menu des cartes, fenêtre « À propos » (bouton ⓘ) et choix de l'heure d'un trajet ;
   - petit écran (375 × 667) ;
   - chaque menu est vérifié entier et non masqué, puis fermé en touchant ailleurs (sans effet dessous) et par Échap.
+- `npm run e2e`, test « glisser vers le bas ferme les fenêtres » (règle 7).
 - `npm run e2e`, test « accessibilité » : axe-core, WCAG 2.2 AA, sur 8 écrans, en clair et en sombre (règles 13 à 15).
 - `npm test`, `popover.test.js` : placement des menus (règle 4).
 - `npm test`, `textes.test.js` : aucun texte écrit en dur (règle 12, en partie).
