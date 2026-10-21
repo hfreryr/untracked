@@ -38,13 +38,17 @@
 {#if app.installSteps}
   <Dialog title={tx('installer.iphone_titre')} onclose={() => (app.installSteps = false)}>
     <p class="sub">{tx('installer.iphone_sous_titre')}</p>
+    <!-- relevé sur l'iPhone du porteur (iOS, 21/10) : Partager, puis « En voir plus », puis « Sur l'écran d'accueil » -->
     <ol class="steps">
-      <li><span class="n" aria-hidden="true">1</span><span>{tx('installer.etape_1_avant')}
+      <li><span class="n" aria-hidden="true">1</span><span>{tx('installer.etape_1')}
         <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 15V4M8.5 7.5 12 4l3.5 3.5" /><path d="M8 10.5H6.5v9.5h11v-9.5H16" /></svg></span>
-        <strong>{tx('installer.partager')}</strong>{tx('installer.etape_1_apres')}</span></li>
-      <li><span class="n" aria-hidden="true">2</span><span>{tx('installer.etape_2_avant')}
+        <strong>{tx('installer.partager')}</strong> <small>{tx('installer.etape_1_suite')}</small></span></li>
+      <li><span class="n" aria-hidden="true">2</span><span>{tx('installer.etape_2')}
+        <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m7 10 5 5 5-5" /></svg></span>
+        <strong>{tx('installer.en_voir_plus')}</strong></span></li>
+      <li><span class="n" aria-hidden="true">3</span><span>{tx('installer.etape_3')}
         <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="4" /><path d="M12 8.5v7M8.5 12h7" /></svg></span>
-        <strong>{tx('installer.sur_ecran_accueil')}</strong>{tx('installer.etape_2_apres')}<strong>{tx('installer.ajouter')}</strong></span></li>
+        <strong>{tx('installer.sur_ecran_accueil')}</strong>{tx('installer.etape_3_suite')} <strong>{tx('installer.ajouter')}</strong></span></li>
     </ol>
     {#if app.favorites.length}<p class="note">{tx('installer.iphone_lieux')}</p>{/if}
   </Dialog>
@@ -66,6 +70,7 @@
   .go { border: 0; background: var(--accent-btn); color: #fff; font: inherit; font-size: 15px; font-weight: 600; border-radius: 20px; min-height: 40px; padding: 0 20px; cursor: pointer; }
   .sub { color: var(--muted); margin-bottom: 8px; }
   .steps { list-style: none; margin: 0; padding: 0; }
+  .steps small { display: block; color: var(--muted); font-size: 13px; }
   .steps li { display: flex; gap: 14px; align-items: center; padding: 12px 0; border-top: 1px solid var(--line); font-size: 15.5px; line-height: 1.4; }
   .n { width: 28px; height: 28px; border-radius: 50%; flex: none; display: grid; place-items: center; font-weight: 700; font-size: 14px;
     color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--card)); }
