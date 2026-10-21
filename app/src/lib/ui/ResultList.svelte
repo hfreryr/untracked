@@ -4,9 +4,12 @@
   import { ALL_CATEGORIES } from '#lib/categories.js';
   import ListDot from '#lib/ui/ListDot.svelte';
   import PinnedRow from '#lib/ui/PinnedRow.svelte';
+  import { brandOf } from '#lib/brandhit.js';
 
   // État et actions de la page (voir le bloc « app » de +page.svelte)
   const app = getContext('app');
+  // une enseigne (plusieurs lieux du même nom et du même type) : une ligne en tête mène à tous ses lieux, comme Google Maps
+  const brand = $derived(!app.editing && !app.assigning && !app.catHit && app.activeQuery.trim().length >= 2 ? brandOf(app.results) : null);
 </script>
 
 
@@ -72,6 +75,17 @@
           </button>
         </li>
       {/each}
+    {/if}
+    {#if brand}
+      <li class="opt brand">
+        <button onmousedown={(e) => { e.preventDefault(); app.showBrand(brand.name); }}>
+          <span class="r-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5" /><path d="M15.5 15.5 20 20" /></svg></span>
+          <span class="r-text">
+            <span class="r-name">{brand.name}</span>
+            <span class="r-meta">{tx('resultats.afficher_les_lieux')}</span>
+          </span>
+        </button>
+      </li>
     {/if}
     {#if app.catHit}
       <li class="opt">

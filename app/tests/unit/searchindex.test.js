@@ -62,3 +62,12 @@ test('types de lieux : « pharmacies », « restaurant italien », « vegan »',
   assert.equal(intentOf('grand palais'), null);
   assert.equal(intentOf('café de flore'), null);
 });
+
+// Lieu sans adresse : la rue la plus proche est affichée « près de … » (build_search.py, numéro « ~ »)
+import { toResult } from '#lib/searchindex.js';
+test('adresse devinée affichée « près de », vraie adresse inchangée', () => {
+  const idx = prepare({ v: 1, types: ['shop=supermarket'], streets: ['Rue du Départ', 'Rue de Rennes'],
+    items: [['Monoprix', 2.32, 48.84, 11, 0, 0, '', '', '~|0'], ['Monoprix', 2.33, 48.85, 21, 0, 0, '', '', '50|1|75006']] });
+  assert.equal(toResult(idx, 0).address, 'près de Rue du Départ');
+  assert.equal(toResult(idx, 1).address, '50 Rue de Rennes, 75006');
+});

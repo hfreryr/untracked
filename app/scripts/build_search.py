@@ -12,6 +12,7 @@ téléchargée chaque semaine par build_extras.py dans extras.json (clé « qran
 - autres noms : alt_name, old_name, short_name, official_name… séparés par « ; » ;
 - extra : cuisine et régime (« v » végétarien, « V » végétalien), pour les recherches « restaurant italien », « vegan » ;
 - adresse : « numéro|rue|code postal », la rue étant un indice dans « streets » (les champs vides en fin de ligne sont omis).
+  Numéro « ~ » : pas d'adresse connue, rue la plus proche (affichée « près de … »).
 Doublons (même nom à moins de 200 m, ou même Wikidata) : on garde le plus connu, puis le plus utile (une gare plutôt que son quai).
 """
 import argparse
@@ -73,7 +74,10 @@ def build(items, qrank):
         alts = sorted({a.strip() for k in ALT for a in (t.get(k) or "").split(";") if a.strip() and norm(a) != norm(name)})
         rows.append({"name": name, "lon": round(lon, 5), "lat": round(lat, 5), "id": oid, "kv": kv,
                      "rank": notoriety(t, qrank), "alts": ";".join(alts), "x": extra_of(t), "wd": t.get("wikidata"),
-                     "num": t.get("addr:housenumber", ""), "street": t.get("addr:street", ""), "pc": t.get("addr:postcode", "")})
+                     # sans adresse : la rue la plus proche (« _rue », build_places.py), marquée « ~ » : l'app affiche « près de … »
+                     # (mesuré le 21/10 sur 3 000 lieux à adresse connue : bonne rue 78 %, rue voisine 19 %, aucune 3 %)
+                     "num": t.get("addr:housenumber", "") if t.get("addr:street") else ("~" if t.get("_rue") else ""),
+                     "street": t.get("addr:street") or t.get("_rue", ""), "pc": t.get("addr:postcode", "") if t.get("addr:street") else ""})
     # doublons : même Wikidata, ou même nom à moins de 200 m (grille de ≈ 200 m)
     rows.sort(key=lambda r: (-r["rank"], PREFER.get(r["kv"], 5), -len(r["alts"])))
     seen_wd, seen_cell, kept = set(), set(), []
