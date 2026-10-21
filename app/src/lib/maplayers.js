@@ -19,13 +19,13 @@ export function addRouteLayers(map, dark) {
   // Trajets à pied, à vélo et en transport : trait plein, liseré foncé puis bord blanc.
   map.addLayer({ id: 'route-halo', type: 'line', source: 'route', filter: ['!=', ['get', 'kind'], 'transfer'],
     layout: { 'line-cap': 'round', 'line-join': 'round' },
-    paint: { 'line-color': dark ? DARK_LAND : '#FFFFFF', 'line-width': width(6.5, 12), 'line-opacity': FADE } }, before);
+    paint: { 'line-color': ['coalesce', ['get', 'rim'], dark ? DARK_LAND : '#FFFFFF'], 'line-width': width(7.5, 15), 'line-opacity': FADE } }, before);
   map.addLayer({ id: 'route-case', type: 'line', source: 'route', filter: ['!=', ['get', 'kind'], 'transfer'],
     layout: { 'line-cap': 'round', 'line-join': 'round' },
-    paint: { 'line-color': ['get', 'edge'], 'line-width': width(4.8, 9.5), 'line-opacity': FADE } }, before);
+    paint: { 'line-color': ['get', 'edge'], 'line-width': width(5.2, 11), 'line-opacity': FADE } }, before);
   map.addLayer({ id: 'route-line', type: 'line', source: 'route', filter: ['!=', ['get', 'kind'], 'transfer'],
     layout: { 'line-cap': 'round', 'line-join': 'round' },
-    paint: { 'line-color': ['get', 'color'], 'line-width': width(3.4, 7), 'line-opacity': FADE } }, before);
+    paint: { 'line-color': ['get', 'color'], 'line-width': width(3.4, 7.5), 'line-opacity': FADE } }, before);
   // Correspondances à pied dans un trajet en transport : points discrets.
   map.addLayer({ id: 'route-walk', type: 'line', source: 'route', filter: ['==', ['get', 'kind'], 'transfer'],
     layout: { 'line-cap': 'round', 'line-join': 'round' },

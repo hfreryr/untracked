@@ -1,11 +1,31 @@
-<!-- Guidage : bandeau de la prochaine manœuvre, bouton Recentrer, étapes, barre du bas (arrivée, voix, fin). -->
+<!-- Guidage, inspiré de Plans (maquette validée le 21/10) : panneau gris-noir en haut avec la manœuvre en grand
+     et, collée dessous, la suivante (« Puis ») ; en bas, trois chiffres ; on remonte la barre pour les étapes, la voix
+     et « Terminer ». Dessins maison, aucune icône reprise d'Apple. -->
 <script>
   import { tx } from '#lib/i18n/index.js';
   import { arrowAngle, isRoundabout } from '#lib/nav.js';
   import { badge } from '#lib/routeview.js';
   import ModeIcon from './ModeIcon.svelte';
+  import { etaParts } from '#lib/navglide.js';
 
   let { nav, navBanner, navRemaining, to, navFollow, navList = $bindable(), voice = $bindable(), endNav, recenter, manual = false, stepBy } = $props();
+  let barOpen = $state(false);         // barre du bas remontée : étapes, voix, Terminer
+  const parts = $derived(etaParts(navRemaining.left ?? 0, navRemaining.meters ?? 0));
+  // glisser la barre vers le haut l'ouvre, vers le bas la referme (comme les fiches de l'app)
+  function swipeBar(node) {
+    let y0 = null;
+    const start = (e) => { y0 = e.touches[0].clientY; };
+    const end = (e) => {
+      if (y0 == null) return;
+      const dy = e.changedTouches[0].clientY - y0;
+      y0 = null;
+      if (dy < -25) barOpen = true;
+      else if (dy > 25) barOpen = false;
+    };
+    node.addEventListener('touchstart', start, { passive: true });
+    node.addEventListener('touchend', end);
+    return { destroy() { node.removeEventListener('touchstart', start); node.removeEventListener('touchend', end); } };
+  }
 </script>
 
 <div class="nav-top" class:arrived={navBanner.arrived} role="status" aria-live="polite">
@@ -28,7 +48,7 @@
       {#if navBanner.sub}<span class="nav-sub">{navBanner.sub}</span>{/if}
     </span>
   </div>
-  {#if navBanner.then && !navBanner.arrived}<p class="nav-then">{tx('guidage.puis', { then: navBanner.then })}</p>{/if}
+  {#if navBanner.then && !navBanner.arrived}<p class="nav-then"><span class="then-label">{tx('guidage.puis_label')}</span> {navBanner.then}</p>{/if}
   {#if manual && !navBanner.arrived}
     <!-- sans position, le guidage ne peut pas avancer seul : on passe les étapes à la main -->
     <div class="nav-manual" role="group" aria-label={tx('guidage.etapes_a_la_main')}>
@@ -62,51 +82,73 @@
     </ol>
   </section>
 {/if}
-<div class="nav-bottom">
-  <button class="nav-eta" onclick={() => (navList = !navList)} aria-expanded={navList} aria-label={navList ? tx('guidage.fermer_les_etapes') : tx('guidage.voir_les_etapes')}>
-    <strong>{navBanner.arrived ? tx('guidage.arrive') : navRemaining.eta}</strong>
-    <span>{navBanner.arrived ? to.label : `${navRemaining.min} · ${navRemaining.km}`}</span>
+<div class="nav-bottom" class:open={barOpen || navBanner.arrived} use:swipeBar>
+  <button class="nav-stats" onclick={() => (barOpen = !barOpen)} aria-expanded={barOpen || navBanner.arrived}>
+    <span class="nav-grip" aria-hidden="true"></span>
+    {#if navBanner.arrived}
+      <span class="stat wide"><b>{tx('guidage.arrive')}</b><small>{to.label}</small></span>
+    {:else}
+      <span class="stat"><b>{navRemaining.eta}</b><small>{tx('guidage.unite_arrivee')}</small></span>
+      {#each parts as p}<span class="stat"><b>{p.v}</b><small>{p.u}</small></span>{/each}
+    {/if}
   </button>
-  <button class="nav-btn" onclick={() => { voice = !voice; if (!voice && 'speechSynthesis' in window) speechSynthesis.cancel(); }} aria-pressed={voice} aria-label={voice ? tx('guidage.couper_la_voix') : tx('guidage.activer_la_voix')}>
-    {#if voice}<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" /><path d="M15.5 9a4.5 4.5 0 0 1 0 6M18 6.5a8 8 0 0 1 0 11" /></svg>
-    {:else}<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" /><path d="m16 9.5 5 5M21 9.5l-5 5" /></svg>{/if}
-  </button>
-  <button class="nav-end" onclick={endNav}>{tx('guidage.fin')}</button>
+  {#if barOpen || navBanner.arrived}
+    <div class="nav-more">
+      <button class="nav-row" onclick={() => { navList = !navList; barOpen = false; }} aria-expanded={navList}>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11" /><circle cx="4.5" cy="6" r="1" class="solid" /><circle cx="4.5" cy="12" r="1" class="solid" /><circle cx="4.5" cy="18" r="1" class="solid" /></svg>
+        {tx('guidage.etapes_du_trajet')}
+      </button>
+      <button class="nav-row nav-btn" onclick={() => { voice = !voice; if (!voice && 'speechSynthesis' in window) speechSynthesis.cancel(); }} aria-pressed={voice}>
+        {#if voice}<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" /><path d="M15.5 9a4.5 4.5 0 0 1 0 6M18 6.5a8 8 0 0 1 0 11" /></svg>
+        {:else}<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" /><path d="m16 9.5 5 5M21 9.5l-5 5" /></svg>{/if}
+        {voice ? tx('guidage.voix_activee') : tx('guidage.voix_coupee')}
+      </button>
+      <button class="nav-end" onclick={endNav}>{tx('guidage.terminer')}</button>
+    </div>
+  {/if}
 </div>
 
 <style>
+  /* panneau gris-noir, presque toute la largeur ; « Puis » collé dessous, dans le même bloc */
   .nav-top {
-    position: absolute; z-index: 5; left: 10px; right: 10px; top: calc(10px + env(safe-area-inset-top));
-    background: #1D3A86; color: #fff; border-radius: 22px; box-shadow: var(--shadow-float); padding: 14px 16px; max-width: 520px;
+    position: absolute; z-index: 5; left: 8px; right: 8px; top: calc(8px + env(safe-area-inset-top));
+    background: #1F2023; color: #fff; border-radius: 24px; box-shadow: 0 8px 24px rgb(0 0 0 / 0.28); max-width: 560px; overflow: hidden;
   }
   .nav-top.arrived { background: #1E7A3E; }
-  .nav-main { display: grid; grid-template-columns: 52px 1fr; gap: 12px; align-items: center; }
-  .nav-icon { width: 52px; height: 52px; display: grid; place-items: center; }
-  .nav-icon :global(svg) { width: 46px; height: 46px; stroke-width: 2.6; transition: transform 0.2s; }
+  .nav-main { display: grid; grid-template-columns: 60px 1fr; gap: 14px; align-items: center; padding: 18px 20px 18px 14px; }
+  .nav-icon { width: 60px; height: 60px; display: grid; place-items: center; }
+  .nav-icon :global(svg) { width: 54px; height: 54px; stroke-width: 3; transition: transform 0.2s; }
   .nav-icon .solid { fill: #fff; }
-  .nav-icon .hole { fill: #1D3A86; stroke: none; }
-  .nav-icon .badge { font-size: 15px; }
-  .nav-txt { display: grid; gap: 1px; min-width: 0; }
-  .nav-dist { font-size: 30px; font-weight: 800; line-height: 1.05; font-variant-numeric: tabular-nums; }
-  .nav-text { font-size: 18px; font-weight: 600; line-height: 1.25; }
-  .nav-sub { font-size: 14px; opacity: 0.85; }
-  .nav-then { margin: 10px 0 0; padding-top: 9px; border-top: 1px solid rgb(255 255 255 / 0.2); font-size: 14.5px; opacity: 0.9;
+  .nav-icon .hole { fill: #1F2023; stroke: none; }
+  .nav-icon .badge { font-size: 17px; min-width: 44px; height: 44px; }
+  .nav-txt { display: grid; gap: 3px; min-width: 0; }
+  .nav-dist { font-size: 40px; font-weight: 700; letter-spacing: -0.02em; line-height: 1; font-variant-numeric: tabular-nums; }
+  .nav-text { font-size: 21px; font-weight: 600; line-height: 1.2; }
+  .nav-sub { font-size: 15px; color: rgb(255 255 255 / 0.78); }
+  .nav-then { margin: 0; padding: 11px 20px 12px; background: #2B2D31; font-size: 16px; font-weight: 600;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .then-label { color: rgb(255 255 255 / 0.66); font-weight: 500; margin-right: 4px; }
+  /* barre du bas : trois chiffres ; remontée, les options */
   .nav-bottom {
-    position: absolute; z-index: 5; left: 0; right: 0; bottom: 0; display: grid; grid-template-columns: 1fr auto auto; gap: 10px; align-items: center;
-    padding: 12px 14px calc(12px + env(safe-area-inset-bottom)); background: var(--card); box-shadow: var(--shadow-sheet); border-radius: 22px 22px 0 0;
+    position: absolute; z-index: 5; left: 0; right: 0; bottom: 0; padding: 0 18px calc(14px + env(safe-area-inset-bottom));
+    background: var(--card); box-shadow: 0 -6px 22px rgb(0 0 0 / 0.14); border-radius: 26px 26px 0 0;
   }
-  .nav-eta { display: grid; text-align: left; border: 0; background: none; padding: 4px 6px; cursor: pointer; min-width: 0; }
-  .nav-eta strong { font-size: 22px; font-variant-numeric: tabular-nums; }
-  .nav-eta span { font-size: 14px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .nav-btn { width: 48px; height: 48px; border-radius: 50%; border: 0; background: var(--fill); display: grid; place-items: center; cursor: pointer; color: var(--ink); }
-  .nav-btn svg { width: 22px; height: 22px; }
-  .nav-end { height: 48px; padding: 0 22px; border: 0; border-radius: 24px; background: var(--closed); color: #fff; font-weight: 700; font-size: 16px; cursor: pointer; }
-  .nav-recenter { position: absolute; z-index: 5; left: 50%; transform: translateX(-50%); bottom: calc(96px + env(safe-area-inset-bottom));
+  .nav-stats { display: grid; grid-template-columns: repeat(3, 1fr); width: 100%; padding: 8px 0 4px; border: 0; background: none; cursor: pointer; color: var(--ink); font: inherit; }
+  .nav-grip { grid-column: 1 / -1; justify-self: center; width: 36px; height: 5px; border-radius: 3px; background: var(--line); margin-bottom: 10px; }
+  .stat { display: grid; justify-items: center; gap: 1px; min-width: 0; }
+  .stat.wide { grid-column: 1 / -1; }
+  .stat b { font-size: 26px; font-weight: 700; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; line-height: 1.15; }
+  .stat small { font-size: 14px; color: var(--muted); font-weight: 500; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .nav-more { display: grid; padding-top: 10px; }
+  .nav-row { display: flex; align-items: center; gap: 12px; min-height: 50px; padding: 0 2px; border: 0; border-top: 1px solid var(--line);
+    background: none; color: var(--ink); font: inherit; font-size: 16px; font-weight: 500; cursor: pointer; text-align: left; }
+  .nav-row svg { width: 22px; height: 22px; }
+  .nav-end { margin-top: 12px; height: 54px; border: 0; border-radius: 16px; background: var(--closed); color: #fff; font-weight: 700; font-size: 18px; cursor: pointer; }
+  .nav-recenter { position: absolute; z-index: 5; left: 50%; transform: translateX(-50%); bottom: calc(112px + env(safe-area-inset-bottom));
     display: inline-flex; align-items: center; gap: 8px; height: 44px; padding: 0 18px; border: 0; border-radius: 22px;
     background: var(--card); color: var(--accent); font-weight: 700; box-shadow: var(--shadow-float); cursor: pointer; }
   .nav-recenter svg { width: 16px; height: 16px; }
-  .nav-list { bottom: calc(72px + env(safe-area-inset-bottom)); border-radius: 22px 22px 0 0; z-index: 4; }
+  .nav-list { bottom: calc(96px + env(safe-area-inset-bottom)); border-radius: 22px 22px 0 0; z-index: 4; }
   .nav-list h1 { margin-top: 8px; }
   .close {
     position: absolute; top: 14px; right: 14px; width: 32px; height: 32px; border-radius: 50%;
@@ -118,7 +160,7 @@
   .why { display: block; font-size: 13px; color: var(--muted); margin-top: 2px; line-height: 1.35; }
   .steps li.done { color: var(--faint); }
   .steps li.now { font-weight: 700; color: var(--accent); }
-  .nav-manual { display: flex; align-items: center; gap: 6px; margin-top: 10px; padding-top: 10px; border-top: 1px solid rgb(255 255 255 / 0.2); }
+  .nav-manual { display: flex; align-items: center; gap: 6px; padding: 10px 16px 12px; border-top: 1px solid rgb(255 255 255 / 0.14); }
   .nav-manual-why { flex: 1; font-size: 13.5px; color: rgb(255 255 255 / 0.85); }
   .nav-manual button { width: 44px; height: 40px; border: 0; border-radius: 12px; background: rgb(255 255 255 / 0.16); color: #fff; display: grid; place-items: center; cursor: pointer; }
   .nav-manual button:disabled { opacity: 0.35; cursor: default; }

@@ -90,26 +90,36 @@ export function createDirections(app) {
     if (app.to) app.placeMarker(app.to.lon, app.to.lat);
     computeRoutes();
   }
-  function computeRoutes() {
+  /**
+   * Calcule les itinéraires de tous les modes.
+   * @param {{ keep?: boolean }} [opts]  keep : mise à jour discrète (le départ a bougé) — on garde le trajet choisi,
+   *   l'affichage en cours et le cadrage de la carte ; une erreur ne remplace pas l'ancien résultat.
+   */
+  function computeRoutes(opts) {
+    const keep = opts?.keep === true;
     app.routeCtrl?.abort();
     if (!app.from || !app.to || (app.showVia && !app.via)) return;
     app.routeCtrl = new AbortController();
     const signal = app.routeCtrl.signal;
-    app.picked = 0;
-    app.pickedStreet = 0;
-    app.transitDetail = false;
-    app.focusLeg = null;
-    app.routes = { walk: { status: 'loading' }, bike: { status: 'loading' }, transit: { status: 'loading' }, car: { status: 'loading' } };
+    if (!keep) {
+      app.picked = 0;
+      app.pickedStreet = 0;
+      app.transitDetail = false;
+      app.focusLeg = null;
+      app.routes = { walk: { status: 'loading' }, bike: { status: 'loading' }, transit: { status: 'loading' }, car: { status: 'loading' } };
+    }
     const run = async (id, fn) => {
       try {
         const data = await fn();
         if (signal.aborted) return;
         app.routes[id] = (Array.isArray(data) && !data.length) ? { status: 'none' } : { status: 'ok', data };
+        if (keep && id === 'transit' && Array.isArray(data)) app.picked = Math.min(app.picked, Math.max(0, data.length - 1));
+        if (keep && id !== 'transit' && id === app.mode) app.pickedStreet = Math.min(app.pickedStreet, data.alts?.length || 0);
       } catch (e) {
-        if (e.name === 'AbortError') return;
+        if (e.name === 'AbortError' || keep) return;
         app.routes[id] = { status: e.message === 'no-route' ? 'none' : 'error' };
       }
-      if (id === app.mode) app.drawRoute();
+      if (id === app.mode) app.drawRoute(!keep);
     };
     const v = app.showVia ? app.via : null;
     // serveur FOSSGIS : une demande par seconde ; le mode affiché passe en premier
@@ -127,6 +137,16 @@ export function createDirections(app) {
       const withTraffic = (x) => ({ ...x, freeDuration: x.duration, duration: x.duration * t.factor, traffic: t.label });
       return { ...withTraffic(r), alts: r.alts.map(withTraffic) };
     });
+  }
+  // Départ = votre position : l'itinéraire suit vos déplacements (porteur, 21/10), discrètement.
+  // Au plus un calcul toutes les 30 s et seulement après 50 m : les serveurs prêtés limitent les demandes (FOSSGIS : 1 par seconde).
+  let lastFollow = 0;
+  function followFrom() {
+    if (!app.directions || app.nav || app.editing || !app.from?.isMe || !app.me || !app.to) return;
+    if (Date.now() - lastFollow < 30000 || app.dist(app.from.lat, app.from.lon, app.me.lat, app.me.lon) < 50) return;
+    lastFollow = Date.now();
+    app.from = app.me;
+    computeRoutes({ keep: true });
   }
   function chooseMode(m) {
     app.mode = m;
@@ -183,5 +203,5 @@ export function createDirections(app) {
     app.picked = 0;
     computeRoutes();
   }
-  return { startDirections, openDirections, closeDirections, pointOf, setPoint, addStop, removeStop, editField, useMyPosition, swap, computeRoutes, chooseMode, sheetToTop, pickStreet, pickTransit, openTransit, closeTransit, focusOnLeg, setTransitPref, setWhen };
+  return { startDirections, openDirections, closeDirections, pointOf, setPoint, addStop, removeStop, editField, useMyPosition, swap, computeRoutes, followFrom, chooseMode, sheetToTop, pickStreet, pickTransit, openTransit, closeTransit, focusOnLeg, setTransitPref, setWhen };
 }

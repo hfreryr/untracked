@@ -618,6 +618,12 @@ z.close()`, zip]);
     await p.fill('#search', 'Panthéon'); await p.waitForSelector('.results li.opt button', { timeout: 20000 }); await pick(p); await p.waitForTimeout(2500);
     await p.click('.action.primary'); await p.waitForTimeout(6000);
     await p.click('.mode-tabs .mode-tab >> nth=0'); await p.waitForTimeout(3000);
+    // départ = votre position : pas de gros point de départ, la flèche de position suffit (porteur, 21/10)
+    assert(!(await p.evaluate(() => window.__map.getSource('route-ends').serialize().data.features.some((f) => f.properties.kind === 'from'))), 'point de départ affiché alors que le départ est votre position');
+    // on bouge de ~120 m avant de partir : l'itinéraire repart de la nouvelle position, sans « Calcul… »
+    await ctx.setGeolocation({ latitude: 48.854, longitude: 2.3405 }); await p.waitForTimeout(6000);
+    const start = await p.evaluate(() => window.__map.getSource('route').serialize().data.features.at(-1).geometry.coordinates[0]);
+    assert(Math.hypot(start[0] - 2.3405, (start[1] - 48.854) * 1.5) < 0.0008, `l'itinéraire ne suit pas la position : ${start}`);
     await p.click('.sum-actions .go'); await p.waitForSelector('.nav-top', { timeout: 8000 }); await p.waitForTimeout(1500);
     // pendant le guidage : plus de point de départ, ni de rond bleu ; on avance → le tronçon fait disparaît du tracé
     const ends = () => p.evaluate(() => window.__map.getSource('route-ends').serialize().data.features.length);
@@ -628,6 +634,10 @@ z.close()`, zip]);
     await ctx.setGeolocation({ latitude: mid[1], longitude: mid[0] }); await p.waitForTimeout(4000);
     const first = await p.evaluate(() => window.__map.getSource('route').serialize().data.features[0].geometry.coordinates[0]);
     assert(Math.hypot(first[0] - mid[0], first[1] - mid[1]) < 0.0005, `le tracé ne commence pas à la position : ${first} / ${mid}`);
+    // « Puis » est collé sous le panneau ; « Terminer » est dans la barre du bas remontée (comme Plans)
+    assert(await p.$('.nav-top .nav-then'), '« Puis » absent du panneau');
+    assert(!(await p.$('.nav-end')), '« Terminer » visible sans remonter la barre');
+    await p.click('.nav-stats'); await p.waitForSelector('.nav-end');
     await p.click('.nav-end'); await p.waitForTimeout(800);
     assert((await p.locator('.nav-top').count()) === 0, 'guidage non terminé');
     assert(!errors.length, errors.join(' | '));
@@ -650,7 +660,7 @@ z.close()`, zip]);
     assert(before !== after, `l'étape ne change pas : ${before}`);
     await p.click('.nav-manual button[aria-label="Étape précédente"]'); await p.waitForTimeout(900);
     assert((await p.$eval('.nav-text', (e) => e.textContent)) === before, 'retour à l\'étape précédente impossible');
-    await p.click('.nav-end');
+    await p.click('.nav-stats'); await p.click('.nav-end');
     assert(!errors.length, errors.join(' | '));
     await ctx.close();
   },

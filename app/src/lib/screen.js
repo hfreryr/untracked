@@ -67,7 +67,9 @@ export function createScreen(app) {
     if (!app.meMarker) {
       const el = document.createElement('div');
       el.className = 'me';
-      el.innerHTML = '<span class="me-beam"></span><span class="me-dot"></span>';
+      // me-nav : pendant le guidage, une flèche dans un rond blanc (dessin maison)
+      el.innerHTML = '<span class="me-beam"></span><span class="me-dot"></span>'
+        + '<svg class="me-nav" viewBox="0 0 44 44" aria-hidden="true"><circle cx="22" cy="22" r="18"/><path d="M22 9 31 31 22 26 13 31Z"/></svg>';
       app.meMarker = new maplibregl.Marker({ element: el, rotationAlignment: 'map' });
       if (app.heading != null) { el.classList.add('has-heading'); app.meMarker.setRotation(app.heading); }
     }

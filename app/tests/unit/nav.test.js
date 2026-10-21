@@ -21,3 +21,26 @@ test('dans le 2e tronçon, puis au bout', () => {
   assert.ok(r[0][0] > 2.341 && r[0][0] < 2.342);
   assert.deepEqual(remaining(nav, nav.total + 50), [nav.coords[2], nav.coords[2]]);
 });
+
+// ——— Guidage fluide et barre du bas (navglide.js) ———
+import { lerpAngle, glideMs, etaParts } from '../../src/lib/navglide.js';
+
+test('la flèche tourne par le plus court chemin (350° → 10° passe par 0°)', () => {
+  assert.equal(Math.round(lerpAngle(350, 10, 0.5)), 0);
+  assert.equal(Math.round(lerpAngle(10, 350, 0.5)), 0);
+  assert.equal(Math.round(lerpAngle(0, 90, 0.5)), 45);
+  assert.equal(Math.round(lerpAngle(90, 90, 0.3)), 90);
+});
+
+test('glissement : le temps entre deux positions, borné entre 0,3 et 2 s', () => {
+  assert.equal(glideMs(1000), 1000);
+  assert.equal(glideMs(50), 300);
+  assert.equal(glideMs(9000), 2000);
+  assert.equal(glideMs(0), 1000);
+});
+
+test('barre du bas : minutes puis heures, mètres puis kilomètres', () => {
+  assert.deepEqual(etaParts(14 * 60, 1100), [{ v: '14', u: 'min' }, { v: '1,1', u: 'km' }]);
+  assert.deepEqual(etaParts(75 * 60, 640), [{ v: '1:15', u: 'h' }, { v: '640', u: 'm' }]);
+  assert.deepEqual(etaParts(10, 3), [{ v: '1', u: 'min' }, { v: '10', u: 'm' }]);
+});
