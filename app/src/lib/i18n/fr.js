@@ -16,6 +16,24 @@ export default {
   'promesse.pour_en_savoir_plus': 'Pour en savoir plus :',
   'promesse.compris': 'Compris',
 
+  // ——— Invitation à installer l'app (install.js) ———
+  'installer.titre': 'Ajoutez l\'app à votre écran d\'accueil',
+  'installer.pourquoi': 'Elle s\'ouvre comme une app, et vos lieux y sont mieux protégés.',
+  'installer.plus_tard': 'Plus tard',
+  'installer.installer': 'Installer',
+  'installer.merci': 'Untracked Maps est sur votre écran d\'accueil.',
+  'installer.iphone_titre': 'Installer sur l\'iPhone',
+  'installer.iphone_sous_titre': 'Deux gestes dans Safari, une seule fois.',
+  'installer.etape_1_avant': 'Touchez',
+  'installer.partager': 'Partager',
+  'installer.etape_1_apres': ', en bas de l\'écran',
+  'installer.etape_2_avant': 'Choisissez',
+  'installer.sur_ecran_accueil': 'Sur l\'écran d\'accueil',
+  'installer.etape_2_apres': ', puis ',
+  'installer.ajouter': 'Ajouter',
+  'installer.iphone_lieux': 'L\'app installée démarre sans vos lieux de Safari : enregistrez-y à nouveau ceux que vous voulez garder.',
+  'apropos.installer': 'Installer l\'app sur l\'écran d\'accueil',
+
   // ——— Fenêtre « À propos » (bouton ⓘ) et mention de la carte ———
   'apropos.bouton': 'À propos de cette carte',
   'apropos.titre': 'Untracked Maps',

@@ -1,0 +1,76 @@
+<!-- Invitation à installer l'app sur l'écran d'accueil (maquette validée le 21/10, install.js) :
+     une carte après le premier lieu enregistré, et la fenêtre des deux gestes sur iPhone (ouverte aussi depuis ⓘ). -->
+<script>
+  import { tx } from '#lib/i18n/index.js';
+  import { getContext } from 'svelte';
+  import Dialog from '#lib/ui/Dialog.svelte';
+  import { canOffer, installWay, isStandalone, laterTapped, onInstallChange, promptInstall, readDismissed } from '#lib/install.js';
+
+  // État et actions de la page (voir le bloc « app » de +page.svelte)
+  const app = getContext('app');
+  let way = $state(installWay());
+  let closed = $state(false);          // fermée pour cette fois (« Plus tard » ou « Installer »)
+  $effect(() => onInstallChange(() => (way = installWay())));
+  const show = $derived(!closed && !!way && canOffer({ standalone: isStandalone(), saved: app.favorites.length > 0, dismissed: readDismissed(), now: Date.now(), installable: !!way })
+    && !app.place && !app.category && !app.directions && !app.nav && !app.showPromise && !app.importOpen && !app.editChips && !app.aboutOpen && !app.focused);
+
+  // « Installer » : la fenêtre du téléphone (Android), sinon les deux gestes (iPhone)
+  app.startInstall = async () => {
+    closed = true;
+    if (installWay() === 'prompt') { if (await promptInstall()) app.say(tx('installer.merci')); }
+    else app.installSteps = true;
+  };
+</script>
+
+{#if show}
+  <div class="install" role="note">
+    <div class="t">
+      <img src="icon-192.png" alt="" width="44" height="44" />
+      <div><p class="h">{tx('installer.titre')}</p><p>{tx('installer.pourquoi')}</p></div>
+    </div>
+    <div class="row">
+      <button class="later" onclick={() => { laterTapped(); closed = true; }}>{tx('installer.plus_tard')}</button>
+      <button class="go" onclick={app.startInstall}>{tx('installer.installer')}</button>
+    </div>
+  </div>
+{/if}
+
+{#if app.installSteps}
+  <Dialog title={tx('installer.iphone_titre')} onclose={() => (app.installSteps = false)}>
+    <p class="sub">{tx('installer.iphone_sous_titre')}</p>
+    <ol class="steps">
+      <li><span class="n" aria-hidden="true">1</span><span>{tx('installer.etape_1_avant')}
+        <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 15V4M8.5 7.5 12 4l3.5 3.5" /><path d="M8 10.5H6.5v9.5h11v-9.5H16" /></svg></span>
+        <strong>{tx('installer.partager')}</strong>{tx('installer.etape_1_apres')}</span></li>
+      <li><span class="n" aria-hidden="true">2</span><span>{tx('installer.etape_2_avant')}
+        <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="4" /><path d="M12 8.5v7M8.5 12h7" /></svg></span>
+        <strong>{tx('installer.sur_ecran_accueil')}</strong>{tx('installer.etape_2_apres')}<strong>{tx('installer.ajouter')}</strong></span></li>
+    </ol>
+    {#if app.favorites.length}<p class="note">{tx('installer.iphone_lieux')}</p>{/if}
+  </Dialog>
+{/if}
+
+<style>
+  svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  /* au-dessus des trois boutons ronds de la carte, comme le bandeau de la première ouverture (rien n'est caché dessous) */
+  .install {
+    position: absolute; z-index: 4; left: 12px; right: 12px; bottom: calc(196px + env(safe-area-inset-bottom)); max-width: 420px; box-sizing: border-box;
+    padding: 16px; background: var(--card); border-radius: 20px; box-shadow: var(--shadow-float);
+  }
+  .t { display: flex; gap: 12px; align-items: center; }
+  .t img { border-radius: 11px; border: 1px solid var(--line); flex: none; }
+  p { margin: 0; font-size: 14px; line-height: 1.35; color: var(--ink); }
+  .h { font-size: 16px; font-weight: 700; margin-bottom: 3px; }
+  .row { display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-top: 12px; }
+  .later { border: 0; background: none; color: var(--accent); font: inherit; font-size: 15px; font-weight: 600; min-height: 40px; padding: 0 10px; cursor: pointer; }
+  .go { border: 0; background: var(--accent-btn); color: #fff; font: inherit; font-size: 15px; font-weight: 600; border-radius: 20px; min-height: 40px; padding: 0 20px; cursor: pointer; }
+  .sub { color: var(--muted); margin-bottom: 8px; }
+  .steps { list-style: none; margin: 0; padding: 0; }
+  .steps li { display: flex; gap: 14px; align-items: center; padding: 12px 0; border-top: 1px solid var(--line); font-size: 15.5px; line-height: 1.4; }
+  .n { width: 28px; height: 28px; border-radius: 50%; flex: none; display: grid; place-items: center; font-weight: 700; font-size: 14px;
+    color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--card)); }
+  .ic { display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 8px; background: var(--fill); color: var(--accent); vertical-align: middle; margin: 0 3px; }
+  .ic svg { width: 18px; height: 18px; }
+  .note { margin-top: 12px !important; padding: 10px 12px; border-radius: 12px; font-size: 13.5px; background: color-mix(in srgb, #E0862F 14%, var(--card)); }
+  @media (min-width: 768px) { .install { left: auto; right: 76px; bottom: 16px; width: 380px; } }
+</style>
