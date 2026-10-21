@@ -4,6 +4,7 @@
   import 'maplibre-gl/dist/maplibre-gl.css';
   import '#lib/ui/base.css';
   import RouteSheet from '#lib/ui/RouteSheet.svelte';
+  import { placeEta, readLastMode } from '#lib/defaultmode.js';
   import NavView from '#lib/ui/NavView.svelte';
   import MapControls from '#lib/ui/MapControls.svelte';
   import StreetThumb from '#lib/ui/StreetThumb.svelte';
@@ -347,13 +348,9 @@
 
 
   // Temps de marche estimé sur le téléphone (distance à vol d'oiseau × 1,3, à 4,8 km/h) : rien n'est envoyé.
-  const walkEta = $derived.by(() => {
-    if (!me || !place) return null;
-    const m = dist(me.lat, me.lon, place.lat, place.lon) * 1.3;
-    if (m < 60) return null;
-    const min = Math.round(m / 80);
-    return min <= 45 ? tx('ecran.min_a_pied', { min }) : `≈ ${fmtDistance(m)}`;   // (texte complet pour l’accessibilité)
-  });
+  // bouton de la fiche lieu : mode proposé par défaut et temps estimé (defaultmode.js)
+  // (relu quand le mode change : le dernier choisi est retenu)
+  const walkEta = $derived.by(() => { void mode; return me && place ? placeEta(readLastMode(), dist(me.lat, me.lon, place.lat, place.lon)) : null; });
 
 
   $effect(() => {
