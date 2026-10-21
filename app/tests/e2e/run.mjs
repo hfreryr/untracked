@@ -25,7 +25,8 @@ const assert = (cond, msg) => { if (!cond) throw new Error(msg); };
 async function page(opts = {}, hash = '') {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, locale: 'fr-FR', timezoneId: 'Europe/Paris',
     geolocation: { latitude: 48.851, longitude: 2.339 }, permissions: ['geolocation'], ...opts });
-  await ctx.addInitScript(() => localStorage.setItem('promesse-vue', '1'));
+  // (bandeau de la première ouverture et invitation à installer déjà vus : ils ne gênent pas les autres tests)
+  await ctx.addInitScript(() => { localStorage.setItem('promesse-vue', '1'); localStorage.setItem('installer-plus-tard', JSON.stringify({ n: 2, at: Date.now() })); });
   const p = await ctx.newPage();
   const errors = [];
   p.on('pageerror', (e) => errors.push(e.message));
@@ -297,6 +298,42 @@ const tests = {
     assert((await p.locator('.results li.opt:has-text("Café de Flore")').count()) === 1, 'Café de Flore en double');
     await p.dispatchEvent('.results li.saved-hit button', 'mousedown'); await p.waitForSelector('.phead h1', { timeout: 10000 });
     assert(/Café de Flore/.test(await p.textContent('.phead h1')), 'fiche non ouverte');
+    assert(!errors.length, errors.join(' | '));
+    await ctx.close();
+  },
+  async 'invitation à installer : après un lieu enregistré, iPhone (deux gestes) et Android (fenêtre du téléphone) (21/10)'() {
+    const fav = JSON.stringify([{ id: 'node1', name: 'Café de Flore', type: 'Café', address: '', lat: 48.85414, lon: 2.33263, lists: ['fav'] }]);
+    // iPhone (Safari) : la carte, puis les deux gestes
+    let ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, locale: 'fr-FR',
+      userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1' });
+    await ctx.addInitScript((f) => { localStorage.setItem('promesse-vue', '1'); if (!sessionStorage.getItem('vide')) localStorage.setItem('lieux-favoris', f); }, fav);
+    let p = await ctx.newPage(); const errors = []; p.on('pageerror', (e) => errors.push(e.message));
+    await p.goto(`http://localhost:${PORT}/`); await p.waitForSelector('.install', { timeout: 8000 });
+    await p.click('.install .go'); await p.waitForSelector('.dlg .steps');
+    assert(/Partager/.test(await p.textContent('.dlg')) && /Sur l.écran d.accueil/.test(await p.textContent('.dlg')), 'étapes iPhone absentes');
+    assert(/sans vos lieux de Safari/.test(await p.textContent('.dlg')), 'avertissement sur les lieux de Safari absent');
+    await p.keyboard.press('Escape'); await p.waitForTimeout(300);
+    assert(!(await p.$('.install')), 'la carte reste après « Installer »');
+    // ⓘ propose aussi l'installation
+    await p.click('.about-btn'); await p.waitForSelector('.dlg');
+    assert(/Installer l.app sur l.écran d.accueil/.test(await p.textContent('.dlg')), 'entrée « Installer » absente de ⓘ');
+    await ctx.close();
+    // « Plus tard » : la carte ne revient pas à l'ouverture suivante
+    ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, locale: 'fr-FR',
+      userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1' });
+    await ctx.addInitScript((f) => { localStorage.setItem('promesse-vue', '1'); localStorage.setItem('lieux-favoris', f); }, fav);
+    p = await ctx.newPage(); await p.goto(`http://localhost:${PORT}/`); await p.waitForSelector('.install', { timeout: 8000 });
+    await p.click('.install .later'); await p.reload(); await p.waitForTimeout(2500);
+    assert(!(await p.$('.install')), 'la carte revient malgré « Plus tard »');
+    await ctx.close();
+    // Android : le navigateur propose l'installation (événement simulé) ; « Installer » ouvre sa fenêtre
+    ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, locale: 'fr-FR' });
+    await ctx.addInitScript((f) => { localStorage.setItem('promesse-vue', '1'); localStorage.setItem('lieux-favoris', f); }, fav);
+    p = await ctx.newPage(); await p.goto(`http://localhost:${PORT}/`); await p.waitForTimeout(2500);
+    assert(!(await p.$('.install')), 'carte affichée alors que le navigateur ne sait pas installer');
+    await p.evaluate(() => { const e = new Event('beforeinstallprompt'); e.prompt = () => { window.__prompted = true; }; e.userChoice = Promise.resolve({ outcome: 'accepted' }); window.dispatchEvent(e); });
+    await p.waitForSelector('.install', { timeout: 5000 }); await p.click('.install .go'); await p.waitForTimeout(500);
+    assert(await p.evaluate(() => window.__prompted === true), 'la fenêtre d’installation du téléphone ne s’ouvre pas');
     assert(!errors.length, errors.join(' | '));
     await ctx.close();
   },

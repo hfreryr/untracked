@@ -6,6 +6,7 @@
   import { getContext } from 'svelte';
   import Dialog from '#lib/ui/Dialog.svelte';
   import { CONTACT_EMAIL } from '#lib/config.js';
+  import { installWay } from '#lib/install.js';
 
   // État et actions de la page (voir le bloc « app » de +page.svelte)
   const app = getContext('app');
@@ -64,6 +65,10 @@
 
     <h3>{tx('apropos.aider')}</h3>
     <ul class="grp">
+      {#if installWay()}
+        <li><button class="it" onclick={() => { onclose(); app.startInstall?.(); }}><span class="ico gray" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="4" /><path d="M12 8.5v7M8.5 12h7" /></svg></span>
+          <span class="txt">{tx('apropos.installer')}</span>{@render chev()}</button></li>
+      {/if}
       <li><a class="it" href={FIX_URL} {...ext}><span class="ico gray" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 4 21 19.5H3z" /><path d="M12 10v4.5" /><circle cx="12" cy="17" r=".6" /></svg></span>
         <span class="txt">{tx('apropos.signaler')}</span>{@render chev()}</a></li>
       <li><button class="it" onclick={importer}><span class="ico gray" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 19.5h14" /></svg></span>
