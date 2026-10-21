@@ -8,7 +8,7 @@
 </script>
 
 
-    <section class="sheet" aria-label={tx('import.importer_vos_lieux')} use:draggable={{ key: 'import', onDismiss: () => (app.importOpen = false) }}>
+    <section class="sheet" aria-label={tx('import.importer_vos_lieux')} use:draggable={{ key: 'import', onDismiss: () => (app.importOpen = false) , modal: true }}>
       <button class="grip" aria-label={tx('liste.agrandir_la_fiche')}></button>
       <button class="close" onclick={() => (app.importOpen = false)} aria-label={tx('photos.fermer')}>
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10M17 7 7 17" /></svg>

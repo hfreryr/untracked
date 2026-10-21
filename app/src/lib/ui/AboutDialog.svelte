@@ -42,7 +42,7 @@
 {#snippet chev()}<svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m9.5 6 6 6-6 6" /></svg>{/snippet}
 
 <Dialog title={view === 'main' ? tx('apropos.titre') : tx('apropos.sources_titre')} sub={view === 'main' ? tx('apropos.sous_titre') : ''}
-  icon={view === 'main' ? lock : undefined} sheet {onclose}>
+  icon={view === 'main' ? lock : undefined} {onclose}>
   {#if view === 'main'}
     <h3>{tx('apropos.vie_privee')}</h3>
     <ul class="grp">

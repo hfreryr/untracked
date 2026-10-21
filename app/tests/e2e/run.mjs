@@ -255,6 +255,31 @@ const tests = {
     assert(!errors.length, errors.join(' | '));
     await ctx.close();
   },
+  async 'glisser vers le bas ferme les fenêtres : À propos, choix de la liste (21/10)'() {
+    const { p, ctx, errors } = await page({ viewport: { width: 390, height: 844 } });
+    // geste tactile simulé : vers le bas, rapide
+    const swipe = (sel, dy) => p.evaluate(async ({ sel, dy }) => {
+      const el = document.querySelector(sel), r = el.getBoundingClientRect(), x = r.left + r.width / 2, y0 = r.top + 30;
+      const t = (y) => new Touch({ identifier: 1, target: el, clientX: x, clientY: y });
+      el.dispatchEvent(new TouchEvent('touchstart', { touches: [t(y0)], changedTouches: [t(y0)], bubbles: true, cancelable: true }));
+      for (let i = 1; i <= 6; i++) { el.dispatchEvent(new TouchEvent('touchmove', { touches: [t(y0 + (dy * i) / 6)], changedTouches: [t(y0 + (dy * i) / 6)], bubbles: true, cancelable: true })); await new Promise((r) => setTimeout(r, 16)); }
+      el.dispatchEvent(new TouchEvent('touchend', { touches: [], changedTouches: [t(y0 + dy)], bubbles: true, cancelable: true }));
+    }, { sel, dy });
+    await p.click('.about-btn'); await p.waitForSelector('.dlg'); await p.waitForTimeout(300);
+    assert(await p.$('.dlg-grip'), 'poignée absente de la fenêtre À propos');
+    await swipe('.dlg', 40); await p.waitForTimeout(400);
+    assert(await p.$('.dlg'), 'un petit glissement lent a fermé la fenêtre');
+    await swipe('.dlg', 220); await p.waitForTimeout(500);
+    assert(!(await p.$('.dlg')), 'glisser vers le bas ne ferme pas la fenêtre À propos');
+    // choix de la liste d'un lieu : fiche-fenêtre, fermée d'un glissement
+    await p.fill('#search', 'Panthéon'); await p.waitForSelector('.results li.opt button', { timeout: 15000 }); await pick(p);
+    await p.waitForSelector('.phead h1', { timeout: 15000 }); await p.waitForTimeout(800);
+    await p.click('.fab button >> nth=1'); await p.waitForSelector('section.sheet .new-list', { timeout: 5000 }); await p.waitForTimeout(500);
+    await swipe('section.sheet', 260); await p.waitForTimeout(500);
+    assert(!(await p.$('section.sheet .new-list')), 'glisser vers le bas ne ferme pas le choix de la liste');
+    assert(!errors.length, errors.join(' | '));
+    await ctx.close();
+  },
   async 'filtres des listes : terrasse sur les restaurants, seulement les filtres utiles, lieux sans information à part (21/10)'() {
     const { p, ctx, errors } = await page({ geolocation: { latitude: 48.853, longitude: 2.333 } });
     await p.click('.chip:has-text("Restaurants")'); await p.waitForTimeout(6000);
@@ -742,7 +767,8 @@ z.close()`, zip]);
     const visibleWhole = (sel) => p.$eval(sel, (el) => {
       const r = el.getBoundingClientRect();
       if (r.top < 0 || r.left < 0 || r.bottom > innerHeight || r.right > innerWidth) return `hors écran ${JSON.stringify(r)}`;
-      for (const [x, y] of [[r.left + 6, r.top + 6], [r.right - 6, r.top + 6], [r.left + 6, r.bottom - 6], [r.right - 6, r.bottom - 6]]) {
+      // (10 px à l'intérieur des coins : les fenêtres ont des coins arrondis)
+      for (const [x, y] of [[r.left + 10, r.top + 10], [r.right - 10, r.top + 10], [r.left + 10, r.bottom - 10], [r.right - 10, r.bottom - 10]]) {
         const hit = document.elementFromPoint(x, y);
         if (!hit || !el.contains(hit)) return `masqué en ${Math.round(x)},${Math.round(y)} par ${hit?.className || hit?.tagName}`;
       }

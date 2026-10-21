@@ -1,4 +1,5 @@
 <script>
+  import { swipeClose } from '#lib/swipeclose.js';
   import { tx } from '#lib/i18n/index.js';
   import { getContext } from 'svelte';
 
@@ -10,7 +11,7 @@
 
   {#if app.viewer === 'facade' && app.info?.facade}
     <!-- Devanture en plein écran : la photo 360° entière, qu'on fait défiler ; ouverte sur le lieu -->
-    <div class="viewer" role="dialog" aria-modal="true" aria-label={tx('photos.devanture_de', { title: app.title })}>
+    <div class="viewer" role="dialog" aria-modal="true" aria-label={tx('photos.devanture_de', { title: app.title })} use:swipeClose={{ onclose: () => (app.viewer = null) }}>
       <div class="pano" use:panoScroll={app.info.facade.rel}>
         <img src={app.info.facade.src} alt={tx('photos.vue_a_360_devant', { title: app.title })} draggable="false" />
       </div>

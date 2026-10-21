@@ -9,7 +9,7 @@
 </script>
 
 
-    <section class="sheet" aria-label={tx('enregistrer.enregistrer_dans')} use:draggable={{ key: 'picker', onDismiss: () => (app.listPicker = false) }}>
+    <section class="sheet" aria-label={tx('enregistrer.enregistrer_dans')} use:draggable={{ key: 'picker', onDismiss: () => (app.listPicker = false) , modal: true }}>
       <button class="grip" aria-label={tx('liste.agrandir_la_fiche')}></button>
       <button class="close" onclick={() => (app.listPicker = false)} aria-label={tx('photos.fermer')}>
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10M17 7 7 17" /></svg>

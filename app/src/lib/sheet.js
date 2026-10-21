@@ -2,6 +2,7 @@
 // de cartes de référence : aperçu (titre seul), mi-hauteur (par défaut) et plein écran.
 // Glisser vers le bas depuis l'aperçu ferme la fiche ; toucher la poignée agrandit ou réduit.
 import { tx } from '#lib/i18n/index.js';
+import { shouldClose } from '#lib/swipeclose.js';
 
 const PEEK = 150;          // hauteur de l'aperçu, en pixels
 const TOP_GAP = 64;        // marge laissée en haut en plein écran, pour voir qu'on est sur une carte
@@ -15,11 +16,13 @@ const TOP_GAP = 64;        // marge laissée en haut en plein écran, pour voir 
  *  - min : la fiche peut aussi se réduire à une fine bande (jusqu'à l'élément marqué data-min-end), pour voir
  *    presque toute la carte (aperçu d'un itinéraire, comme dans Plans et Maps) ;
  *  - tease : à l'aperçu, hauteur (px) du contenu suivant laissée visible et coupée exprès, pour montrer qu'il y a
- *    une suite à faire remonter (le haut des étapes sous « Aller » ; retour du porteur, 15/10).
+ *    une suite à faire remonter (le haut des étapes sous « Aller » ; retour du porteur, 15/10) ;
+ *  - modal : fiche-fenêtre (choisir une liste, importer, raccourcis…) : pas d'aperçu, un glissement vers le bas
+ *    la ferme directement, comme les fiches modales d'iOS et d'Android (demande du porteur, 21/10).
  */
 export function draggable(node, params = {}) {
   const mobile = matchMedia('(max-width: 767px)');
-  let { key, onDismiss, start, min, tease = 0 } = params;
+  let { key, onDismiss, start, min, tease = 0, modal = false } = params;
   let snap = start || 'half';
   let drag = null;
 
@@ -100,14 +103,15 @@ export function draggable(node, params = {}) {
     drag = null;
     const h = h0 - dy;
     const v = dy / Math.max(1, performance.now() - t0);          // px/ms, positif vers le bas
-    if (onDismiss && (h < limits.peek * 0.7 || (snap === 'peek' && v > 0.5))) {
+    const close = modal ? shouldClose(dy, performance.now() - t0) : h < limits.peek * 0.7 || (snap === 'peek' && v > 0.5);
+    if (onDismiss && close) {
       node.style.transition = 'height 200ms ease-in';
       node.style.height = '0px';
       emit(0);
       setTimeout(onDismiss, 180);
       return;
     }
-    const order = ['min', 'peek', 'half', 'full'].filter((s) => limits[s] != null)
+    const order = ['min', 'peek', 'half', 'full'].filter((s) => limits[s] != null && !(modal && s === 'peek'))
       .filter((s, i, a) => i === 0 || limits[s] > limits[a[i - 1]]);
     let i = order.reduce((best, s, k) => (Math.abs(limits[s] - h) < Math.abs(limits[order[best]] - h) ? k : best), 0);
     if (v < -0.45) i = Math.min(order.length - 1, order.indexOf(snap) + 1);   // geste vif vers le haut

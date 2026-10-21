@@ -8,7 +8,7 @@
 </script>
 
 
-    <section class="sheet" aria-label={tx('recherche.personnaliser_les_raccourcis')} use:draggable={{ key: 'chips', onDismiss: () => (app.editChips = false) }}>
+    <section class="sheet" aria-label={tx('recherche.personnaliser_les_raccourcis')} use:draggable={{ key: 'chips', onDismiss: () => (app.editChips = false) , modal: true }}>
       <button class="grip" aria-label={tx('liste.agrandir_la_fiche')}></button>
       <button class="close" onclick={() => (app.editChips = false)} aria-label={tx('photos.fermer')}>
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10M17 7 7 17" /></svg>
