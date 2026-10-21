@@ -290,8 +290,9 @@
         const c = map?.getCenter();
         // résultats du téléphone tout de suite, complétés par Photon quand il répond (geocode.js)
         const ctl = controller;
-        const early = (r) => { if (!ctl.signal.aborted) { results = r; active = -1; } };
+        const early = (r) => { if (!ctl.signal.aborted) { results = r; resultsFor = q; active = -1; } };
         results = await search(q, c ? { lat: c.lat, lon: c.lng } : PARIS, controller.signal, early);
+        resultsFor = q;
         active = -1;
       } catch (e) {
         if (e.name !== 'AbortError') {
@@ -367,8 +368,10 @@
   // Filtre « ouvert à… » : null (pas de filtre) | { now: true } | { at: Date }
   let openAt = $state(null);
   let showUnknown = $state(false);   // afficher aussi les lieux aux horaires inconnus
+  let resultsFor = '';               // texte pour lequel « results » a été calculé (Entrée tapée avant la réponse)
+  let filters = $state([]);          // filtres actifs de la liste : terrasse, végétarien… (filters.js)
   let momentPicker = $state(false);
-  let nearbyAll = [];                 // lieux trouvés avant filtre (avec leurs horaires bruts)
+  let nearbyAll = $state.raw([]);                 // lieux trouvés avant filtre (avec leurs horaires bruts)
   let openCounts = $state(null);      // { open, unknown, closed }
   // Choix du moment : jour et heure
   const pickerDays = $derived.by(() => {
@@ -538,6 +541,7 @@
   const app = {
     get aboutOpen() { return aboutOpen; }, set aboutOpen(v) { aboutOpen = v; },
     get openResult() { return openResult; }, get showAllResults() { return showAllResults; },
+    get resultsFor() { return resultsFor; }, get filters() { return filters; }, set filters(v) { filters = v; }, get toggleFilter() { return toggleFilter; },
     get transitPref() { return transitPref; }, set transitPref(v) { transitPref = v; }, get setTransitPref() { return setTransitPref; },
     get themePref() { return themePref; }, set themePref(v) { themePref = v; }, get restyle() { return restyle; }, set restyle(v) { restyle = v; },
     get when() { return when; }, set when(v) { when = v; }, get setWhen() { return setWhen; }, get openDirections() { return openDirections; },
@@ -679,7 +683,7 @@
   const { saveChips, moveChip, toggleChip, renameChip, resetChips, catOf } = createChips(app);
   const { sameSpot, saveAll, keepOf, saveTap, setMembership, togglePin, removeFromList, createList, renameList, setListStyle, deleteList, refreshSaved, openSavedList, shareList, keepIncomingList, makeTransfer, shareTransfer, applyIncoming, makeBackup, doRestore } = createMyPlaces(app);
   const { remember, forgetRecents, openPlace, sharePlace, loadDepartures, closePlace } = createPlace(app);
-  const { clearSearch, hitFilter, catIcon, applyHit, displayName, collectCategory, applyOpenFilter, setOpenAt, momentFrom, quickMoment, nearView, reloadCategoryHere, pickCategory, clearCategory, dist, openCategoryFromSearch, onKey, pickResult, openResult, showAllResults } = createSearch(app);
+  const { clearSearch, hitFilter, catIcon, applyHit, displayName, collectCategory, applyOpenFilter, setOpenAt, momentFrom, quickMoment, nearView, reloadCategoryHere, pickCategory, clearCategory, dist, openCategoryFromSearch, onKey, pickResult, openResult, showAllResults, toggleFilter } = createSearch(app);
   const { say, isolate, closeTop, onPopState, onKeyDown, undoToast, showMe } = createScreen(app);
   const { setHeading, onOrientation, startCompass, startWatch, stopWatch, getPosition, startupLocate, locError, locDetail, locate, pickOnMap } = createLocation(app);
   const { startDirections, openDirections, closeDirections, pointOf, setPoint, addStop, removeStop, editField, useMyPosition, swap, computeRoutes, chooseMode, sheetToTop, pickStreet, pickTransit, setTransitPref, setWhen } = createDirections(app);

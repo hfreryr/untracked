@@ -90,7 +90,9 @@ export function toResult(idx, i) {
   const osmId = Math.floor(id / 10);
   const [num, si, pc] = addr ? addr.split('|') : [];
   const street = si != null && si !== '' ? idx.raw.streets[+si] : '';
-  return { id: `${letter}${osmId}`, osmType, osmId, name, type: (k && typeLabel(k, v)) || '', subclass: v || null,
+  // un quartier, un arrondissement : une zone (la carte s'y cadre), pas un lieu
+  const area = k === 'place' || (k === 'boundary' && v === 'administrative') || undefined;
+  return { id: `${letter}${osmId}`, osmType, osmId, name, type: (k && typeLabel(k, v)) || '', subclass: v || null, area,
     address: [[num, street].filter(Boolean).join(' '), pc].filter(Boolean).join(', '), lat, lon };
 }
 

@@ -193,7 +193,17 @@ export async function searchAllPlaces(query, at, shown = [], limit = 40) {
   const all = [...shown.filter(isPlaceResult)];
   for (const r of mine) if (isPlaceResult(r) && !all.some((a) => sameAs(a, r))) all.push(r);
   const d = (r) => Math.hypot((r.lon - at.lon) * Math.cos((at.lat * Math.PI) / 180), r.lat - at.lat);
-  return all.sort((a, b) => d(a) - d(b)).slice(0, limit);
+  // assez de lieux portent vraiment ce nom : on écarte les rapprochements dus aux fautes tolérées
+  // (« Société générale » ne doit pas donner « Société de l'Industrie Minérale », retour du 21/10)
+  const words = norm(query).split(' ').filter((w) => w.length > 1);
+  const exact = all.filter((r) => { const n = norm(r.name); return words.every((w) => n.includes(w)); });
+  return (exact.length >= 2 ? exact : all).sort((a, b) => d(a) - d(b)).slice(0, limit);
+}
+
+/** Premier résultat de l'index du téléphone (instantané), pour décider vite ce que fait la touche Entrée. */
+export async function localFirst(query, at) {
+  const idx = await index();
+  return idx ? searchIndex(idx, query.trim(), at, 1)[0] || null : null;
 }
 
 /** Adresse la plus proche d'un point (nom de rue ou lieu). */

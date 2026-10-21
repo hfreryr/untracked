@@ -225,7 +225,7 @@ const tests = {
     assert(/résultats/.test(await p.textContent('section.sheet .kind')), 'nombre de résultats absent');
     const pins = await p.evaluate(() => window.__map.getSource('cat-hits').serialize().data.features.length);
     assert(pins === n, `pastilles sur la carte (${pins}) ≠ lignes (${n})`);
-    assert(!(await p.$('.open-pills')), 'filtres d’horaires affichés sur une liste de résultats');
+    assert(await p.$('.open-pills button:has-text("Ouvert maintenant")'), 'filtre « Ouvert maintenant » absent des résultats (décision du 21/10)');
     // toucher une ligne ouvre le lieu, la liste reste derrière
     await p.click('section.sheet .nearby li button >> nth=0'); await p.waitForSelector('.phead h1', { timeout: 10000 });
     assert(/Monoprix/i.test(await p.textContent('.phead h1')), 'mauvais lieu ouvert');
@@ -233,6 +233,29 @@ const tests = {
     await p.click('.sheet .close'); await p.waitForTimeout(400); await p.click('.sheet .close').catch(() => {});
     await p.fill('#search', '8e arrondissement'); await p.waitForTimeout(2500); await p.press('#search', 'Enter'); await p.waitForTimeout(1500);
     assert(!(await p.$('section.sheet .nearby li')), 'une zone a donné une liste de résultats');
+    assert(!errors.length, errors.join(' | '));
+    await ctx.close();
+  },
+  async 'filtres des listes : terrasse sur les restaurants, seulement les filtres utiles, lieux sans information à part (21/10)'() {
+    const { p, ctx, errors } = await page({ geolocation: { latitude: 48.853, longitude: 2.333 } });
+    await p.click('.chip:has-text("Restaurants")'); await p.waitForTimeout(6000);
+    const before = await p.locator('section.sheet .nearby li').count();
+    await p.click('.open-pills button:has-text("Terrasse")'); await p.waitForTimeout(600);
+    assert(/Terrasse/.test(await p.textContent('.open-pills button >> nth=0')), 'le filtre actif ne passe pas en tête');
+    assert(/avec terrasse/.test(await p.textContent('section.sheet .kind')), 'nombre de lieux avec terrasse absent');
+    assert(await p.$('.unknown-row'), 'lieux sans information non proposés');
+    const after = await p.locator('section.sheet .nearby li').count();
+    assert(after > 0 && after <= before, `liste filtrée : ${after} sur ${before}`);
+    await p.click('.open-pills button.on:has-text("Terrasse")'); await p.waitForTimeout(400);
+    assert(!(await p.$('.open-pills button.on')), 'filtre non retiré');
+    // une recherche de banques : pas de filtre « Terrasse », et seulement des lieux portant ce nom
+    await p.click('.sheet .close'); await p.waitForTimeout(300);
+    await p.fill('#search', 'Société générale'); await p.waitForTimeout(1500); await p.press('#search', 'Enter');
+    await p.waitForSelector('section.sheet .nearby li', { timeout: 15000 }); await p.waitForTimeout(800);
+    const pills = await p.$$eval('.open-pills button', (e) => e.map((x) => x.textContent.trim()));
+    assert(pills.includes('Ouvert maintenant') && !pills.includes('Terrasse'), `filtres proposés : ${pills}`);
+    const names = await p.$$eval('section.sheet .nearby .r-name', (e) => e.map((x) => x.textContent));
+    assert(names.every((n) => /soci[ée]t[ée] g[ée]n[ée]rale/i.test(n)), `résultat hors sujet : ${names.find((n) => !/g[ée]n[ée]rale/i.test(n))}`);
     assert(!errors.length, errors.join(' | '));
     await ctx.close();
   },

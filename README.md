@@ -13,7 +13,7 @@ Untracked Maps est une app web de cartographie grand public, construite sur [Ope
 
 ## Ce que fait l'app
 
-- **Recherche** en langage courant : « restaurant ce soir 8e », « boulangerie ouverte dimanche » ; 60 catégories que chacun choisit et réordonne ; filtres « ouvert maintenant » et « ouvert à… ».
+- **Recherche** en langage courant : « restaurant ce soir 8e », « boulangerie ouverte dimanche » ; 60 catégories que chacun choisit et réordonne ; filtres « ouvert maintenant », « ouvert à… », terrasse, végétarien, à emporter, fauteuil roulant (seulement ceux qui servent ; les lieux sans information restent à part) ; Entrée montre tous les lieux du nom cherché.
 - **Fiche lieu** : ouvert ou fermé, date de dernière vérification sur place, horaires de la semaine, « bon à savoir » (paiement, terrasse, accessibilité…), photos Wikimedia en plein écran.
 - **Transports en commun** : prochains passages en temps réel, sorties de métro, place conseillée dans la rame.
 - **Itinéraires** à pied, à vélo, en transports et en voiture : choix entre plusieurs trajets, départ ou arrivée à l'heure choisie, arrêt intermédiaire, guidage pas à pas vocal.

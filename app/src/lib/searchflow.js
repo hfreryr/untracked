@@ -7,7 +7,9 @@ import { FAMILIES } from '#lib/mapstyle.js';
 import { departures } from '#lib/routing.js';
 import { empty } from '#lib/maplayers.js';
 import { hoursStatus, statusAt } from '#lib/hours.js';
-import { search, searchAllPlaces, isPlaceResult } from '#lib/geocode.js';
+import { search, searchAllPlaces, isPlaceResult, localFirst } from '#lib/geocode.js';
+import { splitByFilters } from '#lib/filters.js';
+import { placeById } from '#lib/placestore.js';
 import { searchCategory } from '#lib/places.js';
 
 /** @param {any} app */
@@ -94,24 +96,32 @@ export function createSearch(app) {
       // (les lieux de la carte sont des objets MapLibre : on recopie leurs champs, un « ... » perdrait la géométrie)
       const withFacade = (f, facade) => ({ id: f.id, properties: f.properties, geometry: f.geometry, source: f.source, sourceLayer: f.sourceLayer, layer: f.layer, tags: f.tags, facade });
       const twin = (f) => f.tags ? f : (byName.get(f.properties.name) && near(byName.get(f.properties.name).geometry.coordinates, f.geometry.coordinates) ? byName.get(f.properties.name) : null);
-      app.nearbyAll = list.map((n) => ({ ...n, h: hoursOf(n.f), f: n.f.facade || !twin(n.f)?.facade ? n.f : withFacade(n.f, twin(n.f).facade) }));
+      app.nearbyAll = list.map((n) => ({ ...n, h: hoursOf(n.f), t: twin(n.f)?.tags || null, sub: n.f.properties.subclass, f: n.f.facade || !twin(n.f)?.facade ? n.f : withFacade(n.f, twin(n.f).facade) }));
       applyOpenFilter();
       app.nearbyDone = true;
       // Les plus proches sont hors de la vue (catégorie rare) : on élargit la carte pour les montrer.
       const first = app.nearby.slice(0, 4).map((n) => n.f.geometry.coordinates);
       if (fit && first.length && !first.some((xy) => app.map.getBounds().contains(xy))) app.fitTo([[o.lon, o.lat], ...first]);
   }
+  // Horaires (« ouvert maintenant », « ouvert à… ») et filtres (terrasse, végétarien…) appliqués à la liste.
+  // Les lieux sans l'information sont mis à part, jamais présentés comme « non » (décision du 21/10).
   function applyOpenFilter() {
     const at = app.openAt?.at || null;
+    const limit = app.category?.results ? 40 : 25;
     const items = app.nearbyAll.map((n) => {
       const [lon, lat] = n.f.geometry.coordinates;
       return { ...n, st: n.h ? (at ? statusAt(n.h, lat, lon, at) : hoursStatus(n.h, lat, lon)) : null };
     });
-    if (!app.openAt) { app.openCounts = null; app.nearby = items.slice(0, 25); return; }
-    const open = items.filter((n) => n.st?.open === true);
-    const unknown = items.filter((n) => !n.st || n.st.open == null);
-    app.openCounts = { open: open.length, unknown: unknown.length, closed: items.length - open.length - unknown.length };
-    app.nearby = [...open.slice(0, 25), ...(app.showUnknown ? unknown.slice(0, 20) : [])];
+    const active = app.filters || [];
+    if (!app.openAt && !active.length) { app.openCounts = null; app.nearby = items.slice(0, limit); return; }
+    const { match, unknown, out } = splitByFilters(items, active, !!app.openAt);
+    app.openCounts = { open: match.length, unknown: unknown.length, closed: out };
+    app.nearby = [...match.slice(0, limit), ...(app.showUnknown ? unknown.slice(0, 20) : [])];
+  }
+  function toggleFilter(k) {
+    app.filters = app.filters.includes(k) ? app.filters.filter((x) => x !== k) : [...app.filters, k];
+    app.showUnknown = false;
+    applyOpenFilter();
   }
   function setOpenAt(v) {
     app.openAt = v;
@@ -153,6 +163,7 @@ export function createSearch(app) {
     app.editChips = false;
     app.importOpen = false;
     if (app.category?.key === c.key) return clearCategory();
+    app.filters = [];
     if (c.saved) {
       app.category = c;
       app.closePlace();
@@ -192,6 +203,7 @@ export function createSearch(app) {
   function clearCategory() {
     app.clearPhotoPins();
     app.category = null;
+    app.filters = [];
     app.reloadLater = false;
     app.openAt = null;
     app.openCounts = null;
@@ -245,25 +257,41 @@ export function createSearch(app) {
    * (retour du porteur, 21/10 : Entrée ouvrait le premier résultat). Un seul lieu, une adresse ou une zone : on l'ouvre.
    */
   async function showAllResults() {
-    const q = app.activeQuery.trim(), top = app.results[0];
+    const q = app.activeQuery.trim();
+    // la liste affichée peut être celle du texte précédent (réponse pas encore arrivée) : on l'ignore alors
+    const shown = app.resultsFor === q ? app.results : [], top = shown[0];
     if (top && !isPlaceResult(top)) return pickResult(top);
     const c = app.map.getCenter();
     const at = app.me && nearView(app.me) ? app.me : { lat: c.lat, lon: c.lng };
-    const all = await searchAllPlaces(q, at, app.results).catch(() => app.results.filter(isPlaceResult));
+    const all = await searchAllPlaces(q, at, shown).catch(() => shown.filter(isPlaceResult));
     if (app.activeQuery.trim() !== q) return;            // on a continué à taper entre-temps
     if (!top && !all.length) {                            // une adresse tapée vite : on attend sa réponse
       const r = (await search(q, at).catch(() => []))[0];
       if (r && app.activeQuery.trim() === q) pickResult(r);
       return;
     }
+    if (!top) {                                           // tapé vite : une zone en tête (« 8e arrondissement ») s'ouvre comme une zone
+      const first = await localFirst(q, at).catch(() => null);
+      if (first && !isPlaceResult(first) && app.activeQuery.trim() === q) return pickResult(first);
+    }
     if (all.length <= 1) { pickResult(top || all[0]); return; }
     app.closePlace();
     app.focused = false;
     document.activeElement?.blur();
     app.category = { key: `recherche:${q}`, label: q, results: true, icon: 'dot', color: '#2A5BD7' };
+    app.nearby = [];
+    app.nearbyDone = false;
     app.nearbyFromMe = at === app.me;
-    app.nearby = all.map((r, i) => ({ f: { id: `r${i}`, properties: { name: r.name, subclass: r.subclass }, geometry: { coordinates: [r.lon, r.lat] } },
-      d: dist(at.lat, at.lon, r.lat, r.lon), res: r }));
+    app.filters = [];
+    app.openAt = null;
+    app.showUnknown = false;
+    // horaires et étiquettes de chaque lieu, lus dans nos tuiles (pour « ouvert maintenant » et les filtres)
+    const tagsOf = (r) => (r.osmType && r.osmId ? placeById(r.osmType, r.osmId, r.lat, r.lon).then((p) => p?.tags || null).catch(() => null) : Promise.resolve(null));
+    const tags = await Promise.all(all.map(tagsOf));
+    if (app.activeQuery.trim() !== q) return;
+    app.nearbyAll = all.map((r, i) => ({ f: { id: `r${i}`, properties: { name: r.name, subclass: r.subclass }, geometry: { coordinates: [r.lon, r.lat] } },
+      d: dist(at.lat, at.lon, r.lat, r.lon), res: r, t: tags[i], sub: r.subclass || tags[i]?.amenity || tags[i]?.shop || null, h: tags[i]?.opening_hours || null }));
+    applyOpenFilter();
     app.nearbyDone = true;
     applyHit(app.category);
     // cadrer sur les plus proches (et vous) : les autres restent sur la carte, un geste plus loin
@@ -308,5 +336,5 @@ export function createSearch(app) {
     app.openPlace(r);
   }
 
-  return { showAllResults, openResult, clearSearch, hitFilter, catIcon, applyHit, displayName, collectCategory, applyOpenFilter, setOpenAt, momentFrom, quickMoment, nearView, reloadCategoryHere, pickCategory, clearCategory, dist, openCategoryFromSearch, onKey, pickResult };
+  return { showAllResults, openResult, toggleFilter, clearSearch, hitFilter, catIcon, applyHit, displayName, collectCategory, applyOpenFilter, setOpenAt, momentFrom, quickMoment, nearView, reloadCategoryHere, pickCategory, clearCategory, dist, openCategoryFromSearch, onKey, pickResult };
 }

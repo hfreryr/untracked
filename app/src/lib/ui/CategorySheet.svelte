@@ -9,10 +9,17 @@
   import { fmtDistance, fmtWait } from '#lib/routing.js';
   import { momentLabel } from '#lib/hours.js';
   import { typeLabel } from '#lib/places.js';
+  import { availableFilters } from '#lib/filters.js';
 
   // État et actions de la page (voir le bloc « app » de +page.svelte)
   const app = getContext('app');
   let momentBtn = $state();
+  // Filtres utiles pour ces lieux (filters.js) : un filtre actif passe en tête de rangée (maquette du 21/10)
+  const LABEL = { terrasse: tx('filtre.terrasse'), vegetarien: tx('filtre.vegetarien'), emporter: tx('filtre.emporter'), fauteuil: tx('filtre.fauteuil') };
+  const CRIT = { terrasse: tx('filtre.c_terrasse'), vegetarien: tx('filtre.c_vegetarien'), emporter: tx('filtre.c_emporter'), fauteuil: tx('filtre.c_fauteuil') };
+  const choices = $derived(availableFilters(app.nearbyAll.map((n) => ({ t: n.t, sub: n.sub }))));
+  const quand = () => (app.openAt?.now ? tx('horaires.maintenant') : momentLabel(app.openAt.at).replace(/ (\d)/, ' à $1'));
+  const criteres = () => [...app.filters.map((k) => CRIT[k]), ...(app.openAt ? [tx('filtre.c_ouverts', { quand: quand() })] : [])].join(', ');
 </script>
 
 
@@ -131,15 +138,22 @@
           {tx('liste.ajouter_aux_raccourcis', { nom: app.category.label })}
         </button>
       {/if}
-      {#if app.category.results}
-        <p class="kind">{tx('resultats.n_resultats', { n: app.nearby.length, ordre: app.nearbyFromMe ? tx('liste.les_plus_proches_de_vous_abord') : tx('liste.par_distance') })}</p>
+      {#if app.filters.length && app.openCounts}
+        <p class="kind">{tx('liste.n_correspondent', { n: app.openCounts.open, criteres: criteres() })}</p>
+      {:else if app.category.results && !app.openAt}
+        <p class="kind">{app.nearbyDone ? tx('resultats.n_resultats', { n: app.nearby.length, ordre: app.nearbyFromMe ? tx('liste.les_plus_proches_de_vous_abord') : tx('liste.par_distance') }) : tx('resultats.recherche')}</p>
       {:else if app.openAt && app.openCounts}
         <p class="kind">{app.openCounts.open ? tx('liste.n_ouverts', { n: app.openCounts.open, quand: app.openAt.now ? tx('horaires.maintenant') : momentLabel(app.openAt.at).replace(/ (\d)/, ' à $1') }) : tx('liste.aucun_ouvert_dans_cette_zone', { quand: app.openAt.now ? tx('horaires.maintenant') : momentLabel(app.openAt.at).replace(/ (\d)/, ' à $1') })}</p>
       {:else}
         <p class="kind">{app.nearby.length ? (app.nearbyFromMe ? tx('liste.les_plus_proches_de_vous') : tx('liste.autour_du_centre_de_la_carte')) : app.nearbyDone ? tx('liste.aucun_dans_cette_zone_deplacez_la') : tx('resultats.recherche')}</p>
       {/if}
-      {#if !app.category.transit && !app.category.results}
+      {#if !app.category.transit}
         <div class="open-pills">
+          {#each app.filters as k (k)}
+            <button class="opill on" aria-pressed="true" onclick={() => app.toggleFilter(k)} aria-label={tx('filtre.retirer', { nom: LABEL[k] })}>
+              {LABEL[k]}<svg class="x" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10M17 7 7 17" /></svg>
+            </button>
+          {/each}
           <button class="opill" class:on={app.openAt?.now} aria-pressed={!!app.openAt?.now} onclick={() => app.setOpenAt(app.openAt?.now ? null : { now: true })}>{tx('liste.ouvert_maintenant')}</button>
           <button class="opill" bind:this={momentBtn} class:on={!!app.openAt?.at} aria-expanded={app.momentPicker} onclick={() => (app.momentPicker = !app.momentPicker)}>
             {app.openAt?.at ? momentLabel(app.openAt.at).replace(/^./, (x) => x.toUpperCase()) : tx('liste.ouvert_a')}
@@ -147,6 +161,9 @@
           </button>
           {#if app.openAt}<button class="opill-x" onclick={() => app.setOpenAt(null)} aria-label={tx('liste.retirer_le_filtre_horaires')}>
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10M17 7 7 17" /></svg></button>{/if}
+          {#each choices.filter((k) => !app.filters.includes(k)) as k (k)}
+            <button class="opill" aria-pressed="false" onclick={() => app.toggleFilter(k)}>{LABEL[k]}</button>
+          {/each}
         </div>
         {#if app.momentPicker}
           <div class="moment" use:popover={{ trigger: () => momentBtn, close: () => (app.momentPicker = false), place: 'below', align: 'start' }}>
@@ -212,10 +229,15 @@
           </li>
         {/each}
       </ul>
-      {#if app.openAt && app.openCounts?.unknown && !app.category?.saved}
+      {#if (app.openAt || app.filters.length) && app.openCounts?.unknown && !app.category?.saved}
         <button class="unknown-row" onclick={() => { app.showUnknown = !app.showUnknown; app.applyOpenFilter(); }}>
-          {tx('liste.les_lieux_aux_horaires_inconnus', { action: app.showUnknown ? tx('liste.masquer') : tx('liste.afficher'), n: app.openCounts.unknown })}
-          <small>{tx('liste.personne_ne_les_a_encore_indiques')}</small>
+          {#if app.filters.length}
+            {tx('liste.les_lieux_sans_information', { action: app.showUnknown ? tx('liste.masquer') : tx('liste.afficher'), n: app.openCounts.unknown })}
+            <small>{tx('liste.personne_ne_l_a_indique')}</small>
+          {:else}
+            {tx('liste.les_lieux_aux_horaires_inconnus', { action: app.showUnknown ? tx('liste.masquer') : tx('liste.afficher'), n: app.openCounts.unknown })}
+            <small>{tx('liste.personne_ne_les_a_encore_indiques')}</small>
+          {/if}
         </button>
       {/if}
     </section>
@@ -289,7 +311,9 @@
   .muted { color: var(--muted); font-weight: 400; }
 
   /* ——— Filtre « ouvert à… » ——— */
-  .open-pills { display: flex; gap: 8px; margin: 10px 0 2px; align-items: center; overflow-x: auto; scrollbar-width: none; }
+  /* la rangée défile jusqu'au bord de l'écran : la dernière pastille coupée montre qu'il y en a d'autres (règle 9) */
+  .open-pills { display: flex; gap: 8px; margin: 10px calc(-1 * var(--gutter)) 2px 0; padding-right: var(--gutter); align-items: center; overflow-x: auto; scrollbar-width: none; }
+  .opill .x { width: 14px; height: 14px; margin-left: 2px; stroke-width: 2.4; }
   .open-pills > * { flex: none; }
   .opill { display: inline-flex; align-items: center; gap: 4px; height: 34px; padding: 0 12px; border-radius: 17px; border: 1px solid var(--line);
     background: var(--card); color: var(--ink); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
