@@ -67,12 +67,12 @@ export function createMapDraw(app) {
     const v = on ? 0.35 : 1;
     const op = ['case', ['boolean', ['feature-state', 'sel'], false], 0, v];
     // les résultats de la liste (restaurants…) disparaissent pendant l'itinéraire et reviennent après
-    if (app.map.getLayer('cat-hit')) app.map.setLayoutProperty('cat-hit', 'visibility', on ? 'none' : 'visible');
-    for (const id of ['poi', 'poi-other', 'landmark', 'metro', 'fav']) {
+    for (const id of ['cat-hit', 'cat-hit-label']) if (app.map.getLayer(id)) app.map.setLayoutProperty(id, 'visibility', on ? 'none' : 'visible');
+    for (const id of ['poi', 'poi-other', 'landmark', 'metro', 'fav', 'fav-label']) {
       if (!app.map.getLayer(id)) continue;
-      const keep = id === 'fav';   // nos propres repères ne s'estompent pas pendant un trajet
-      app.map.setPaintProperty(id, 'icon-opacity', keep ? ['case', ['boolean', ['feature-state', 'sel'], false], 0, 1] : op);
-      app.map.setPaintProperty(id, 'text-opacity', keep ? ['case', ['boolean', ['feature-state', 'sel'], false], 0, 1] : op);
+      const keep = id === 'fav' || id === 'fav-label';   // nos propres repères ne s'estompent pas pendant un trajet
+      if (id !== 'fav-label') app.map.setPaintProperty(id, 'icon-opacity', keep ? ['case', ['boolean', ['feature-state', 'sel'], false], 0, 1] : op);
+      if (id !== 'fav') app.map.setPaintProperty(id, 'text-opacity', keep ? ['case', ['boolean', ['feature-state', 'sel'], false], 0, 1] : op);
     }
   }
   function setMapMode(m) {
@@ -112,12 +112,12 @@ export function createMapDraw(app) {
     }
     // Un panneau ou un menu ouvert : le premier toucher à côté le referme, sans rien ouvrir d'autre.
     if (app.showModes || app.editChips || app.importOpen) { app.showModes = false; app.editChips = false; app.importOpen = false; return; }
-    const fav = app.map.queryRenderedFeatures(e.point, { layers: ['fav'] })[0];
+    const fav = app.map.queryRenderedFeatures(e.point, { layers: ['fav', 'fav-label'] })[0];
     if (fav) {
       const f = app.favorites[fav.properties.i], l = app.listOf(f.lists?.[0]);
       return app.openPlace({ ...f, pin: { glyph: l.icon, color: l.color }, hide: [{ source: 'favs', id: fav.properties.i }] });
     }
-    const hit = app.map.queryRenderedFeatures(e.point, { layers: ['cat-hit'] })[0];
+    const hit = app.map.queryRenderedFeatures(e.point, { layers: ['cat-hit', 'cat-hit-label'] })[0];
     if (hit && app.nearby[hit.properties.i]?.saved) return app.openPlace({ ...app.nearby[hit.properties.i].saved, pin: { glyph: app.listOf(app.nearby[hit.properties.i].saved.lists?.[0]).icon, color: app.listOf(app.nearby[hit.properties.i].saved.lists?.[0]).color } });
     if (hit && app.nearby[hit.properties.i]?.res) return app.openResult(app.nearby[hit.properties.i].res, hit.properties.i);
     if (hit && app.nearby[hit.properties.i]) return openFeature(app.nearby[hit.properties.i].f, 'cat-hit');

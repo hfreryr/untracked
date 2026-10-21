@@ -18,6 +18,7 @@ export function createScreen(app) {
     const vis = (id, on) => app.map.getLayer(id) && app.map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none');
     for (const id of ['poi', 'poi-other', 'landmark', 'exit']) vis(id, !only);
     vis('fav', !only && app.showSaved);
+    vis('fav-label', !only && app.showSaved);
     vis('metro', !only || !!app.category?.transit);
   }
   // Fermer « ce qui est au-dessus » : Échap, ou le bouton Retour du téléphone.
