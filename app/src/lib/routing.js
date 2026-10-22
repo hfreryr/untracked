@@ -24,7 +24,7 @@ function perpDist([x, y], [x1, y1], [x2, y2], k) {
   const t = Math.max(0, Math.min(1, (ax * bx + ay * by) / (len * len)));
   return Math.hypot(ax - t * bx, ay - t * by) * M_PER_DEG_LAT;
 }
-function simplify(coords, tolMeters) {
+export function simplify(coords, tolMeters) {
   if (coords.length < 3) return coords;
   const k = Math.cos((coords[0][1] * Math.PI) / 180);
   const keep = new Uint8Array(coords.length);
