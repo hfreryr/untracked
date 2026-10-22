@@ -28,10 +28,12 @@ export function createMapDraw(app) {
     if (app.category) app.applyHit(app.category);
     if (app.mapMode === 'transit') for (const id of ['transit-case', 'transit-line', 'transit-label']) app.map.setLayoutProperty(id, 'visibility', 'visible');
     if (app.mapMode === 'satellite') setSatellite(app.map, true);
+    syncBike();
   }
   function drawRoute(fit = true) {
     const src = app.map?.getSource('route');
     if (!src) return;
+    syncBike();
     const feats = [];
     const r = app.current?.status === 'ok' ? app.current.data : null;
     if (r && app.mode !== 'transit') {
@@ -85,9 +87,16 @@ export function createMapDraw(app) {
       if (id !== 'fav') app.map.setPaintProperty(id, 'text-opacity', keep ? ['case', ['boolean', ['feature-state', 'sel'], false], 0, 1] : op);
     }
   }
+  /** Carte vélo visible : type de carte « Vélo », ou itinéraire à vélo en cours (comme Google Maps). */
+  const bikeOn = () => app.mapMode === 'bike' || (app.directions && app.mode === 'bike');
+  function syncBike() {
+    const v = bikeOn() ? 'visible' : 'none';
+    for (const id of ['bike-track', 'bike-shared']) if (app.map?.getLayer(id)) app.map.setLayoutProperty(id, 'visibility', v);
+  }
   function setMapMode(m) {
     app.mapMode = m;
     app.showModes = false;
+    syncBike();
     for (const id of ['transit-case', 'transit-line', 'transit-label']) app.map.setLayoutProperty(id, 'visibility', m === 'transit' ? 'visible' : 'none');
     setSatellite(app.map, m === 'satellite');
     if (m === 'transit' && app.map.getZoom() > 14.5) app.map.easeTo({ zoom: 13.5, duration: 600 });
@@ -216,5 +225,5 @@ export function createMapDraw(app) {
     for (const t of app.selStates) { try { app.map.setFeatureState(t, { sel: true }); } catch { /* rien */ } }
   }
 
-  return { favData, addCustomLayers, drawRoute, line, shade, dimPlaces, setMapMode, fitOptions, boundsOf, fitTo, onMapClick, openPoint, openFeature, frame, placeMarker, labelColor, clearSelPhoto, clearPhotoPins, clearSelection, showSelection };
+  return { favData, addCustomLayers, drawRoute, syncBike, bikeOn, line, shade, dimPlaces, setMapMode, fitOptions, boundsOf, fitTo, onMapClick, openPoint, openFeature, frame, placeMarker, labelColor, clearSelPhoto, clearPhotoPins, clearSelection, showSelection };
 }

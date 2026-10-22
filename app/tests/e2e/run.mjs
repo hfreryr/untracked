@@ -638,6 +638,28 @@ z.close()`, zip]);
     assert(!errors.length, errors.join(' | '));
     await ctx.close();
   },
+  async 'carte vélo : type de carte « Vélo », légende, et affichée pendant un itinéraire à vélo'() {
+    const { p, ctx, errors } = await page({ geolocation: { latitude: 48.8867, longitude: 2.3431 } });
+    const vis = () => p.evaluate(() => window.__map.getLayoutProperty('bike-track', 'visibility'));
+    assert((await vis()) === 'none', 'carte vélo visible par défaut');
+    await p.click('button[aria-label="Type de carte"]'); await p.click('.modes-pop button:has-text("Vélo")'); await p.waitForTimeout(500);
+    assert((await vis()) === 'visible', 'pistes non affichées');
+    await p.waitForSelector('.bike-legend');
+    await p.click('.bike-legend .more'); await p.waitForSelector('.dlg');
+    assert(/bandes peintes/i.test(await p.textContent('.dlg')), 'explication des bandes absente');
+    await p.keyboard.press('Escape'); await p.waitForTimeout(300);
+    await p.click('button[aria-label="Type de carte"]'); await p.click('.modes-pop button:has-text("Plan")'); await p.waitForTimeout(400);
+    assert((await vis()) === 'none' && !(await p.$('.bike-legend')), 'carte vélo encore affichée en mode Plan');
+    // itinéraire : choisir le vélo affiche les pistes ; fermer l'itinéraire les retire
+    await p.fill('#search', 'Panthéon'); await p.waitForSelector('.results li.opt button', { timeout: 20000 }); await pick(p); await p.waitForTimeout(2500);
+    await p.click('.action.primary'); await p.waitForTimeout(1500);
+    await p.click('.mode-tab[aria-label="Vélo"]'); await p.waitForTimeout(800);
+    assert((await vis()) === 'visible', 'pistes absentes pendant un itinéraire à vélo');
+    await p.click('.top .back'); await p.waitForTimeout(600);
+    assert((await vis()) === 'none', 'pistes encore affichées après l’itinéraire');
+    assert(!errors.length, errors.join(' | '));
+    await ctx.close();
+  },
   async 'guidage à pied : démarrer puis terminer'() {
     const { p, ctx, errors } = await page({ geolocation: { latitude: 48.853, longitude: 2.34 } });
     await p.fill('#search', 'Panthéon'); await p.waitForSelector('.results li.opt button', { timeout: 20000 }); await pick(p); await p.waitForTimeout(2500);

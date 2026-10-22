@@ -124,6 +124,7 @@ function roadPair(id, classes, { color, casing, widths, minzoom = 0, caseFade })
 export const DARK_LAND = '#1E2126';
 const DARK_HALO = 'rgba(22,24,28,0.9)';
 const DARK = {
+  '#1C8B3C': '#3DBE6A', '#3FA35C': '#7FD69B',          // carte vélo : verts plus clairs sur fond sombre
   '#F6F4F0': DARK_LAND, '#F4F0E6': DARK_LAND, '#EEE5CE': '#2A2E34', '#E2D7BC': '#33373E',
   '#D9D4CB': '#2B2F35', '#CDC7BC': '#31353C', '#D2CDC4': '#3A3F47',
   // palette claire du 14/10 (rues grises sans contour, îlots crème) : le mode sombre garde ses couleurs
@@ -214,6 +215,19 @@ function lightStyle(base) {
       { id: 'boundary-city', type: 'line', source: 'omt', 'source-layer': 'boundary', maxzoom: 13,
         filter: ['==', ['get', 'admin_level'], 8],
         paint: { 'line-color': '#C9C3BA', 'line-width': 1, 'line-dasharray': [3, 2] } },
+
+      // Carte vélo (porteur, 22/10) : masquée par défaut ; affichée par le menu des types de carte ou pendant un
+      // itinéraire à vélo. Pistes séparées en vert plein ; rues et allées où le vélo est autorisé en pointillés, en zoom
+      // seulement (sinon la carte est trop chargée). Les bandes peintes sur la chaussée ne sont pas dans ces tuiles.
+      { id: 'bike-shared', type: 'line', source: 'omt', 'source-layer': 'transportation', minzoom: 15.5,
+        filter: ['all', ['==', ['get', 'class'], 'path'], ['!=', ['get', 'subclass'], 'cycleway'],
+          ['in', ['get', 'bicycle'], ['literal', ['yes', 'designated', 'permissive']]]],
+        layout: { visibility: 'none', 'line-cap': 'round' },
+        paint: { 'line-color': '#3FA35C', 'line-width': zoom([15.5, 1.6, 18, 3.5]), 'line-dasharray': [1.5, 1.5] } },
+      { id: 'bike-track', type: 'line', source: 'omt', 'source-layer': 'transportation', minzoom: 11,
+        filter: ['all', ['==', ['get', 'class'], 'path'], ['==', ['get', 'subclass'], 'cycleway']],
+        layout: { visibility: 'none', 'line-cap': 'round', 'line-join': 'round' },
+        paint: { 'line-color': '#1C8B3C', 'line-width': zoom([11, 0.8, 14, 1.8, 17, 5]) } },
 
       // Plan des transports : masqué par défaut, affiché par le bouton de modes.
       { id: 'transit-case', type: 'line', source: 'transit', layout: { visibility: 'none', 'line-cap': 'round', 'line-join': 'round' },
