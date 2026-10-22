@@ -68,7 +68,7 @@ export function createMapDraw(app) {
     if (feats.length && fit) fitTo(all);
   }
   // « Mon itinéraire » (à pied, vélo, voiture) : trait en relief, cœur bleu et bords plus clairs, comme Plans (porteur, 21/10)
-  const RIM = { walk: '#A3CBFF', bike: '#A3CBFF', car: '#A3CBFF' };
+  const RIM = { walk: '#7FAEF2', bike: '#7FAEF2', car: '#7FAEF2' };   // bord un peu moins clair (porteur, 23/10)
   const line = (coords, kind, color, edge = color) => ({ type: 'Feature', properties: { kind, color, edge, rim: RIM[kind] || null }, geometry: { type: 'LineString', coordinates: coords } });
   // Teinte plus foncée d'une couleur, pour le liseré d'un trait.
   function shade(hex, k = 0.7) {
