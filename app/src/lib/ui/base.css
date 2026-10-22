@@ -196,7 +196,7 @@ button { font: inherit; color: inherit; }
   -webkit-backdrop-filter: blur(6px) saturate(1.4); backdrop-filter: blur(6px) saturate(1.4);
   box-shadow: 0 2px 8px rgb(0 0 0 / 0.28), inset 0 1px 2px rgb(255 255 255 / 0.35);
 }
-.me-nav svg { width: 31px; height: 31px; filter: drop-shadow(0 1.5px 1.5px rgb(0 0 0 / 0.25)); }
+.me-nav svg { width: 27px; height: 32px; margin-top: -2px; filter: drop-shadow(0 1.5px 1.5px rgb(0 0 0 / 0.25)); }
 .me-nav .lit { fill: #FFFFFF; stroke: none; }
 .me-nav .shade { fill: #D5DAE2; stroke: none; }
 /* ——— Devantures (Panoramax) ——— */
