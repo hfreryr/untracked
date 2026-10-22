@@ -28,6 +28,7 @@ export function createMapDraw(app) {
     if (app.category) app.applyHit(app.category);
     if (app.mapMode === 'transit') for (const id of ['transit-case', 'transit-line', 'transit-label']) app.map.setLayoutProperty(id, 'visibility', 'visible');
     if (app.mapMode === 'satellite') setSatellite(app.map, true);
+    if (bikeData) app.map.getSource('bikes')?.setData(bikeData);   // nouveau style (clair ↔ sombre) : source vide
     syncBike();
   }
   function drawRoute(fit = true) {
@@ -89,9 +90,22 @@ export function createMapDraw(app) {
   }
   /** Carte vélo visible : type de carte « Vélo », ou itinéraire à vélo en cours (comme Google Maps). */
   const bikeOn = () => app.mapMode === 'bike' || (app.directions && app.mode === 'bike');
+  // Réseau complet (data/bikes.geojson, refait chaque nuit) chargé à la première demande ; sans lui (fichier absent,
+  // hors ligne), on garde les pistes du fond de carte.
+  let bikes = null;            // null : pas encore demandé ; promesse en cours ; true / false : chargé ou non
+  let bikeData = null;
   function syncBike() {
-    const v = bikeOn() ? 'visible' : 'none';
-    for (const id of ['bike-track', 'bike-shared']) if (app.map?.getLayer(id)) app.map.setLayoutProperty(id, 'visibility', v);
+    const on = bikeOn();
+    if (on && bikes === null) {
+      bikes = fetch(new URL('data/bikes.geojson', location.href)).then((r) => (r.ok ? r.json() : Promise.reject()))
+        .then((d) => { bikeData = d; app.map.getSource('bikes')?.setData(d); bikes = true; })
+        .catch(() => { bikes = false; })
+        .finally(syncBike);
+    }
+    const full = bikes === true;
+    const set = (ids, show) => { for (const id of ids) if (app.map?.getLayer(id)) app.map.setLayoutProperty(id, 'visibility', show ? 'visible' : 'none'); };
+    set(['bike-track', 'bike-shared'], on && !full);
+    set(['bikes-track', 'bikes-lane', 'bikes-contra', 'bikes-shared'], on && full);
   }
   function setMapMode(m) {
     app.mapMode = m;

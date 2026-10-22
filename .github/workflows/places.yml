@@ -44,6 +44,9 @@ jobs:
       - if: steps.fresh.outputs.skip != 'true'
         run: python app/scripts/build_places.py paris.osm.pbf --out out/places --facades facades.json --extras extras.json
       - if: steps.fresh.outputs.skip != 'true'
+        name: Réseau cyclable (carte vélo) — bandes, voies bus, double-sens, pistes
+        run: python app/scripts/build_bikes.py paris.osm.pbf --out out/bikes.geojson
+      - if: steps.fresh.outputs.skip != 'true'
         name: Index de recherche (recherche sur le téléphone, notoriété QRank lue dans extras.json)
         run: python app/scripts/build_search.py out/places --extras extras.json
       - if: steps.fresh.outputs.skip != 'true'
@@ -55,6 +58,8 @@ jobs:
           git fetch --depth=1 origin gh-pages
           git worktree add pages origin/gh-pages
           rm -rf pages/data/places && mkdir -p pages/data && cp -r out/places pages/data/places
-          cd pages && git add -A data/places
-          git -c user.name=untracked-bot -c user.email=bot@untrackedmaps.app commit -qm "Lieux par tuile : extrait OSM du $(date -u +%F)" || exit 0
+          # réseau cyclable : publié seulement s'il paraît complet (sinon on garde celui de la veille)
+          python -c "import json,sys; n=len(json.load(open('out/bikes.geojson'))['features']); print(n,'voies cyclables'); sys.exit(0 if n >= 5000 else 1)" && cp out/bikes.geojson pages/data/bikes.geojson || echo "réseau cyclable non publié"
+          cd pages && git add -A data/places && { [ ! -f data/bikes.geojson ] || git add data/bikes.geojson; }
+          git -c user.name=untracked-bot -c user.email=bot@untrackedmaps.app commit -qm "Lieux par tuile et réseau cyclable : extrait OSM du $(date -u +%F)" || exit 0
           git push origin HEAD:gh-pages

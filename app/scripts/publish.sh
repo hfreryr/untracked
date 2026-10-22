@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Publie le site construit (app/build) sur la branche gh-pages, SANS toucher à ce que les actions automatiques y déposent :
 #   data/places/      tuiles de lieux, refaites chaque nuit (places.yml)
+#   data/bikes.geojson réseau cyclable de la carte vélo, refait chaque nuit (places.yml)
 #   data/facades.json devantures Panoramax, refaites chaque dimanche (facades.yml)
 #   data/extras.json  compléments hors OSM (sites, téléphones…), refaits chaque lundi (extras.yml)
 #   data/sitehours.json état des lectures de sites (dates, horaires trouvés), tenu par extras.yml
@@ -14,9 +15,9 @@ trap 'rm -rf "$WORK"' EXIT
 git clone -q --depth 1 --branch gh-pages "$REMOTE" "$WORK/site"
 cd "$WORK/site"
 # tout retirer sauf les données produites par les actions
-git ls-files -z | grep -z -v -E '^data/places/|^data/facades\.json$|^data/extras\.json$|^data/sitehours\.json$' | xargs -0 -r git rm -q
+git ls-files -z | grep -z -v -E '^data/places/|^data/bikes\.geojson$|^data/facades\.json$|^data/extras\.json$|^data/sitehours\.json$' | xargs -0 -r git rm -q
 # copier le site, sans les tuiles locales (celles de la nuit font foi)
-(cd "$ROOT/app/build" && find . -type f ! -path './data/places/*' -print0) | while IFS= read -r -d '' f; do
+(cd "$ROOT/app/build" && find . -type f ! -path './data/places/*' ! -path './data/bikes.geojson' -print0) | while IFS= read -r -d '' f; do
   mkdir -p "$(dirname "$f")"; cp "$ROOT/app/build/$f" "$f"
 done
 touch .nojekyll
