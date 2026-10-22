@@ -7,6 +7,7 @@
   import { badge } from '#lib/routeview.js';
   import ModeIcon from './ModeIcon.svelte';
   import { etaParts } from '#lib/navglide.js';
+  import { speakFr, hush } from '#lib/speech.js';
 
   let { nav, navBanner, navRemaining, to, navFollow, navList = $bindable(), voice = $bindable(), endNav, recenter, manual = false, stepBy } = $props();
   let barOpen = $state(false);         // barre du bas remontée : étapes, voix, Terminer
@@ -98,7 +99,7 @@
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11" /><circle cx="4.5" cy="6" r="1" class="solid" /><circle cx="4.5" cy="12" r="1" class="solid" /><circle cx="4.5" cy="18" r="1" class="solid" /></svg>
         {tx('guidage.etapes_du_trajet')}
       </button>
-      <button class="nav-row nav-btn" onclick={() => { voice = !voice; if (!voice && 'speechSynthesis' in window) speechSynthesis.cancel(); }} aria-pressed={voice}>
+      <button class="nav-row nav-btn" onclick={() => { voice = !voice; if (voice) speakFr(tx('guidage.voix_activee')); else hush(); }} aria-pressed={voice}>
         {#if voice}<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" /><path d="M15.5 9a4.5 4.5 0 0 1 0 6M18 6.5a8 8 0 0 1 0 11" /></svg>
         {:else}<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" /><path d="m16 9.5 5 5M21 9.5l-5 5" /></svg>{/if}
         {voice ? tx('guidage.voix_activee') : tx('guidage.voix_coupee')}

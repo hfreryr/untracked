@@ -7,16 +7,13 @@ import { exitLabel } from '#lib/exits.js';
 import { placeLabel } from '#lib/rame.js';
 import { prepare, progress, remaining, spokenDistance } from '#lib/nav.js';
 import { createGlide } from '#lib/navglide.js';
+import { speakFr, hush } from '#lib/speech.js';
 
 /** @param {any} app */
 export function createNav(app) {
   const { glideTo, stopGlide } = createGlide(app);
   function speak(text) {
-    if (!app.voice || !text || !('speechSynthesis' in window)) return;
-    speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = 'fr-FR';
-    speechSynthesis.speak(u);
+    if (app.voice) speakFr(text);
   }
   // Trajet en transport → étapes du guidage : marcher, monter, descendre (avec sortie et place dans la rame).
   function transitSteps(it) {
@@ -59,8 +56,9 @@ export function createNav(app) {
     app.arriveCount = 0;
     app.spoken = new Set();
     // l'écran reste allumé pendant le trajet (si le téléphone le permet)
-    try { app.wakeLock = await navigator.wakeLock?.request('screen'); } catch { app.wakeLock = null; }
+    // première phrase tout de suite, pendant le toucher sur « Aller » : sinon l'iPhone bloque la voix (speech.js)
     speak(kind === 'transit' ? app.nav.steps[0]?.text : app.nav.steps[0]?.speak || app.nav.steps[0]?.text);
+    try { app.wakeLock = await navigator.wakeLock?.request('screen'); } catch { app.wakeLock = null; }
     clearInterval(app.navTick);
     app.navTick = setInterval(() => { app.now = Date.now(); if (app.nav?.kind === 'transit') updateNav(); }, 5000);
     app.stopWatch();
@@ -95,6 +93,7 @@ export function createNav(app) {
     const prevK = app.nav.k;
     app.nav = { ...app.nav, s: Math.max(p.s, app.nav.s - 30), k, off: p.off, heading, arrived: app.nav.arrived || arrived };
     app.meMarker?.setRotationAlignment('map');      // la flèche suit la carte (qui tourne avec vous)
+    app.meMarker?.setPitchAlignment('viewport');    // … mais le disque reste rond quand la carte est inclinée
     app.meMarker?.getElement().classList.add('navigating');
     // sur la carte : seul le reste du trajet reste en bleu, et le point de départ disparaît (la flèche suffit)
     if (app.nav.kind !== 'transit') {
@@ -161,12 +160,13 @@ export function createNav(app) {
     clearInterval(app.navTick);
     app.wakeLock?.release?.().catch?.(() => {});
     app.wakeLock = null;
-    if ('speechSynthesis' in window) speechSynthesis.cancel();
+    hush();
     stopGlide();
     app.nav = null;
     app.navList = false;
     app.meMarker?.setRotation(app.heading ?? 0);   // retour au faisceau de direction
     app.meMarker?.getElement().classList.remove('navigating');
+    app.meMarker?.setPitchAlignment('auto');
     app.startWatch();
     app.map.easeTo({ pitch: 0, bearing: 0, duration: 600 });
     app.drawRoute();

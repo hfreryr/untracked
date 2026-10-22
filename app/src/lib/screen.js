@@ -67,9 +67,9 @@ export function createScreen(app) {
     if (!app.meMarker) {
       const el = document.createElement('div');
       el.className = 'me';
-      // me-nav : pendant le guidage, une flèche dans un rond blanc (dessin maison)
+      // me-nav : pendant le guidage, une flèche bleue sur un disque de verre dépoli (choix A du porteur, 22/10 ; dessin maison)
       el.innerHTML = '<span class="me-beam"></span><span class="me-dot"></span>'
-        + '<svg class="me-nav" viewBox="0 0 44 44" aria-hidden="true"><circle cx="22" cy="22" r="18"/><path d="M22 9 31 31 22 26 13 31Z"/></svg>';
+        + '<span class="me-nav"><svg viewBox="0 0 44 44" aria-hidden="true"><path d="M22 8 32 33 22 27 12 33Z"/></svg></span>';
       app.meMarker = new maplibregl.Marker({ element: el, rotationAlignment: 'map' });
       if (app.heading != null) { el.classList.add('has-heading'); app.meMarker.setRotation(app.heading); }
     }
