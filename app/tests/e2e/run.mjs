@@ -646,9 +646,18 @@ z.close()`, zip]);
     await p.click('button[aria-label="Type de carte"]'); await p.click('.modes-pop button:has-text("Vélo")'); await p.waitForTimeout(500);
     assert((await vis()) === 'visible', 'pistes non affichées');
     await p.waitForSelector('.bike-legend');
+    // menu en grille 2 × 2 : Plan et Transports sur la 1re ligne, Satellite et Vélo sur la 2e
+    await p.click('button[aria-label="Type de carte"]'); await p.waitForSelector('.modes-grid');
+    const ys = await p.$$eval('.modes-grid > button', (b) => b.map((x) => Math.round(x.getBoundingClientRect().top)));
+    assert(ys.length === 4 && ys[0] === ys[1] && ys[2] === ys[3] && ys[2] > ys[0], `grille 2 × 2 attendue : ${ys}`);
+    await p.keyboard.press('Escape'); await p.waitForTimeout(300);
     await p.click('.bike-legend .more'); await p.waitForSelector('.dlg');
     assert(/bandes peintes/i.test(await p.textContent('.dlg')), 'explication des bandes absente');
     await p.keyboard.press('Escape'); await p.waitForTimeout(300);
+    // légende repliable en pastille, et le choix est retenu
+    await p.click('.bike-legend .fold'); await p.waitForSelector('.bike-legend.pill');
+    assert(await p.evaluate(() => localStorage.getItem('legende-velo') === 'repliee'), 'repli non retenu');
+    await p.click('.bike-legend.pill'); await p.waitForSelector('.bike-legend .fold');
     await p.click('button[aria-label="Type de carte"]'); await p.click('.modes-pop button:has-text("Plan")'); await p.waitForTimeout(400);
     assert((await vis()) === 'none' && !(await p.$('.bike-legend')), 'carte vélo encore affichée en mode Plan');
     // itinéraire : choisir le vélo affiche les pistes ; fermer l'itinéraire les retire

@@ -28,6 +28,8 @@
       {/if}
       {#if app.showModes}
         <div class="modes-pop" role="menu" aria-label={tx('carte.type_de_carte')} use:popover={{ trigger: () => layersBtn, close: () => (app.showModes = false), place: 'above', align: 'end' }}>
+          <!-- 4 types de carte en grille 2 × 2, comme Plans (porteur, 22/10 : « 3 et 1 ce n'est pas logique ») -->
+          <div class="modes-grid">
           <button role="menuitemradio" aria-checked={app.mapMode === 'plan'} class:on={app.mapMode === 'plan'} onclick={() => app.setMapMode('plan')}>
             <span class="thumb plan" aria-hidden="true"></span>{tx('carte.plan')}
           </button>
@@ -40,6 +42,7 @@
           <button role="menuitemradio" aria-checked={app.mapMode === 'bike'} class:on={app.mapMode === 'bike'} onclick={() => app.setMapMode('bike')}>
             <span class="thumb bike" aria-hidden="true"></span>{tx('carte.velo')}
           </button>
+          </div>
           <div class="theme" role="radiogroup" aria-label={tx('carte.theme')}>
             <span class="theme-label">{tx('carte.theme')}</span>
             {#each [['auto', tx('carte.theme_auto')], ['light', tx('carte.theme_clair')], ['dark', tx('carte.theme_sombre')]] as [id, label]}
@@ -105,11 +108,14 @@
     display: grid; place-items: center; cursor: pointer; color: var(--ink);
   }
   .round-btn svg { width: 22px; height: 22px; }
-  .modes-pop { display: flex; gap: 10px; padding: 12px; background: var(--card); border-radius: 18px; box-shadow: var(--shadow-float); }
+  .modes-pop { display: flex; gap: 10px; padding: 14px; background: var(--card); border-radius: 20px; box-shadow: var(--shadow-float);
+    width: min(330px, calc(100vw - 24px)); box-sizing: border-box; }
   .modes-pop button {
     display: grid; justify-items: center; gap: 6px; border: 0; background: none; cursor: pointer; font-size: 13px; font-weight: 600; padding: 0;
   }
-  .thumb { width: 70px; height: 52px; border-radius: 12px; border: 2px solid transparent; background-size: cover; }
+  .modes-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 10px; width: 100%; }
+  .modes-grid button { width: 100%; }
+  .thumb { width: 100%; height: 70px; border-radius: 12px; border: 2px solid transparent; background-size: cover; }
   .modes-pop .on .thumb { border-color: var(--accent); }
   .modes-pop .on { color: var(--accent); }
   .thumb.plan { background: linear-gradient(115deg, transparent 45%, #fff 45% 52%, transparent 52%), linear-gradient(25deg, transparent 60%, #fff 60% 66%, transparent 66%), radial-gradient(circle at 25% 70%, #d4ebcb 0 18%, transparent 19%), #f1eee8; }
@@ -130,7 +136,7 @@
   /* vignette de la carte vélo : pistes en vert plein, voie autorisée en pointillés (dessin maison) */
   .thumb.bike { background: linear-gradient(115deg, transparent 46%, #1C8B3C 46% 51%, transparent 51%), linear-gradient(28deg, transparent 58%, #1C8B3C 58% 62%, transparent 62%),
     repeating-linear-gradient(90deg, #3FA35C 0 6px, transparent 6px 11px) 0 38px / 100% 3px no-repeat, #F1EDE2; }
-  .theme { grid-column: 1 / -1; flex-basis: 100%; display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; }
+  .theme { grid-column: 1 / -1; flex-basis: 100%; border-top: 1px solid var(--line); padding-top: 12px; margin-top: 2px; display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; }
   .theme-label { margin-right: auto; }
   .modes-pop .theme button { display: inline-flex; align-items: center; flex: none; height: 32px; padding: 0 12px; border-radius: 16px; border: 1px solid var(--line); background: var(--card); font-size: 13px; }
   .modes-pop .theme button.on { background: var(--accent-btn); border-color: var(--accent-btn); color: #fff; }

@@ -6,12 +6,30 @@
 
   const app = getContext('app');
   let info = $state(false);
+  // repliée en petite pastille si on le souhaite ; le choix est retenu sur l'appareil (porteur, 22/10)
+  const KEY = 'legende-velo';
+  let folded = $state((() => { try { return localStorage.getItem(KEY) === 'repliee'; } catch { return false; } })());
+  function fold(v) {
+    folded = v;
+    try { v ? localStorage.setItem(KEY, 'repliee') : localStorage.removeItem(KEY); } catch { /* rien */ }
+  }
   // seulement sur la carte nue : une fiche ouverte occupe le bas de l'écran (règle 10 : rien de caché dessous)
   const show = $derived(app.mapMode === 'bike' && !app.place && !app.category && !app.directions && !app.nav);
 </script>
 
-{#if show}
+{#if show && folded}
+  <button class="bike-legend pill" onclick={() => fold(false)} aria-expanded="false" aria-label={tx('velo.deplier_legende')}>
+    <span class="minis" aria-hidden="true"><span class="sw"></span><span class="sw lane"></span><span class="sw dash"></span></span>
+    {tx('velo.legende_court')}
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 14 5-5 5 5" /></svg>
+  </button>
+{:else if show}
   <div class="bike-legend" role="note" aria-label={tx('velo.legende')}>
+    <span class="head">{tx('velo.legende_court')}
+      <button class="fold" onclick={() => fold(true)} aria-expanded="true" aria-label={tx('velo.replier_legende')}>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5" /></svg>
+      </button>
+    </span>
     <span class="row"><span class="sw" aria-hidden="true"></span>{tx('velo.piste')}</span>
     <span class="row"><span class="sw lane" aria-hidden="true"></span>{tx('velo.bande')}</span>
     <span class="row"><span class="sw dash" aria-hidden="true"></span>{tx('velo.autorise')}</span>
@@ -38,6 +56,12 @@
     font-size: 13.5px; font-weight: 500; color: var(--ink);
   }
   .row { display: flex; align-items: center; gap: 8px; }
+  .head { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 13px; font-weight: 700; color: var(--muted); }
+  .fold { width: 32px; height: 32px; margin: -6px -6px -4px 0; border: 0; border-radius: 50%; background: var(--fill); color: var(--ink); display: grid; place-items: center; cursor: pointer; }
+  .fold svg, .pill svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+  .pill { display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 12px; border: 0; border-radius: 20px; font: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer; }
+  .minis { display: flex; gap: 3px; }
+  .minis .sw { width: 13px; }
   .sw { width: 26px; border-top: 4px solid var(--bike, #1C8B3C); border-radius: 2px; }
   .sw.lane { border-top: 3px solid var(--bike-lane, #6CC07A); }
   .sw.dash { border-top: 3px dashed var(--bike-soft, #3FA35C); }
