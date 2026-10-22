@@ -10,6 +10,7 @@
   import StreetThumb from '#lib/ui/StreetThumb.svelte';
   import PromiseBanner from '#lib/ui/PromiseBanner.svelte';
   import InstallCard from '#lib/ui/InstallCard.svelte';
+  import UpdateBanner from '#lib/ui/UpdateBanner.svelte';
   import ChipsEditor from '#lib/ui/ChipsEditor.svelte';
   import ImportSheet from '#lib/ui/ImportSheet.svelte';
   import TransferSheet from '#lib/ui/TransferSheet.svelte';
@@ -714,6 +715,7 @@
   {#if toast}<p class="toast" role="status">{toast}{#if toastAction}<button onclick={undoToast}>{toastAction.label}</button>{/if}</p>{/if}
   <PromiseBanner />
   <InstallCard />
+  <UpdateBanner />
 
   {#if listPicker && place && !directions}
     <ListPicker />

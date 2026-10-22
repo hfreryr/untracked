@@ -626,6 +626,18 @@ z.close()`, zip]);
     assert(!errors.length, errors.join(' | '));
     await ctx.close();
   },
+  async 'nouvelle version en ligne : un bandeau propose de mettre à jour'() {
+    const { p, ctx, errors } = await page();
+    assert(!(await p.$('.update')), 'bandeau affiché sans nouvelle version');
+    // le site annonce une autre version que celle chargée → bandeau ; « Mettre à jour » recharge la page
+    await p.route('**/_app/version.json', (r) => r.fulfill({ contentType: 'application/json', body: '{"version":"autre"}' }));
+    await p.evaluate(() => window.dispatchEvent(new Event('focus')));
+    await p.waitForSelector('.update', { timeout: 8000 });
+    assert(/Nouvelle version/.test(await p.textContent('.update')), 'texte du bandeau');
+    await Promise.all([p.waitForEvent('load'), p.click('.update button')]);
+    assert(!errors.length, errors.join(' | '));
+    await ctx.close();
+  },
   async 'guidage à pied : démarrer puis terminer'() {
     const { p, ctx, errors } = await page({ geolocation: { latitude: 48.853, longitude: 2.34 } });
     await p.fill('#search', 'Panthéon'); await p.waitForSelector('.results li.opt button', { timeout: 20000 }); await pick(p); await p.waitForTimeout(2500);

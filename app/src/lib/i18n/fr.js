@@ -351,6 +351,8 @@ export default {
   'fiche.mode_bike': 'à vélo',
   'fiche.mode_transit': 'en transports',
   'fiche.mode_car': 'en voiture',
+  'maj.nouvelle_version': 'Nouvelle version disponible',
+  'maj.mettre_a_jour': 'Mettre à jour',
   'itin.propositions': 'Propositions d\'itinéraire',
   'itin.ajouter_un_arret': 'Ajouter un arrêt',
   'itin.retour_aux_propositions': 'Retour aux propositions',
