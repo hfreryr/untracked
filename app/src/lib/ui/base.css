@@ -187,25 +187,18 @@ button { font: inherit; color: inherit; }
 }
 .me.has-heading .me-beam { display: block; }
 .me.navigating .me-beam, .me.navigating .me-dot { display: none; }
-/* Pendant le guidage : flèche bleue sur un disque de verre dépoli (on devine la carte dessous), qui glisse
-   d'une position à l'autre (navglide.js). Sans flou (vieux téléphones), le disque reste simplement translucide. */
+/* Pendant le guidage : flèche blanche en relief (face éclairée, face ombrée) sur un disque bleuté translucide,
+   cerclé d'un anneau clair (référence du porteur, 23/10). Glisse d'une position à l'autre (navglide.js). */
 .me .me-nav { display: none; }
 .me.navigating .me-nav {
-  display: grid; place-items: center; position: absolute; left: 50%; top: 50%; width: 40px; height: 40px; margin: -20px 0 0 -20px;
-  border-radius: 50%; background: rgb(255 255 255 / 0.6); border: 1px solid rgb(255 255 255 / 0.85);
-  -webkit-backdrop-filter: blur(8px) saturate(1.6); backdrop-filter: blur(8px) saturate(1.6);
-  box-shadow: 0 3px 10px rgb(0 0 0 / 0.22), inset 0 1px 1px rgb(255 255 255 / 0.9);
+  display: grid; place-items: center; position: absolute; left: 50%; top: 50%; width: 42px; height: 42px; margin: -21px 0 0 -21px;
+  border-radius: 50%; background: rgb(122 150 212 / 0.78); border: 3px solid rgb(236 239 243 / 0.95);
+  -webkit-backdrop-filter: blur(6px) saturate(1.4); backdrop-filter: blur(6px) saturate(1.4);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.28), inset 0 1px 2px rgb(255 255 255 / 0.35);
 }
-.me-nav svg { width: 26px; height: 26px; }
-.me-nav path { fill: #1F66E5; stroke: none; }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .me.navigating .me-nav { background: rgb(60 62 68 / 0.45); border-color: rgb(255 255 255 / 0.28);
-    box-shadow: 0 3px 10px rgb(0 0 0 / 0.4), inset 0 1px 1px rgb(255 255 255 / 0.25); }
-  :root:not([data-theme="light"]) .me-nav path { fill: #4C90FF; }
-}
-:root[data-theme="dark"] .me.navigating .me-nav { background: rgb(60 62 68 / 0.45); border-color: rgb(255 255 255 / 0.28);
-  box-shadow: 0 3px 10px rgb(0 0 0 / 0.4), inset 0 1px 1px rgb(255 255 255 / 0.25); }
-:root[data-theme="dark"] .me-nav path { fill: #4C90FF; }
+.me-nav svg { width: 31px; height: 31px; filter: drop-shadow(0 1.5px 1.5px rgb(0 0 0 / 0.25)); }
+.me-nav .lit { fill: #FFFFFF; stroke: none; }
+.me-nav .shade { fill: #D5DAE2; stroke: none; }
 /* ——— Devantures (Panoramax) ——— */
 .facade { display: block; position: relative; overflow: hidden; container-type: inline-size; aspect-ratio: 4 / 3; background: var(--fill); }
 .facade img { position: absolute; width: 800cqw; height: 400cqw; max-width: none; left: calc(50cqw - var(--fx) * 800cqw); top: -155cqw; }
