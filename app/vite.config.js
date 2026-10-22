@@ -35,6 +35,8 @@ export default defineConfig({
     sveltekit({
       adapter: adapter(),
       paths: { relative: true },
+      // nouvelle version en ligne : vérifiée à l'ouverture, au retour dans l'app et toutes les 10 min (UpdateBanner.svelte)
+      version: { pollInterval: 600_000 },
       csp
     })
   ]
