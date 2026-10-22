@@ -640,7 +640,8 @@ z.close()`, zip]);
   },
   async 'carte vélo : type de carte « Vélo », légende, et affichée pendant un itinéraire à vélo'() {
     const { p, ctx, errors } = await page({ geolocation: { latitude: 48.8867, longitude: 2.3431 } });
-    const vis = () => p.evaluate(() => window.__map.getLayoutProperty('bike-track', 'visibility'));
+    // pistes du fond de carte, ou réseau complet (data/bikes.geojson, publié chaque nuit) quand il est là
+    const vis = () => p.evaluate(() => ['bike-track', 'bikes-track'].some((id) => window.__map.getLayoutProperty(id, 'visibility') === 'visible') ? 'visible' : 'none');
     assert((await vis()) === 'none', 'carte vélo visible par défaut');
     await p.click('button[aria-label="Type de carte"]'); await p.click('.modes-pop button:has-text("Vélo")'); await p.waitForTimeout(500);
     assert((await vis()) === 'visible', 'pistes non affichées');
