@@ -613,6 +613,19 @@ z.close()`, zip]);
     assert((await p.locator('.deps li').count()) > 0 || /passage/i.test(txt), 'prochains passages absents');
     await ctx.close();
   },
+  async 'mode proposé par défaut : transports si c’est loin, puis le dernier mode choisi'() {
+    const { p, ctx, errors } = await page({ geolocation: { latitude: 48.8867, longitude: 2.3431 } });
+    await p.fill('#search', 'Panthéon'); await p.waitForSelector('.results li.opt button', { timeout: 20000 }); await pick(p); await p.waitForTimeout(2500);
+    // 4 km : plus de « 50 min à pied » sur le bouton, mais les transports
+    assert(/en transports/.test(await p.getAttribute('.action.primary', 'aria-label')), 'transports non proposés pour un lieu lointain');
+    await p.click('.action.primary'); await p.waitForTimeout(1500);
+    assert(await p.$('.mode-tab.on[aria-label="Transports"]'), 'onglet transports non choisi');
+    await p.click('.mode-tab[aria-label="Vélo"]'); await p.waitForTimeout(500);
+    await p.click('.top .back'); await p.waitForTimeout(800);
+    assert(/à vélo/.test(await p.getAttribute('.action.primary', 'aria-label')), 'le dernier mode choisi (vélo) n’est pas repris');
+    assert(!errors.length, errors.join(' | '));
+    await ctx.close();
+  },
   async 'guidage à pied : démarrer puis terminer'() {
     const { p, ctx, errors } = await page({ geolocation: { latitude: 48.853, longitude: 2.34 } });
     await p.fill('#search', 'Panthéon'); await p.waitForSelector('.results li.opt button', { timeout: 20000 }); await pick(p); await p.waitForTimeout(2500);

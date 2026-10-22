@@ -4,6 +4,7 @@ import { tx } from '#lib/i18n/index.js';
 import { empty } from '#lib/maplayers.js';
 import { streetRoute, trafficEstimate, transitRoutes, transitWithStop, transitModesFor } from '#lib/routing.js';
 import { tick } from 'svelte';
+import { pickMode, readLastMode, saveLastMode } from '#lib/defaultmode.js';
 
 /** @param {any} app */
 export function createDirections(app) {
@@ -22,7 +23,7 @@ export function createDirections(app) {
     try {
       app.from = app.me || (await app.getPosition());
       const d = app.dist(app.from.lat, app.from.lon, app.to.lat, app.to.lon);
-      app.mode = d > 2500 ? 'transit' : 'walk';
+      app.mode = pickMode(readLastMode(), d);          // le dernier mode choisi, sauf trajet déraisonnable (defaultmode.js)
       computeRoutes();
     } catch {
       app.from = null;
@@ -41,7 +42,7 @@ export function createDirections(app) {
     app.when = null;
     app.routes = { walk: null, bike: null, transit: null };
     app.picked = 0;
-    app.mode = 'transit';
+    app.mode = pickMode(readLastMode(), null);
     app.from = app.me || null;
     if (!app.from) app.getPosition().then((p) => { if (app.directions && !app.from) { app.from = p; app.computeRoutes(); } }).catch(() => {});
     editField('to');
@@ -150,6 +151,7 @@ export function createDirections(app) {
   }
   function chooseMode(m) {
     app.mode = m;
+    saveLastMode(m);                                   // proposé par défaut au prochain itinéraire
     app.picked = 0;
     app.transitDetail = false;
     app.focusLeg = null;

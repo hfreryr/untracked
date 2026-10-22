@@ -221,10 +221,11 @@
       {/if}
 
       <div class="actions" class:solo={!app.info?.phone && !app.info?.website}>
-        <button class="action primary" onclick={app.startDirections}>
-          {#if app.walkEta && /min/.test(app.walkEta)}
-            <ModeIcon id="walk" />
-            <span>{app.walkEta.replace(' à pied', '').replace('≈ ', '')}</span>
+        <!-- le mode proposé par défaut (le dernier choisi, sinon selon la distance) et son temps estimé, comme Plans -->
+        <button class="action primary" onclick={app.startDirections} aria-label={app.walkEta?.label}>
+          {#if app.walkEta}
+            <ModeIcon id={app.walkEta.mode} />
+            <span>{app.walkEta.text}</span>
           {:else}
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.8 21.2 12 12 21.2 2.8 12z" class="solid" /><path d="M9.5 14.5v-2.2a1.5 1.5 0 0 1 1.5-1.5h4M13 8.8l2 2-2 2" class="on-solid" /></svg>
             <span>{tx('fiche.itineraire')}</span>
