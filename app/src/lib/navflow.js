@@ -93,6 +93,7 @@ export function createNav(app) {
     const prevK = app.nav.k;
     app.nav = { ...app.nav, s: Math.max(p.s, app.nav.s - 30), k, off: p.off, heading, arrived: app.nav.arrived || arrived };
     app.meMarker?.setRotationAlignment('map');      // la flèche suit la carte (qui tourne avec vous)
+    app.meMarker?.setPitchAlignment('viewport');    // … mais le disque reste rond quand la carte est inclinée
     app.meMarker?.getElement().classList.add('navigating');
     // sur la carte : seul le reste du trajet reste en bleu, et le point de départ disparaît (la flèche suffit)
     if (app.nav.kind !== 'transit') {
@@ -165,6 +166,7 @@ export function createNav(app) {
     app.navList = false;
     app.meMarker?.setRotation(app.heading ?? 0);   // retour au faisceau de direction
     app.meMarker?.getElement().classList.remove('navigating');
+    app.meMarker?.setPitchAlignment('auto');
     app.startWatch();
     app.map.easeTo({ pitch: 0, bearing: 0, duration: 600 });
     app.drawRoute();

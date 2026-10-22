@@ -187,14 +187,25 @@ button { font: inherit; color: inherit; }
 }
 .me.has-heading .me-beam { display: block; }
 .me.navigating .me-beam, .me.navigating .me-dot { display: none; }
-/* Pendant le guidage : flèche bleue dans un rond blanc ombré, qui glisse d'une position à l'autre (navglide.js) */
+/* Pendant le guidage : flèche bleue sur un disque de verre dépoli (on devine la carte dessous), qui glisse
+   d'une position à l'autre (navglide.js). Sans flou (vieux téléphones), le disque reste simplement translucide. */
 .me .me-nav { display: none; }
 .me.navigating .me-nav {
-  display: block; position: absolute; left: 50%; top: 50%; width: 44px; height: 44px; margin: -22px 0 0 -22px;
-  filter: drop-shadow(0 2px 3px rgb(0 0 0 / 0.32));
+  display: grid; place-items: center; position: absolute; left: 50%; top: 50%; width: 40px; height: 40px; margin: -20px 0 0 -20px;
+  border-radius: 50%; background: rgb(255 255 255 / 0.6); border: 1px solid rgb(255 255 255 / 0.85);
+  -webkit-backdrop-filter: blur(8px) saturate(1.6); backdrop-filter: blur(8px) saturate(1.6);
+  box-shadow: 0 3px 10px rgb(0 0 0 / 0.22), inset 0 1px 1px rgb(255 255 255 / 0.9);
 }
-.me-nav circle { fill: #FFFFFF; stroke: none; }
+.me-nav svg { width: 26px; height: 26px; }
 .me-nav path { fill: #1F66E5; stroke: none; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .me.navigating .me-nav { background: rgb(60 62 68 / 0.45); border-color: rgb(255 255 255 / 0.28);
+    box-shadow: 0 3px 10px rgb(0 0 0 / 0.4), inset 0 1px 1px rgb(255 255 255 / 0.25); }
+  :root:not([data-theme="light"]) .me-nav path { fill: #4C90FF; }
+}
+:root[data-theme="dark"] .me.navigating .me-nav { background: rgb(60 62 68 / 0.45); border-color: rgb(255 255 255 / 0.28);
+  box-shadow: 0 3px 10px rgb(0 0 0 / 0.4), inset 0 1px 1px rgb(255 255 255 / 0.25); }
+:root[data-theme="dark"] .me-nav path { fill: #4C90FF; }
 /* ——— Devantures (Panoramax) ——— */
 .facade { display: block; position: relative; overflow: hidden; container-type: inline-size; aspect-ratio: 4 / 3; background: var(--fill); }
 .facade img { position: absolute; width: 800cqw; height: 400cqw; max-width: none; left: calc(50cqw - var(--fx) * 800cqw); top: -155cqw; }
