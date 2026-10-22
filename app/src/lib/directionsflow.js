@@ -184,10 +184,15 @@ export function createDirections(app) {
     app.drawRoute();
     sheetToTop();
   }
-  /** Toucher une étape (dans la fiche ou son trait sur la carte) : la carte cadre ce bout, le reste s'estompe ; retoucher : tout le trajet. */
+  /**
+   * Toucher une étape (dans la fiche ou son trait sur la carte) : la fiche se réduit à une fine bande, la carte cadre
+   * ce bout et estompe le reste, comme Citymapper (porteur, 22/10). Retoucher la même étape : tout le trajet.
+   */
   function focusOnLeg(li) {
     app.transitDetail = true;
     app.focusLeg = app.focusLeg === li ? null : li;
+    const sheet = document.querySelector('.route-sheet');
+    if (app.focusLeg != null) sheet?.dispatchEvent(new CustomEvent('sheetsnap', { detail: 'min' }));
     app.drawRoute();
     requestAnimationFrame(() => document.querySelector(`.route-sheet [data-leg="${li}"]`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }));
   }

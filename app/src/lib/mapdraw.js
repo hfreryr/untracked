@@ -143,6 +143,8 @@ export function createMapDraw(app) {
       const leg = !app.editing && app.mode === 'transit' && app.map.queryRenderedFeatures([[e.point.x - 10, e.point.y - 10], [e.point.x + 10, e.point.y + 10]], { layers: ['route-line', 'route-walk'] })
         .find((f) => f.properties.li != null);
       if (leg) return app.focusOnLeg(leg.properties.li);
+      // une étape est cadrée : toucher ailleurs sur la carte revient au trajet entier
+      if (!app.editing && app.mode === 'transit' && app.focusLeg != null) return app.focusOnLeg(app.focusLeg);
       const which = app.editing || (Date.now() - app.lastEdit.at < 800 ? app.lastEdit.which : null);
       if (which) app.pickOnMap(which, e.lngLat);
       return;

@@ -144,6 +144,9 @@ export function draggable(node, params = {}) {
   node.addEventListener('touchcancel', onEnd);
   node.addEventListener('click', onGrip);
   node.addEventListener('wheel', onWheel, { passive: true });
+  // demande extérieure de hauteur (événement « sheetsnap », detail : 'min' | 'peek' | 'half' | 'full')
+  const onSnap = (e) => { if (mobile.matches && ['min', 'peek', 'half', 'full'].includes(e.detail)) { snap = e.detail === 'min' && !min ? 'peek' : e.detail; apply(); } };
+  node.addEventListener('sheetsnap', onSnap);
   window.addEventListener('resize', onResize);
   mobile.addEventListener('change', onResize);
   requestAnimationFrame(() => apply(false));
@@ -155,6 +158,7 @@ export function draggable(node, params = {}) {
     },
     destroy() {
       watch.disconnect();
+      node.removeEventListener('sheetsnap', onSnap);
       cancelAnimationFrame(raf);
       window.removeEventListener('resize', onResize);
       mobile.removeEventListener('change', onResize);

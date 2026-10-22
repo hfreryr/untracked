@@ -646,9 +646,18 @@ z.close()`, zip]);
     await p.click('button[aria-label="Type de carte"]'); await p.click('.modes-pop button:has-text("Vélo")'); await p.waitForTimeout(500);
     assert((await vis()) === 'visible', 'pistes non affichées');
     await p.waitForSelector('.bike-legend');
+    // menu en grille 2 × 2 : Plan et Transports sur la 1re ligne, Satellite et Vélo sur la 2e
+    await p.click('button[aria-label="Type de carte"]'); await p.waitForSelector('.modes-grid');
+    const ys = await p.$$eval('.modes-grid > button', (b) => b.map((x) => Math.round(x.getBoundingClientRect().top)));
+    assert(ys.length === 4 && ys[0] === ys[1] && ys[2] === ys[3] && ys[2] > ys[0], `grille 2 × 2 attendue : ${ys}`);
+    await p.keyboard.press('Escape'); await p.waitForTimeout(300);
     await p.click('.bike-legend .more'); await p.waitForSelector('.dlg');
     assert(/bandes peintes/i.test(await p.textContent('.dlg')), 'explication des bandes absente');
     await p.keyboard.press('Escape'); await p.waitForTimeout(300);
+    // légende repliable en pastille, et le choix est retenu
+    await p.click('.bike-legend .fold'); await p.waitForSelector('.bike-legend.pill');
+    assert(await p.evaluate(() => localStorage.getItem('legende-velo') === 'repliee'), 'repli non retenu');
+    await p.click('.bike-legend.pill'); await p.waitForSelector('.bike-legend .fold');
     await p.click('button[aria-label="Type de carte"]'); await p.click('.modes-pop button:has-text("Plan")'); await p.waitForTimeout(400);
     assert((await vis()) === 'none' && !(await p.$('.bike-legend')), 'carte vélo encore affichée en mode Plan');
     // itinéraire : choisir le vélo affiche les pistes ; fermer l'itinéraire les retire
@@ -738,10 +747,20 @@ z.close()`, zip]);
     // toucher une étape : elle est cadrée sur la carte, les autres bouts s'estompent ; retoucher : tout le trajet
     await p.click('.card.ride .head >> nth=0'); await p.waitForTimeout(400);
     assert(await p.$('.card.ride.sel'), 'étape touchée non mise en avant');
+    // comme Citymapper : la fiche se réduit à une fine bande pour laisser voir l'étape sur la carte
+    assert((await p.getAttribute('.route-sheet', 'data-snap')) === 'min', 'la fiche ne se réduit pas');
     const dims = () => p.evaluate(async () => (await window.__map.getSource('route').getData()).features.filter((f) => f.properties.dim).length);
     assert((await dims()) > 0, 'les autres étapes ne s\'estompent pas');
-    await p.click('.card.ride .head >> nth=0'); await p.waitForTimeout(400);
-    assert((await dims()) === 0 && !(await p.$('.card.sel')), 'retoucher l\'étape ne revient pas au trajet entier');
+    // toucher ailleurs sur la carte : retour au trajet entier
+    const empty = await p.evaluate(() => {
+      const m = window.__map;
+      for (let y = 250; y < 600; y += 25) for (let x = 20; x < 370; x += 25) {
+        if (!m.queryRenderedFeatures([[x - 14, y - 14], [x + 14, y + 14]], { layers: ['route-line', 'route-walk'] }).length) return [x, y];
+      }
+    });
+    await p.mouse.click(empty[0], empty[1]); await p.waitForTimeout(400);
+    assert((await dims()) === 0 && !(await p.$('.card.sel')), 'toucher la carte ne revient pas au trajet entier');
+    await p.click('.route-sheet .grip'); await p.waitForTimeout(500);
     // retour à la liste des propositions
     await p.click('.t-head .back'); await p.waitForSelector('.t-opt', { timeout: 3000 });
     await ctx.close();
