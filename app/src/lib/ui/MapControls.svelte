@@ -5,6 +5,7 @@
   import { popover } from '#lib/popover.js';
   import AboutDialog from '#lib/ui/AboutDialog.svelte';
   import MapCredit from '#lib/ui/MapCredit.svelte';
+  import BikeLegend from '#lib/ui/BikeLegend.svelte';
   let layersBtn = $state();
 
   // État et actions de la page (voir le bloc « app » de +page.svelte)
@@ -36,6 +37,9 @@
           <button role="menuitemradio" aria-checked={app.mapMode === 'satellite'} class:on={app.mapMode === 'satellite'} onclick={() => app.setMapMode('satellite')}>
             <span class="thumb satellite" aria-hidden="true"></span>{tx('carte.satellite')}
           </button>
+          <button role="menuitemradio" aria-checked={app.mapMode === 'bike'} class:on={app.mapMode === 'bike'} onclick={() => app.setMapMode('bike')}>
+            <span class="thumb bike" aria-hidden="true"></span>{tx('carte.velo')}
+          </button>
           <div class="theme" role="radiogroup" aria-label={tx('carte.theme')}>
             <span class="theme-label">{tx('carte.theme')}</span>
             {#each [['auto', tx('carte.theme_auto')], ['light', tx('carte.theme_clair')], ['dark', tx('carte.theme_sombre')]] as [id, label]}
@@ -66,6 +70,7 @@
     <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5" /><path d="M12 11v5" /><circle cx="12" cy="8" r=".9" class="solid" /></svg>
   </button>
   <MapCredit />
+  <BikeLegend />
   {#if app.aboutOpen}<AboutDialog onclose={() => (app.aboutOpen = false)} />{/if}
 
 <style>
@@ -104,7 +109,7 @@
   .modes-pop button {
     display: grid; justify-items: center; gap: 6px; border: 0; background: none; cursor: pointer; font-size: 13px; font-weight: 600; padding: 0;
   }
-  .thumb { width: 76px; height: 54px; border-radius: 12px; border: 2px solid transparent; background-size: cover; }
+  .thumb { width: 70px; height: 52px; border-radius: 12px; border: 2px solid transparent; background-size: cover; }
   .modes-pop .on .thumb { border-color: var(--accent); }
   .modes-pop .on { color: var(--accent); }
   .thumb.plan { background: linear-gradient(115deg, transparent 45%, #fff 45% 52%, transparent 52%), linear-gradient(25deg, transparent 60%, #fff 60% 66%, transparent 66%), radial-gradient(circle at 25% 70%, #d4ebcb 0 18%, transparent 19%), #f1eee8; }
@@ -122,6 +127,9 @@
   /* vignette de la photo aérienne : toits, cour, arbres (dessin, pas une capture) */
   .thumb.satellite { background: radial-gradient(circle at 30% 35%, #4f6b3a 0 14%, transparent 15%), radial-gradient(circle at 72% 70%, #5b7445 0 12%, transparent 13%),
     linear-gradient(115deg, transparent 44%, #9a9a94 44% 50%, transparent 50%), linear-gradient(25deg, #7d746a 0 30%, #a39686 30% 62%, #6f6a62 62%); }
+  /* vignette de la carte vélo : pistes en vert plein, voie autorisée en pointillés (dessin maison) */
+  .thumb.bike { background: linear-gradient(115deg, transparent 46%, #1C8B3C 46% 51%, transparent 51%), linear-gradient(28deg, transparent 58%, #1C8B3C 58% 62%, transparent 62%),
+    repeating-linear-gradient(90deg, #3FA35C 0 6px, transparent 6px 11px) 0 38px / 100% 3px no-repeat, #F1EDE2; }
   .theme { grid-column: 1 / -1; flex-basis: 100%; display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; }
   .theme-label { margin-right: auto; }
   .modes-pop .theme button { display: inline-flex; align-items: center; flex: none; height: 32px; padding: 0 12px; border-radius: 16px; border: 1px solid var(--line); background: var(--card); font-size: 13px; }

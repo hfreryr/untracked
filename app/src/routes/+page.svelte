@@ -179,7 +179,7 @@
   let picked = $state(0);            // proposition de transport choisie
   let transitDetail = $state(false); // transports : détail de la proposition choisie (sinon la liste des propositions)
   let focusLeg = $state(null);       // étape du trajet en transport mise en avant sur la carte (index), ou null
-  let mapMode = $state('plan');      // 'plan' | 'transit' | 'satellite'
+  let mapMode = $state('plan');      // 'plan' | 'transit' | 'satellite' | 'bike'
   let themePref = $state(loadTheme()); // 'auto' | 'light' | 'dark' (theme.js)
   let restyle = () => {};
   let showModes = $state(false);
@@ -575,7 +575,7 @@
     get dimmed() { return dimmed; }, set dimmed(v) { dimmed = v; },
     get directions() { return directions; }, set directions(v) { directions = v; }, get displayName() { return displayName; },
     get dist() { return dist; }, get doRestore() { return doRestore; }, get dragY() { return dragY; }, set dragY(v) { dragY = v; },
-    get drawRoute() { return drawRoute; }, get editChips() { return editChips; }, set editChips(v) { editChips = v; },
+    get drawRoute() { return drawRoute; }, get syncBike() { return syncBike; }, get bikeOn() { return bikeOn; }, get editChips() { return editChips; }, set editChips(v) { editChips = v; },
     get editField() { return editField; }, get editing() { return editing; }, set editing(v) { editing = v; }, get endNav() { return endNav; },
     get exits() { return exits; }, set exits(v) { exits = v; }, get famColor() { return famColor; }, get favTap() { return favTap; },
     get favorites() { return favorites; }, set favorites(v) { favorites = v; },
@@ -686,7 +686,7 @@
   // </app>
   const { setupMap } = createMapSetup(app);
   const { clampZoom, toggleZoom, zoomStart, zoomMove, zoomEnd } = createZoom(app);
-  const { favData, addCustomLayers, drawRoute, line, shade, dimPlaces, setMapMode, fitOptions, boundsOf, fitTo, onMapClick, openPoint, openFeature, frame, placeMarker, labelColor, clearSelPhoto, clearPhotoPins, clearSelection, showSelection } = createMapDraw(app);
+  const { favData, addCustomLayers, drawRoute, syncBike, bikeOn, line, shade, dimPlaces, setMapMode, fitOptions, boundsOf, fitTo, onMapClick, openPoint, openFeature, frame, placeMarker, labelColor, clearSelPhoto, clearPhotoPins, clearSelection, showSelection } = createMapDraw(app);
   const { saveFavorites, setShortcut, useShortcut } = createShortcuts(app);
   const { saveChips, moveChip, toggleChip, renameChip, resetChips, catOf } = createChips(app);
   const { sameSpot, saveAll, keepOf, saveTap, setMembership, togglePin, removeFromList, createList, renameList, setListStyle, deleteList, refreshSaved, openSavedList, shareList, keepIncomingList, makeTransfer, shareTransfer, applyIncoming, makeBackup, doRestore } = createMyPlaces(app);

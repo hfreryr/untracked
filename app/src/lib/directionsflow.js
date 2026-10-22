@@ -56,6 +56,7 @@ export function createDirections(app) {
     app.map.getSource('route')?.setData(empty());
     app.map.getSource('route-ends')?.setData(empty());
     app.map.getSource('route-tags')?.setData(empty());
+    app.syncBike();                                    // la carte vélo de l'itinéraire s'efface (sauf type « Vélo »)
     if (app.place) { app.showSelection(app.place); app.frame(app.place.lon, app.place.lat); }
   }
   const pointOf = (which) => ({ from: app.from, via: app.via, to: app.to })[which];
