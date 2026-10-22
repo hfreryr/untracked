@@ -747,10 +747,20 @@ z.close()`, zip]);
     // toucher une étape : elle est cadrée sur la carte, les autres bouts s'estompent ; retoucher : tout le trajet
     await p.click('.card.ride .head >> nth=0'); await p.waitForTimeout(400);
     assert(await p.$('.card.ride.sel'), 'étape touchée non mise en avant');
+    // comme Citymapper : la fiche se réduit à une fine bande pour laisser voir l'étape sur la carte
+    assert((await p.getAttribute('.route-sheet', 'data-snap')) === 'min', 'la fiche ne se réduit pas');
     const dims = () => p.evaluate(async () => (await window.__map.getSource('route').getData()).features.filter((f) => f.properties.dim).length);
     assert((await dims()) > 0, 'les autres étapes ne s\'estompent pas');
-    await p.click('.card.ride .head >> nth=0'); await p.waitForTimeout(400);
-    assert((await dims()) === 0 && !(await p.$('.card.sel')), 'retoucher l\'étape ne revient pas au trajet entier');
+    // toucher ailleurs sur la carte : retour au trajet entier
+    const empty = await p.evaluate(() => {
+      const m = window.__map;
+      for (let y = 250; y < 600; y += 25) for (let x = 20; x < 370; x += 25) {
+        if (!m.queryRenderedFeatures([[x - 14, y - 14], [x + 14, y + 14]], { layers: ['route-line', 'route-walk'] }).length) return [x, y];
+      }
+    });
+    await p.mouse.click(empty[0], empty[1]); await p.waitForTimeout(400);
+    assert((await dims()) === 0 && !(await p.$('.card.sel')), 'toucher la carte ne revient pas au trajet entier');
+    await p.click('.route-sheet .grip'); await p.waitForTimeout(500);
     // retour à la liste des propositions
     await p.click('.t-head .back'); await p.waitForSelector('.t-opt', { timeout: 3000 });
     await ctx.close();
