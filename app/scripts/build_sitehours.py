@@ -299,6 +299,11 @@ def cc_pages(sites, crawls=2):
     return out
 
 
+def pick_fresh(fresh, state, n):
+    """Au plus n sites : ceux déjà connus (relecture) d'abord, puis les nouveaux du centre de Paris vers l'extérieur."""
+    return sorted(fresh, key=lambda j: (j[2] not in state, (j[3] - 2.3488) ** 2 * 0.43 + (j[4] - 48.8534) ** 2))[:n]
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("pbf")
@@ -306,6 +311,9 @@ def main():
     ap.add_argument("--state", default="sitehours.json", help="état des lectures précédentes, mis à jour en place")
     ap.add_argument("--limit", type=int, default=0, help="nombre de sites à traiter (essai)")
     ap.add_argument("--no-cc", action="store_true", help="sans Common Crawl (essai)")
+    ap.add_argument("--max-new", type=int, default=0,
+                    help="au plus N sites à lire par passage, les plus proches de Paris d'abord (Île-de-France, 23/10/2026 :"
+                         " la première lecture de la région s'étale sur plusieurs semaines au lieu d'allonger une seule tâche)")
     args = ap.parse_args()
     t0 = time.time()
     today = time.strftime("%Y-%m-%d")
@@ -325,12 +333,15 @@ def main():
             continue
         site = tags.get("website") or tags.get("contact:website") or (ex.get("website") or [None])[0]
         if site and tags.get("name") and not NOT_A_SITE.search(site):
-            todo.append((str(oid), tags["name"], site))
+            todo.append((str(oid), tags["name"], site, lon, lat))
     if args.limit:
         todo = todo[: args.limit]
     stats = Counter()
     fresh = [j for j in todo if due(state.get(j[2]), today)]
     stats["déjà lus récemment"] = len(todo) - len(fresh)
+    if args.max_new and len(fresh) > args.max_new:
+        stats["remis à une prochaine semaine"] = len(fresh) - args.max_new
+        fresh = pick_fresh(fresh, state, args.max_new)
     print(f"{len(todo)} sites, dont {len(fresh)} à lire", file=sys.stderr)
 
     # 1. Common Crawl
@@ -341,7 +352,7 @@ def main():
         except Exception as e:
             print("Common Crawl ignoré :", e, file=sys.stderr)
     live = []
-    for oid, name, site in fresh:
+    for oid, name, site, *_ in fresh:
         if site in archived:
             date, html = archived[site]
             oh = hours_in(html, name)
@@ -371,7 +382,7 @@ def main():
                 state[site] = entry
 
     # 3. horaires connus (de cette semaine ou des précédentes) → compléments
-    for oid, name, site in todo:
+    for oid, name, site, *_ in todo:
         oh = (state.get(site) or {}).get("hours")
         if oh and valid_hours(oh):
             extras.setdefault(oid, {})["opening_hours"] = [oh, "site"]
