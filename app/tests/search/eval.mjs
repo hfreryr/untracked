@@ -9,6 +9,7 @@ import { readFileSync, readdirSync, writeFileSync, existsSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { matchPlaces } from '#lib/localsearch.js';
 import { prepare, searchIndex } from '#lib/searchindex.js';
+import { zonesAround, searchMany } from '#lib/searchzones.js';
 import { intentOf, nearestOf } from '#lib/searchintent.js';
 
 const here = new URL('.', import.meta.url).pathname;
@@ -62,6 +63,11 @@ function isHit(q, r, at) {
 const localBox = (at) => places.filter((p) => Math.abs(p.lat - at.lat) < 0.032 && Math.abs(p.lon - at.lon) < 0.048);
 const idxFile = indexPath || `${root}/search.json`;
 const idx = existsSync(idxFile) ? prepare(JSON.parse(readFileSync(idxFile, 'utf8'))) : null;
+// index découpé par zone (Île-de-France, 23/10) : l'essentiel + les zones autour du point, comme l'app
+const zdir = `${root}/search`;
+const zmeta = existsSync(`${zdir}/index.json`) ? JSON.parse(readFileSync(`${zdir}/index.json`, 'utf8')) : null;
+const zcache = new Map();
+const zload = (p) => { if (!zcache.has(p)) zcache.set(p, prepare(JSON.parse(readFileSync(`${zdir}/${p}.json`, 'utf8')))); return zcache.get(p); };
 const asResult = (p) => ({ id: `${LETTER[p.id % 10]}${Math.floor(p.id / 10)}`, name: p.tags.name || '', lon: p.lon, lat: p.lat });
 const engines = {
   async local(q, at) { return matchPlaces(localBox(at), q, at, 7); },
@@ -69,6 +75,12 @@ const engines = {
   ...(idx ? { async index(q, at) {
     const f = intentOf(q);
     return f ? nearestOf(localBox(at), f, at, 7).map(asResult) : searchIndex(idx, q, at, 7);
+  } } : {}),
+  ...(zmeta ? { async zones(q, at) {
+    const f = intentOf(q);
+    if (f) return nearestOf(localBox(at), f, at, 7).map(asResult);
+    const idxs = ['core', ...zonesAround(at, zmeta.zoom, zmeta.zones).map((k) => `${zmeta.zoom}/${k}`)].map(zload);
+    return searchMany(idxs, q, at, 7);
   } } : {}),
   // mêmes paramètres que l'app (src/lib/geocode.js) ; curl passe par le proxy de l'environnement
   async photon(q, at) {

@@ -21,16 +21,17 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
         with: { python-version: '3.12' }
       - run: pip install osmium==4.3.1 duckdb==1.5.6
-      - name: Extrait OSM de Paris (somme de contrôle vérifiée)
+      - name: Extrait OSM d'Île-de-France (somme de contrôle vérifiée ; Paris seulement jusqu'au 23/10/2026)
         run: |
-          B=https://download.openstreetmap.fr/extracts/europe/france/ile_de_france
-          curl -sSfL -o paris.osm.pbf $B/paris.osm.pbf
-          curl -sSfL $B/paris.osm.pbf.md5 | awk '{print $1"  paris.osm.pbf"}' | md5sum -c -
-      - run: python app/scripts/build_extras.py paris.osm.pbf --out out/extras.json
+          B=https://download.openstreetmap.fr/extracts/europe/france
+          curl -sSfL --retry 3 -o idf.osm.pbf $B/ile_de_france.osm.pbf
+          curl -sSfL $B/ile_de_france.osm.pbf.md5 | awk '{print $1"  idf.osm.pbf"}' | md5sum -c -
+      # mesuré le 23/10 en local : 41 600 lieux complétés (Overture, All The Places, annuaire) en 18 min
+      - run: python app/scripts/build_extras.py idf.osm.pbf --out out/extras.json
       - name: Horaires publiés par les sites des lieux (Common Crawl d'abord, visites espacées, robots.txt respecté)
         run: |
           curl -sSfL -o out/sitehours.json https://untrackedmaps.app/data/sitehours.json || echo '{}' > out/sitehours.json
-          python app/scripts/build_sitehours.py paris.osm.pbf --extras out/extras.json --state out/sitehours.json || echo "sites ignorés (le reste est publié)"
+          python app/scripts/build_sitehours.py idf.osm.pbf --extras out/extras.json --state out/sitehours.json --max-new 4000 || echo "sites ignorés (le reste est publié)"
       - name: "Garde-fou : pas de publication si les compléments paraissent vides"
         run: python -c "import json,sys; n=len(json.load(open('out/extras.json'))['places']); print(n,'lieux complétés'); sys.exit(0 if n >= 1000 else 1)"
       - name: Publier dans gh-pages/data/extras.json

@@ -46,3 +46,29 @@ def test_rue_proche_si_pas_d_adresse():
     addr = {r[0]: r[8] for r in rows}
     assert streets[int(addr["Monoprix"].split("|")[1])] == "Rue du Départ" and addr["Monoprix"].split("|")[0] == "~"
     assert streets[int(addr["Franprix"].split("|")[1])] == "Rue X"
+
+
+def test_decoupage_coeur_et_zones(tmp_path):
+    """Gares, communes et lieux connus dans le cœur ; le reste dans sa zone ; chaque fichier a ses propres tables."""
+    import json
+    from build_search import write_split, tile_of
+    items = [
+        (11, 2.3550, 48.8800, {"name": "Gare du Nord", "railway": "station"}),
+        (21, 2.4400, 48.8600, {"name": "Montreuil", "place": "town"}),   # (dans le cadre de « Paris » approché)
+        (31, 2.3400, 48.8500, {"name": "Café de Flore", "amenity": "cafe", "addr:street": "Boulevard Saint-Germain", "addr:housenumber": "172"}),
+        (41, 2.2000, 48.8350, {"name": "Boulangerie Dupont", "shop": "bakery", "addr:street": "Rue de Paris", "addr:housenumber": "3"}),
+    ]
+    types, streets, rows = build(items, {})
+    n_core, zones = write_split(str(tmp_path), types, streets, rows)
+    assert n_core == 2
+    core = json.load(open(tmp_path / "search" / "core.json"))
+    assert {r[0] for r in core["items"]} == {"Gare du Nord", "Montreuil"}
+    idx = json.load(open(tmp_path / "search" / "index.json"))
+    assert idx["v"] == 2 and len(idx["zones"]) == len(zones)
+    x, y = tile_of(2.2000, 48.8350)
+    z = json.load(open(tmp_path / "search" / "12" / str(x) / f"{y}.json"))
+    row = next(r for r in z["items"] if r[0] == "Boulangerie Dupont")
+    assert z["types"][row[4]] == "shop=bakery"
+    assert z["streets"][int(row[8].split("|")[1])] == "Rue de Paris"
+    # l'ancien fichier unique reste servi (Paris seulement), pour les versions de l'app pas encore à jour
+    assert {r[0] for r in json.load(open(tmp_path / "search.json"))["items"]} == {"Gare du Nord", "Montreuil", "Café de Flore"}

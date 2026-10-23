@@ -28,3 +28,5 @@ Thumbs.db
 # App
 app/build/
 app/static/data/places/
+# archive All The Places téléchargée par build_extras.py
+atp.zip

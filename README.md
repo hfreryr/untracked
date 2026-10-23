@@ -5,7 +5,7 @@ Pour celles et ceux qui ont déjà choisi Signal, Proton ou Brave.
 
 👉 **[untrackedmaps.app](https://untrackedmaps.app)** (à ouvrir sur un téléphone)
 
-Untracked Maps est une app web de cartographie grand public, construite sur [OpenStreetMap](https://www.openstreetmap.org) et des moteurs libres. Ce n'est ni un fork ni une extension d'une autre app : c'est notre propre app, qui vise le niveau de finition de Google Maps et de Plans d'Apple. Ville pilote : **Paris**.
+Untracked Maps est une app web de cartographie grand public, construite sur [OpenStreetMap](https://www.openstreetmap.org) et des moteurs libres. Ce n'est ni un fork ni une extension d'une autre app : c'est notre propre app, qui vise le niveau de finition de Google Maps et de Plans d'Apple. Zone couverte : **Île-de-France** (lieux et leurs compléments, recherche, carte vélo, transports) ; horaires de la Ville et devantures : Paris.
 
 - **Aucune donnée personnelle collectée**, pas de mesure d'audience, pas de compte.
 - **Aucune dépendance à Google.**
@@ -16,7 +16,7 @@ Untracked Maps est une app web de cartographie grand public, construite sur [Ope
 - **Recherche** en langage courant : « restaurant ce soir 8e », « boulangerie ouverte dimanche » ; 60 catégories que chacun choisit et réordonne ; filtres « ouvert maintenant », « ouvert à… », terrasse, végétarien, à emporter, fauteuil roulant (seulement ceux qui servent ; les lieux sans information restent à part) ; Entrée montre tous les lieux du nom cherché.
 - **Fiche lieu** : ouvert ou fermé, date de dernière vérification sur place, horaires de la semaine, « bon à savoir » (paiement, terrasse, accessibilité…), photos Wikimedia en plein écran.
 - **Transports en commun** : prochains passages en temps réel, sorties de métro, place conseillée dans la rame.
-- **Carte vélo** : pistes, bandes et voies bus, double-sens cyclables et voies où le vélo est autorisé (réseau refait chaque nuit depuis OSM, Paris), affichée aussi pendant un itinéraire à vélo.
+- **Carte vélo** : pistes, bandes et voies bus, double-sens cyclables et voies où le vélo est autorisé (réseau refait chaque nuit depuis OSM, Île-de-France), affichée aussi pendant un itinéraire à vélo.
 - **Itinéraires** à pied, à vélo, en transports et en voiture : choix entre plusieurs trajets, départ ou arrivée à l'heure choisie, arrêt intermédiaire, guidage pas à pas vocal (panneau inspiré de Plans, flèche de position qui glisse en continu ; depuis votre position, l'itinéraire suit vos déplacements). En transports, le détail se lit étape par étape (meilleure entrée, rame dessinée, arrêts dépliables, meilleure sortie) et toucher une étape la montre sur la carte.
 - **Mes lieux** sans compte ni serveur : listes, Maison et Travail, import depuis Google Takeout, transfert vers un autre appareil par lien ou QR code, sauvegarde chiffrée.
 - **Position** : direction façon boussole, carte qui tourne avec vous.

@@ -5,7 +5,12 @@ téléchargée chaque semaine par build_extras.py dans extras.json (clé « qran
 
     python app/scripts/build_search.py out/places --extras extras.json
 
-Écrit out/places/search.json :
+Écrit l'index découpé (Île-de-France, 23/10/2026 : un fichier unique serait trop lourd pour le téléphone) :
+    out/places/search/index.json   {"v":2, "zoom":12, "zones":["2075/1409", …]}
+    out/places/search/core.json    l'essentiel de la région (lieux connus, gares, communes…), toujours chargé
+    out/places/search/12/x/y.json  les autres lieux, par zone d'environ 6,5 km de côté (chargées autour de l'utilisateur)
+    out/places/search.json         Paris seulement (l'ancien index unique), pour les versions de l'app pas encore à jour
+Chaque fichier a le format :
     {"v":1, "built":…, "types":["tourism=museum", …], "streets":["Rue de Rennes", …],
      "items":[[nom, lon, lat, id, type, notoriété, autres noms?, extra?, adresse?], …]}
 - notoriété : 0 à 99 (log10 du nombre de vues Wikipédia × 10, d'après QRank ; 0 sans Wikidata) ;
@@ -107,6 +112,62 @@ def build(items, qrank):
     return types, streets, out
 
 
+ZONE = 12
+# toujours chargés, où que l'on soit : ce que l'on cherche de loin (une gare, un musée, une commune, un lieu connu)
+CORE_KV = {"railway=station", "public_transport=station", "tourism=museum", "tourism=attraction", "tourism=zoo",
+           "tourism=theme_park", "leisure=stadium", "amenity=university", "amenity=hospital", "historic=castle", "historic=monument"}
+CORE_RANK = 25
+PARIS = (2.224, 48.815, 2.47, 48.902)          # ouest, sud, est, nord : l'ancien index unique (versions pas à jour)
+
+
+def is_core(row, types):
+    kv = types[row[4]]
+    return kv.startswith("place=") or kv in CORE_KV or (len(row) > 5 and row[5] >= CORE_RANK)
+
+
+def tile_of(lon, lat, z=ZONE):
+    n = 2 ** z
+    r = math.radians(lat)
+    return int((lon + 180) / 360 * n), int((1 - math.log(math.tan(r) + 1 / math.cos(r)) / math.pi) / 2 * n)
+
+
+def pack(rows, types, streets):
+    """Un fichier autonome : ses propres tables de types et de rues (indices renumérotés)."""
+    ts = sorted({types[r[4]] for r in rows})
+    ss = sorted({streets[int(r[8].split("|")[1])] for r in rows if len(r) > 8 and r[8]})
+    ti, si = {k: i for i, k in enumerate(ts)}, {k: i for i, k in enumerate(ss)}
+    out = []
+    for r in rows:
+        r = list(r)
+        r[4] = ti[types[r[4]]]
+        if len(r) > 8 and r[8]:
+            num, s_, pc = r[8].split("|")
+            r[8] = f"{num}|{si[streets[int(s_)]]}|{pc}"
+        out.append(r)
+    return {"v": 1, "built": datetime.date.today().isoformat(), "types": ts, "streets": ss, "items": out}
+
+
+def write_split(base, types, streets, rows):
+    """Écrit core + zones ; renvoie (nombre de lieux du cœur, {zone: nombre})."""
+    core = [r for r in rows if is_core(r, types)]
+    zones = {}
+    for r in rows:
+        if not is_core(r, types):
+            zones.setdefault(tile_of(r[1], r[2]), []).append(r)
+    d = os.path.join(base, "search")
+    os.makedirs(d, exist_ok=True)
+    dump = lambda path, obj: json.dump(obj, open(path, "w"), ensure_ascii=False, separators=(",", ":"))
+    dump(os.path.join(d, "core.json"), pack(core, types, streets))
+    w, s_, e, n = PARIS
+    dump(os.path.join(base, "search.json"), pack([r for r in rows if w <= r[1] <= e and s_ <= r[2] <= n], types, streets))
+    for (x, y), rs in zones.items():
+        os.makedirs(os.path.join(d, str(ZONE), str(x)), exist_ok=True)
+        dump(os.path.join(d, str(ZONE), str(x), f"{y}.json"), pack(rs, types, streets))
+    dump(os.path.join(d, "index.json"), {"v": 2, "zoom": ZONE, "built": datetime.date.today().isoformat(),
+                                          "zones": sorted(f"{x}/{y}" for x, y in zones)})
+    return len(core), {f"{x}/{y}": len(rs) for (x, y), rs in zones.items()}
+
+
 def read_tiles(places_dir):
     for f in glob.glob(os.path.join(places_dir, "*", "*", "*.json")):
         for it in json.load(open(f))["t"]:
@@ -122,11 +183,12 @@ def main():
     if args.extras and os.path.exists(args.extras):
         qrank = json.load(open(args.extras)).get("qrank", {})
     types, streets, rows = build(read_tiles(args.places), qrank)
-    out = {"v": 1, "built": datetime.date.today().isoformat(), "types": types, "streets": streets, "items": rows}
-    path = os.path.join(args.places, "search.json")
-    with open(path, "w") as f:
-        json.dump(out, f, ensure_ascii=False, separators=(",", ":"))
-    print(f"{len(rows)} lieux dans l'index, {os.path.getsize(path) // 1024} Ko ({sum(1 for r in rows if r[5])} avec notoriété)")
+    n_core, zones = write_split(args.places, types, streets, rows)
+    size = lambda p: os.path.getsize(p) // 1024
+    zdir = os.path.join(args.places, "search", str(ZONE))
+    biggest = max((size(os.path.join(r, f)) for r, _, fs in os.walk(zdir) for f in fs), default=0)
+    print(f"{len(rows)} lieux dans l'index ({sum(1 for r in rows if r[5])} avec notoriété) : cœur {n_core} lieux "
+          f"({size(os.path.join(args.places, 'search', 'core.json'))} Ko), {len(zones)} zones (la plus lourde : {biggest} Ko)")
 
 
 if __name__ == "__main__":
