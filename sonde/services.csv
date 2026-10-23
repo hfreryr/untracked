@@ -263,3 +263,9 @@ date_utc,service,requete,code,secondes
 2026-10-23T04:33:19Z,geoplateforme,57 rue de rennes,200,1.12
 2026-10-23T04:33:20Z,transitous,odeon-pantheon,200,1.29
 2026-10-23T04:33:21Z,valhalla,pied,200,0.55
+2026-10-23T09:37:15Z,photon,grand palais,200,0.62
+2026-10-23T09:37:16Z,photon,gare de lyon,200,0.51
+2026-10-23T09:37:17Z,photon,elysee,200,0.59
+2026-10-23T09:37:18Z,geoplateforme,57 rue de rennes,200,1.45
+2026-10-23T09:37:20Z,transitous,odeon-pantheon,200,1.47
+2026-10-23T09:37:20Z,valhalla,pied,200,0.67
