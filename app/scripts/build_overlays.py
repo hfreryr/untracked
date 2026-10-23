@@ -3,7 +3,7 @@
   static/data/landmarks.geojson      lieux affichés jusqu'au zoom 17 : lieux remarquables (monuments,
                                      musées, parcs, gares) et adresses (restaurants, cafés, boutiques…),
                                      chacun avec un zoom d'apparition (« z ») qui garde la carte lisible ;
-  static/data/transit-lines.geojson  lignes de métro, RER et tram, à leurs couleurs officielles ;
+  static/data/transit-lines.geojson  lignes de métro, RER, Transilien et tram, à leurs couleurs officielles ;
   static/data/exits.json             sorties de métro et de RER (numéro, nom, accès), pour la fiche station
                                      et la « sortie conseillée » des trajets.
 
@@ -169,6 +169,9 @@ def line_mode(t):
         return "rer"
     if r == "light_rail" and "RER" in net:
         return "rer"
+    # Transilien (H, J, K, L, N, P, R, U, V), ajouté le 23/10/2026
+    if r == "train" and "Transilien" in net and len(ref) == 1:
+        return "train"
     return None
 
 

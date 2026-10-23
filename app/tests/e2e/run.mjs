@@ -690,6 +690,10 @@ z.close()`, zip]);
     const east = await p.evaluate(async () => Math.max(...(await window.__map.getSource('transit').getData()).features
       .flatMap((f) => (f.geometry.type === 'LineString' ? f.geometry.coordinates : f.geometry.coordinates.flat())).map((c) => c[0])));
     assert(east > 2.7, `lignes limitées à Paris (est : ${east})`);
+    // le Transilien est dessiné (H à V), en plus du métro, du RER et du tram (porteur, 23/10)
+    const trains = await p.evaluate(async () => [...new Set((await window.__map.getSource('transit').getData()).features
+      .filter((f) => f.properties.mode === 'train').map((f) => f.properties.ref))].sort().join(''));
+    assert(trains.includes('HJKLNPRU'), `Transilien manquant (${trains})`);
     assert(!errors.length, errors.join(' | '));
     await ctx.close();
   },
