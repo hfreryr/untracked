@@ -28,7 +28,7 @@ export function createMapDraw(app) {
     if (app.directions) drawRoute();
     else if (app.place) showSelection(app.place);
     if (app.category) app.applyHit(app.category);
-    if (app.mapMode === 'transit') for (const id of ['transit-case', 'transit-line', 'transit-label']) app.map.setLayoutProperty(id, 'visibility', 'visible');
+    if (app.mapMode === 'transit') showTransitLines(true);
     if (app.mapMode === 'satellite') setSatellite(app.map, true);
     if (bikeData) app.map.getSource('bikes')?.setData(bikeData);   // nouveau style (clair ↔ sombre) : source vide
     syncBike();
@@ -97,16 +97,17 @@ export function createMapDraw(app) {
   // sans lui (fichiers absents, hors ligne), on garde les pistes du fond de carte.
   let bikes = null;            // null : pas encore demandé ; true / false : données présentes ou non
   let bikeData = null;
-  let bikeTiles = null, loadingBikes = false;
+  let bikeTiles = null, loadingBikes = false, bikeCovered = false;
   function loadBikes() {
     if (loadingBikes) return;
     loadingBikes = true;
     bikeTiles ??= createBikeTiles(new URL('data/', location.href).href);
     const b = app.map.getBounds();
     bikeTiles.load({ west: b.getWest(), south: b.getSouth(), east: b.getEast(), north: b.getNorth() })
-      .then((fs) => {
+      .then(({ features: fs, covered }) => {
         if (fs) { bikeData = { type: 'FeatureCollection', features: fs }; app.map.getSource('bikes')?.setData(bikeData); }
         bikes = !!fs;
+        bikeCovered = covered;
       })
       .catch(() => { bikes = bikes ?? false; })
       .finally(() => { loadingBikes = false; syncBike(); });
@@ -120,15 +121,23 @@ export function createMapDraw(app) {
     if (on && bikes === null) loadBikes();
     const full = bikes === true;
     const set = (ids, show) => { for (const id of ids) if (app.map?.getLayer(id)) app.map.setLayoutProperty(id, 'visibility', show ? 'visible' : 'none'); };
-    set(['bike-track', 'bike-shared'], on && !full);
+    // hors de nos données (hors Île-de-France) : les pistes du fond de carte, plutôt qu'une carte vide
+    set(['bike-track', 'bike-shared'], on && !(full && bikeCovered));
     set(['bikes-track', 'bikes-lane', 'bikes-contra', 'bikes-shared'], on && full);
   }
   let bikeHooked = false;
+  /** Carte Transports : les lignes (chargées à la première demande, et après un changement de style) et leur affichage. */
+  const transitLoaded = new WeakSet();      // sources déjà remplies (un nouveau style en crée une neuve, vide)
+  function showTransitLines(on) {
+    const src = app.map.getSource('transit');
+    if (on && src && !transitLoaded.has(src)) { src.setData(new URL('data/transit-lines.geojson', location.href).href); transitLoaded.add(src); }
+    for (const id of ['transit-case', 'transit-line', 'transit-label']) app.map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none');
+  }
   function setMapMode(m) {
     app.mapMode = m;
     app.showModes = false;
     syncBike();
-    for (const id of ['transit-case', 'transit-line', 'transit-label']) app.map.setLayoutProperty(id, 'visibility', m === 'transit' ? 'visible' : 'none');
+    showTransitLines(m === 'transit');
     setSatellite(app.map, m === 'satellite');
     if (m === 'transit' && app.map.getZoom() > 14.5) app.map.easeTo({ zoom: 13.5, duration: 600 });
   }

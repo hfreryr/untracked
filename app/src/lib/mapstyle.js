@@ -169,7 +169,9 @@ function lightStyle(base) {
     glyphs: `${base}fonts/{fontstack}/{range}.pbf`,
     sources: {
       landmarks: { type: 'geojson', data: `${base}data/landmarks.geojson`, promoteId: 'rank' },
-      transit: { type: 'geojson', data: `${base}data/transit-lines.geojson` },
+      // lignes de métro, RER et tram (Île-de-France, ≈ 800 Ko) : chargées seulement quand on choisit la carte Transports
+      // (mapdraw.showTransitLines), pour ne pas ralentir l'ouverture de l'app
+      transit: { type: 'geojson', data: { type: 'FeatureCollection', features: [] } },
       // réseau cyclable complet (build_bikes.py, refait chaque nuit) : chargé seulement à l'affichage de la carte vélo
       bikes: { type: 'geojson', data: { type: 'FeatureCollection', features: [] } },
       omt: { type: 'vector', url: 'https://tiles.openfreemap.org/planet',
@@ -249,16 +251,16 @@ function lightStyle(base) {
       { id: 'transit-case', type: 'line', source: 'transit', layout: { visibility: 'none', 'line-cap': 'round', 'line-join': 'round' },
         paint: { 'line-color': '#FFFFFF', 'line-width': ['interpolate', ['linear'], ['zoom'], 11, 1.8, 14, 3.2, 17, 5.5] } },
       { id: 'transit-line', type: 'line', source: 'transit', layout: { visibility: 'none', 'line-cap': 'round', 'line-join': 'round',
-          'line-sort-key': ['match', ['get', 'mode'], 'rer', 2, 'metro', 1, 0] },
+          'line-sort-key': ['match', ['get', 'mode'], 'rer', 2, 'train', 2, 'metro', 1, 0] },
         paint: { 'line-color': ['get', 'colour'],
                  // traits fins, comme les plans de référence (le RER un peu plus épais que le métro)
-                 'line-width': ['interpolate', ['linear'], ['zoom'], 11, ['match', ['get', 'mode'], 'rer', 1.4, 0.9], 14, ['match', ['get', 'mode'], 'rer', 2.4, 1.8], 17, ['match', ['get', 'mode'], 'rer', 3.8, 3]] } },
+                 'line-width': ['interpolate', ['linear'], ['zoom'], 11, ['match', ['get', 'mode'], ['rer', 'train'], 1.4, 0.9], 14, ['match', ['get', 'mode'], ['rer', 'train'], 2.4, 1.8], 17, ['match', ['get', 'mode'], ['rer', 'train'], 3.8, 3]] } },
       // Numéro de la ligne en petite pastille posée sur le tracé : rond (métro), carré (RER), rectangle (tram).
       { id: 'transit-label', type: 'symbol', source: 'transit', minzoom: 11.5,
         layout: { visibility: 'none', 'symbol-placement': 'line', 'symbol-spacing': ['interpolate', ['linear'], ['zoom'], 12, 220, 16, 420],
                   'icon-image': ['concat', 'tl|', ['get', 'mode'], '|', ['get', 'ref'], '|', ['get', 'colour']],
                   'icon-rotation-alignment': 'viewport', 'icon-size': ['interpolate', ['linear'], ['zoom'], 11.5, 0.8, 15, 1],
-                  'icon-padding': 2, 'symbol-sort-key': ['match', ['get', 'mode'], 'rer', 0, 'metro', 1, 2] } },
+                  'icon-padding': 2, 'symbol-sort-key': ['match', ['get', 'mode'], 'rer', 0, 'train', 0, 'metro', 1, 2] } },
       ...['Point', 'LineString'].map((g) => ({
         id: `water-name-${g === 'Point' ? 'point' : 'line'}`, type: 'symbol', source: 'omt', 'source-layer': 'water_name',
         filter: ['==', ['geometry-type'], g],
@@ -420,7 +422,7 @@ export function lineBadge(mode, ref, colour) {
   c.width = (w + 2) * s; c.height = (h + 2) * s;
   const ctx = c.getContext('2d');
   const x = s, y = s, W = w * s, H = h * s;
-  const r = mode === 'metro' ? H / 2 : mode === 'rer' ? 3.5 * s : 5 * s;
+  const r = mode === 'metro' ? H / 2 : mode === 'rer' || mode === 'train' ? 3.5 * s : 5 * s;
   ctx.beginPath(); ctx.roundRect(x - s * 0.8, y - s * 0.8, W + s * 1.6, H + s * 1.6, r + s * 0.8); ctx.fillStyle = '#FFFFFF'; ctx.fill();
   ctx.beginPath(); ctx.roundRect(x, y, W, H, r); ctx.fillStyle = colour; ctx.fill();
   const n = parseInt(colour.slice(1), 16), lum = (0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255;

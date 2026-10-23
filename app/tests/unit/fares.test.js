@@ -25,3 +25,13 @@ test('aéroport, mode inconnu, trajet à pied ou ville sans tarifs : pas de prix
   assert.equal(tripFare([leg('BUS', 0)], null), null);
 });
 test('affichage', () => assert.equal(fmtEuros(2.55), '2,55 €'));
+
+test('hors du réseau de la ville (Lyon) : pas de prix francilien', async () => {
+  const { tripFare } = await import('../../src/lib/fares.js');
+  const t = Date.UTC(2026, 9, 23, 8);
+  const lyon = [{ mode: 'SUBWAY', from: 'Bellecour', to: 'Part-Dieu', start: t, fromStop: 'fr-tcl_STOP:1234' }];
+  const paris = [{ mode: 'SUBWAY', from: 'Odéon', to: 'Châtelet', start: t, fromStop: 'fr-idfm_IDFM:22152' }];
+  const fares = { rail: { price: 2.55, minutes: 120, modes: ['SUBWAY'] }, road: { price: 2.05, minutes: 90, modes: ['BUS'] }, unsure: /aeroport/ };
+  assert.equal(tripFare(lyon, fares, 'IDFM'), null);
+  assert.equal(tripFare(paris, fares, 'IDFM'), 2.55);
+});

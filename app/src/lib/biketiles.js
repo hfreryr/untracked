@@ -15,19 +15,25 @@ export function createBikeTiles(base) {
   let meta = null;
   const tiles = new Map();          // « x/y » → promesse de ses tronçons
   let legacy = null;
-  /** Tous les tronçons chargés après avoir complété la zone `b` ; null si aucune donnée (on garde le fond de carte). */
+  /**
+   * Tous les tronçons chargés après avoir complété la zone `b`, et si cette zone est couverte par nos données
+   * (hors Île-de-France, non : on montre alors les pistes du fond de carte). features null : aucune donnée.
+   * @returns {Promise<{features: object[]|null, covered: boolean}>}
+   */
   async function load(b) {
     meta ??= fetch(`${base}bikes/index.json`).then((r) => (r.ok ? r.json() : null)).catch(() => null);
     const m = await meta;
     if (!m) {
       legacy ??= fetch(`${base}bikes.geojson`).then((r) => (r.ok ? r.json() : null)).catch(() => null);
-      return (await legacy)?.features || null;
+      const fs = (await legacy)?.features || null;
+      return { features: fs, covered: !!fs };
     }
-    for (const k of tilesIn(b, m.zoom, m.tiles)) {
+    const here = tilesIn(b, m.zoom, m.tiles);
+    for (const k of here) {
       if (!tiles.has(k)) tiles.set(k, fetch(`${base}bikes/${m.zoom}/${k}.json`).then((r) => (r.ok ? r.json() : null))
         .then((d) => d?.features || []).catch(() => { tiles.delete(k); return []; }));
     }
-    return (await Promise.all(tiles.values())).flat();
+    return { features: (await Promise.all(tiles.values())).flat(), covered: here.length > 0 };
   }
   return { load };
 }
