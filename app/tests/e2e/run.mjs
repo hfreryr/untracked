@@ -91,7 +91,8 @@ const tests = {
     await p.waitForSelector('.sheet h1', { timeout: 15000 }); await p.waitForTimeout(2000);
     const det = await p.$eval('.details', (e) => e.innerText);
     assert(/mavrommatis\.com/.test(det) && /42 80 42 42/.test(det), `site ou téléphone absents : ${det}`);
-    assert((det.match(/Source : Overture Maps/g) || []).length === 2, `source non indiquée : ${det}`);
+    // site et téléphone (et l’adresse, quand Overture la complète aussi) : chacun avec sa source
+    assert((det.match(/Source : Overture Maps/g) || []).length >= 2, `source non indiquée : ${det}`);
     assert(!errors.length, errors.join(' | '));
     await ctx.close();
     // Square Léo Ferré : horaires absents d'OSM, donnés par la Ville de Paris pour la saison en cours

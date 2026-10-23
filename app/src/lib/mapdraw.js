@@ -7,6 +7,7 @@ import * as maplibregl from 'maplibre-gl';
 import { reverseAddress } from '#lib/geocode.js';
 import { streetOpts } from '#lib/routeview.js';
 import { roundCorners } from '#lib/roundline.js';
+import { createBikeTiles } from '#lib/biketiles.js';
 import { typeLabel } from '#lib/places.js';
 import { setSatellite } from '#lib/satellite.js';
 
@@ -92,23 +93,37 @@ export function createMapDraw(app) {
   }
   /** Carte vélo visible : type de carte « Vélo », ou itinéraire à vélo en cours (comme Google Maps). */
   const bikeOn = () => app.mapMode === 'bike' || (app.directions && app.mode === 'bike');
-  // Réseau complet (data/bikes.geojson, refait chaque nuit) chargé à la première demande ; sans lui (fichier absent,
-  // hors ligne), on garde les pistes du fond de carte.
-  let bikes = null;            // null : pas encore demandé ; promesse en cours ; true / false : chargé ou non
+  // Réseau complet (data/bikes/, refait chaque nuit, découpé par tuile : biketiles.js) chargé pour la zone affichée ;
+  // sans lui (fichiers absents, hors ligne), on garde les pistes du fond de carte.
+  let bikes = null;            // null : pas encore demandé ; true / false : données présentes ou non
   let bikeData = null;
+  let bikeTiles = null, loadingBikes = false;
+  function loadBikes() {
+    if (loadingBikes) return;
+    loadingBikes = true;
+    bikeTiles ??= createBikeTiles(new URL('data/', location.href).href);
+    const b = app.map.getBounds();
+    bikeTiles.load({ west: b.getWest(), south: b.getSouth(), east: b.getEast(), north: b.getNorth() })
+      .then((fs) => {
+        if (fs) { bikeData = { type: 'FeatureCollection', features: fs }; app.map.getSource('bikes')?.setData(bikeData); }
+        bikes = !!fs;
+      })
+      .catch(() => { bikes = bikes ?? false; })
+      .finally(() => { loadingBikes = false; syncBike(); });
+  }
   function syncBike() {
     const on = bikeOn();
-    if (on && bikes === null) {
-      bikes = fetch(new URL('data/bikes.geojson', location.href)).then((r) => (r.ok ? r.json() : Promise.reject()))
-        .then((d) => { bikeData = d; app.map.getSource('bikes')?.setData(d); bikes = true; })
-        .catch(() => { bikes = false; })
-        .finally(syncBike);
+    if (on && !bikeHooked) {
+      bikeHooked = true;
+      app.map.on('moveend', () => { if (bikeOn()) loadBikes(); });     // on se déplace : les tuiles voisines
     }
+    if (on && bikes === null) loadBikes();
     const full = bikes === true;
     const set = (ids, show) => { for (const id of ids) if (app.map?.getLayer(id)) app.map.setLayoutProperty(id, 'visibility', show ? 'visible' : 'none'); };
     set(['bike-track', 'bike-shared'], on && !full);
     set(['bikes-track', 'bikes-lane', 'bikes-contra', 'bikes-shared'], on && full);
   }
+  let bikeHooked = false;
   function setMapMode(m) {
     app.mapMode = m;
     app.showModes = false;

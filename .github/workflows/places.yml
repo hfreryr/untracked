@@ -1,4 +1,5 @@
-# Lieux par tuile, reconstruits chaque nuit depuis l'extrait OSM de Paris (openstreetmap.fr, mis à jour vers 01:30 UTC)
+# Lieux par tuile, reconstruits chaque nuit depuis l'extrait OSM d'Île-de-France (openstreetmap.fr, mis à jour vers 01:30 UTC ;
+# Paris seulement jusqu'au 23/10/2026)
 # et publiés dans data/places/ du site (branche gh-pages), sans toucher au reste.
 name: Lieux par tuile (nuit)
 on:
@@ -32,26 +33,26 @@ jobs:
       - if: steps.fresh.outputs.skip != 'true'
         run: pip install osmium==4.3.1
       - if: steps.fresh.outputs.skip != 'true'
-        name: Extrait OSM de Paris (somme de contrôle vérifiée)
+        name: Extrait OSM d'Île-de-France (somme de contrôle vérifiée)
         run: |
-          B=https://download.openstreetmap.fr/extracts/europe/france/ile_de_france
-          curl -sSfL -o paris.osm.pbf $B/paris.osm.pbf
-          curl -sSfL $B/paris.osm.pbf.md5 | awk '{print $1"  paris.osm.pbf"}' | md5sum -c -
+          B=https://download.openstreetmap.fr/extracts/europe/france
+          curl -sSfL --retry 3 -o idf.osm.pbf $B/ile_de_france.osm.pbf
+          curl -sSfL $B/ile_de_france.osm.pbf.md5 | awk '{print $1"  idf.osm.pbf"}' | md5sum -c -
       - if: steps.fresh.outputs.skip != 'true'
         run: |
           curl -sSfL -o facades.json https://untrackedmaps.app/data/facades.json || echo '{}' > facades.json
           curl -sSfL -o extras.json https://untrackedmaps.app/data/extras.json || echo '{}' > extras.json
       - if: steps.fresh.outputs.skip != 'true'
-        run: python app/scripts/build_places.py paris.osm.pbf --out out/places --facades facades.json --extras extras.json
+        run: python app/scripts/build_places.py idf.osm.pbf --out out/places --facades facades.json --extras extras.json
       - if: steps.fresh.outputs.skip != 'true'
         name: Réseau cyclable (carte vélo) — bandes, voies bus, double-sens, pistes
-        run: python app/scripts/build_bikes.py paris.osm.pbf --out out/bikes.geojson
+        run: python app/scripts/build_bikes.py idf.osm.pbf --out out
       - if: steps.fresh.outputs.skip != 'true'
         name: Index de recherche (recherche sur le téléphone, notoriété QRank lue dans extras.json)
         run: python app/scripts/build_search.py out/places --extras extras.json
       - if: steps.fresh.outputs.skip != 'true'
         name: "Garde-fou : si l'extrait paraît tronqué ou vide, on ne publie pas"
-        run: python -c "import json,sys; i=json.load(open('out/places/index.json')); n=len(i['tiles']); print(n,'tuiles'); sys.exit(0 if n >= 50 else 1)"
+        run: python -c "import json,sys; i=json.load(open('out/places/index.json')); n=len(i['tiles']); print(n,'tuiles'); sys.exit(0 if n >= 2000 else 1)"
       - if: steps.fresh.outputs.skip != 'true'
         name: Publier dans gh-pages/data/places
         run: |
@@ -59,7 +60,9 @@ jobs:
           git worktree add pages origin/gh-pages
           rm -rf pages/data/places && mkdir -p pages/data && cp -r out/places pages/data/places
           # réseau cyclable : publié seulement s'il paraît complet (sinon on garde celui de la veille)
-          python -c "import json,sys; n=len(json.load(open('out/bikes.geojson'))['features']); print(n,'voies cyclables'); sys.exit(0 if n >= 5000 else 1)" && cp out/bikes.geojson pages/data/bikes.geojson || echo "réseau cyclable non publié"
-          cd pages && git add -A data/places && { [ ! -f data/bikes.geojson ] || git add data/bikes.geojson; }
+          if python -c "import json,sys; n=len(json.load(open('out/bikes.geojson'))['features']); print(n,'voies cyclables à Paris'); sys.exit(0 if n >= 5000 else 1)"; then
+            rm -rf pages/data/bikes && cp -r out/bikes pages/data/bikes && cp out/bikes.geojson pages/data/bikes.geojson
+          else echo "réseau cyclable non publié"; fi
+          cd pages && git add -A data/places && { [ ! -d data/bikes ] || git add -A data/bikes data/bikes.geojson; }
           git -c user.name=untracked-bot -c user.email=bot@untrackedmaps.app commit -qm "Lieux par tuile et réseau cyclable : extrait OSM du $(date -u +%F)" || exit 0
           git push origin HEAD:gh-pages

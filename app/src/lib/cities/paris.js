@@ -5,8 +5,8 @@ export default {
   name: 'Paris',
   country: 'FR',
   center: { lat: 48.8566, lon: 2.3522 },
-  // zone de recherche (Paris et proche banlieue) : ouest, sud, est, nord
-  searchBbox: [2.15, 48.75, 2.55, 48.95],
+  // zone de recherche (toute l'Île-de-France depuis le 23/10/2026, comme les données de lieux) : ouest, sud, est, nord
+  searchBbox: [1.44, 48.12, 3.56, 49.24],
   // zone où les comptages de trafic de la Ville de Paris s'appliquent
   trafficBox: { w: 2.224, e: 2.47, s: 48.815, n: 48.902 },
   // sous-zones nommées (arrondissements) : « 8e », « 75008 » → centre

@@ -136,13 +136,5 @@ export function searchIndex(idx, query, at, limit = 7) {
   });
   scored.sort((a, b) => b.s - a.s);
   // « strong » : le texte correspond nettement (pas seulement un mot approché dans un long nom)
-  return scored.slice(0, limit).map(({ i, strong }) => ({ ...toResult(idx, i), strong }));
-}
-
-// ——— Chargement (une fois, à la première recherche) ———
-let loading = null;
-/** @param {() => Promise<object|null>} fetchRaw */
-export function loadIndex(fetchRaw) {
-  loading ??= fetchRaw().then((raw) => (raw?.items ? prepare(raw) : null)).catch(() => { loading = null; return null; });
-  return loading;
+  return scored.slice(0, limit).map(({ i, s, strong }) => ({ ...toResult(idx, i), strong, score: s }));
 }

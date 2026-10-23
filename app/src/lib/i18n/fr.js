@@ -364,7 +364,7 @@ export default {
   'velo.explication_pistes': 'Vert foncé : les pistes cyclables, séparées de la circulation.',
   'velo.explication_bandes': 'Vert clair : les bandes peintes sur la chaussée et les voies de bus ouvertes aux vélos.',
   'velo.explication_autorise': 'Pointillés : les rues à sens unique où l\'on peut rouler à contresens à vélo, et, en zoomant, les rues piétonnes et allées où le vélo est autorisé.',
-  'velo.explication_limites': 'Pour l\'instant à Paris seulement. Le côté de la rue où se trouve la bande n\'est pas indiqué.',
+  'velo.explication_limites': 'Île-de-France seulement pour l\'instant. Le côté de la rue où se trouve la bande n\'est pas indiqué.',
   'velo.source': 'Données : contributeurs OpenStreetMap (ODbL), mises à jour chaque nuit.',
   'maj.nouvelle_version': 'Nouvelle version disponible',
   'maj.mettre_a_jour': 'Mettre à jour',

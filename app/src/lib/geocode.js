@@ -10,7 +10,8 @@ import { tx } from '#lib/i18n/index.js';
 import { city } from './cities/index.js';
 import { typeLabel, typeOfTags } from './places.js';
 import { searchLocal } from './localsearch.js';
-import { loadIndex, searchIndex, norm } from './searchindex.js';
+import { norm } from './searchindex.js';
+import { indexesAt, searchMany } from './searchzones.js';
 import { intentOf, nearestOf } from './searchintent.js';
 import { placesInBounds } from './placestore.js';
 import { dataBase } from './config.js';
@@ -110,9 +111,10 @@ const near = (a, b) => Math.hypot((a.lon - b.lon) * 0.66, a.lat - b.lat) * 11132
 // ——— Recherche sur le téléphone (index préparé chaque nuit, scripts/build_search.py) ———
 // Mesurée sur 144 recherches de référence (tests/search) : 90 % de bonnes réponses en premier contre 76 % pour Photon,
 // en 0,02 s au lieu de 1,5 s. Photon reste consulté pour ce que l'index n'a pas (rues, quartiers).
-const index = () => loadIndex(() => fetch(`${dataBase()}places/search.json`).then((r) => (r.ok ? r.json() : null)));
-/** Charge l'index dès que l'on touche la barre de recherche (≈ 1,6 Mo compressé, une fois). */
-export const warmSearch = () => { index(); };
+// Index découpé par zone (searchzones.js) : l'essentiel de la région + les zones autour de « at ».
+const index = (at = city.center) => indexesAt(dataBase(), at);
+/** Charge l'index autour de `at` dès que l'on touche la barre de recherche. */
+export const warmSearch = (at) => { index(at || city.center); };
 
 const LETTERS = { 1: ['node', 'N'], 2: ['way', 'W'], 3: ['relation', 'R'] };
 function fromTile(p) {
@@ -143,8 +145,8 @@ async function findByName(query, at, signal, limit = 7, onEarly = null) {
     const r = await byIntent(intent, at, limit);
     if (r.length) return r;
   }
-  const idx = await index();
-  const mine = idx ? searchIndex(idx, query, at, limit) : [];
+  const idx = await index(at);
+  const mine = searchMany(idx, query, at, limit);
   const strong = mine.filter((r) => r.strong);
   if (strong.length) onEarly?.(strong);
   let others = [];
@@ -187,9 +189,9 @@ export const isPlaceResult = (r) => !!r && !r.area && !String(r.id).startsWith('
  * réunis avec ceux déjà affichés (Photon compris), les plus proches d'abord.
  */
 export async function searchAllPlaces(query, at, shown = [], limit = 40) {
-  const idx = await index();
-  // l'index classe par pertinence sur tout Paris : on en prend large, puis on garde les plus proches
-  const mine = idx ? searchIndex(idx, query.trim(), at, limit * 10) : [];
+  const idx = await index(at);
+  // l'index classe par pertinence sur toute la zone : on en prend large, puis on garde les plus proches
+  const mine = searchMany(idx, query.trim(), at, limit * 10);
   const all = [...shown.filter(isPlaceResult)];
   for (const r of mine) if (isPlaceResult(r) && !all.some((a) => sameAs(a, r))) all.push(r);
   const d = (r) => Math.hypot((r.lon - at.lon) * Math.cos((at.lat * Math.PI) / 180), r.lat - at.lat);
@@ -202,8 +204,8 @@ export async function searchAllPlaces(query, at, shown = [], limit = 40) {
 
 /** Premier résultat de l'index du téléphone (instantané), pour décider vite ce que fait la touche Entrée. */
 export async function localFirst(query, at) {
-  const idx = await index();
-  return idx ? searchIndex(idx, query.trim(), at, 1)[0] || null : null;
+  const idx = await index(at);
+  return searchMany(idx, query.trim(), at, 1)[0] || null;
 }
 
 /** Adresse la plus proche d'un point (nom de rue ou lieu). */
