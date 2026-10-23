@@ -671,6 +671,28 @@ z.close()`, zip]);
     assert(!errors.length, errors.join(' | '));
     await ctx.close();
   },
+  async 'carte vélo hors Île-de-France (Lyon) : les pistes du fond de carte, pas une carte vide'() {
+    const { p, ctx, errors } = await page({ geolocation: { latitude: 45.76, longitude: 4.835 } }, '#carte=14/45.76/4.835');
+    await p.click('button[aria-label="Type de carte"]'); await p.click('.modes-pop button:has-text("Vélo")'); await p.waitForTimeout(1500);
+    assert((await p.evaluate(() => window.__map.getLayoutProperty('bike-track', 'visibility'))) === 'visible', 'aucune piste affichée à Lyon');
+    assert(!errors.length, errors.join(' | '));
+    await ctx.close();
+  },
+  async 'carte Transports : lignes chargées à la demande, RER jusqu’en banlieue'() {
+    const { p, ctx, errors } = await page({}, '#carte=11/48.85/2.35');
+    const got = [];
+    p.on('request', (r) => { if (r.url().includes('transit-lines')) got.push(r.url()); });
+    await p.waitForTimeout(1000);
+    assert(!got.length, 'lignes chargées dès l’ouverture (ralentit le démarrage)');
+    await p.click('button[aria-label="Type de carte"]'); await p.click('.modes-pop button:has-text("Transports")'); await p.waitForTimeout(2500);
+    assert(got.length === 1, 'lignes non chargées en carte Transports');
+    // les lignes vont au-delà de Paris (RER A jusqu'à Marne-la-Vallée)
+    const east = await p.evaluate(async () => Math.max(...(await window.__map.getSource('transit').getData()).features
+      .flatMap((f) => (f.geometry.type === 'LineString' ? f.geometry.coordinates : f.geometry.coordinates.flat())).map((c) => c[0])));
+    assert(east > 2.7, `lignes limitées à Paris (est : ${east})`);
+    assert(!errors.length, errors.join(' | '));
+    await ctx.close();
+  },
   async 'guidage à pied : démarrer puis terminer'() {
     const { p, ctx, errors } = await page({ geolocation: { latitude: 48.853, longitude: 2.34 } });
     await p.fill('#search', 'Panthéon'); await p.waitForSelector('.results li.opt button', { timeout: 20000 }); await pick(p); await p.waitForTimeout(2500);

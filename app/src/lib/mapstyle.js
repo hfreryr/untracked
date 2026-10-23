@@ -169,7 +169,9 @@ function lightStyle(base) {
     glyphs: `${base}fonts/{fontstack}/{range}.pbf`,
     sources: {
       landmarks: { type: 'geojson', data: `${base}data/landmarks.geojson`, promoteId: 'rank' },
-      transit: { type: 'geojson', data: `${base}data/transit-lines.geojson` },
+      // lignes de métro, RER et tram (Île-de-France, ≈ 800 Ko) : chargées seulement quand on choisit la carte Transports
+      // (mapdraw.showTransitLines), pour ne pas ralentir l'ouverture de l'app
+      transit: { type: 'geojson', data: { type: 'FeatureCollection', features: [] } },
       // réseau cyclable complet (build_bikes.py, refait chaque nuit) : chargé seulement à l'affichage de la carte vélo
       bikes: { type: 'geojson', data: { type: 'FeatureCollection', features: [] } },
       omt: { type: 'vector', url: 'https://tiles.openfreemap.org/planet',

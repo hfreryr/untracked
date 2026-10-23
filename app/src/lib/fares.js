@@ -4,10 +4,12 @@
 import { city } from './cities/index.js';
 
 /** @param {{mode:string, from?:string, to?:string, start:Date|number}[]} legs  @returns {number|null} prix en euros */
-export function tripFare(legs, fares = city.fares) {
+export function tripFare(legs, fares = city.fares, prefix = city.transit?.stopIdPrefix) {
   if (!fares) return null;
   const ride = legs.filter((l) => l.mode !== 'WALK' && l.mode !== 'STOP');
   if (!ride.length) return null;
+  // hors du réseau de la ville (Lyon, un TER…) : ces tarifs ne s'appliquent pas, on n'affiche pas de prix (23/10/2026)
+  if (prefix && ride.some((l) => l.fromStop && !String(l.fromStop).includes(prefix))) return null;
   let total = 0, railUntil = -Infinity, roadUntil = -Infinity, lastWasRoad = false;
   for (const l of ride) {
     if (fares.unsure.test(`${l.from || ''} ${l.to || ''}`)) return null;

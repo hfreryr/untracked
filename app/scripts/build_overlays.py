@@ -13,7 +13,9 @@ et, pour les commerces, la richesse de la fiche OSM (site, téléphone, horaires
 Le zoom d'apparition est calculé comme le font les cartes grand public : en partant de la vue
 large, on ajoute les lieux du plus connu au moins connu tant qu'ils restent espacés à l'écran.
 
-Usage :  python app/scripts/build_overlays.py data/paris.osm.pbf
+Usage :  python app/scripts/build_overlays.py data/ile_de_france.osm.pbf
+         (Île-de-France depuis le 23/10/2026 : lignes, sorties et monuments de toute la région ; les commerces mis en avant
+          restent ceux de Paris (--places-bbox), pour garder un fichier léger au démarrage de l'app)
 Données © contributeurs OpenStreetMap, licence ODbL.
 """
 import json
@@ -370,12 +372,17 @@ def build_exits(pbf):
     print(f"{len(ex.items)} sorties de métro et de RER ({sum(1 for i in ex.items if i[2])} numérotées)")
 
 
-def main(pbf):
+PARIS = (2.224, 48.815, 2.47, 48.902)   # ouest, sud, est, nord
+
+
+def main(pbf, n_landmarks=3000, places_bbox=PARIS):
     OUT.mkdir(parents=True, exist_ok=True)
 
     lm = Landmarks()
     lm.apply_file(str(pbf), locations=True)
-    landmarks = sorted(lm.items.values(), key=lambda x: -x["score"])[:1500]  # les 1500 plus connus
+    landmarks = sorted(lm.items.values(), key=lambda x: -x["score"])[:n_landmarks]  # les plus connus
+    w, s_, e, n = places_bbox
+    lm.places = [p for p in lm.places if w <= p["lon"] <= e and s_ <= p["lat"] <= n]
     for i in landmarks:
         i["score"] += 1000   # un monument passe toujours avant un commerce
     # un même commerce peut être cartographié deux fois (point et bâtiment) : on garde le mieux noté
@@ -424,4 +431,10 @@ def main(pbf):
 
 
 if __name__ == "__main__":
-    main(Path(sys.argv[1] if len(sys.argv) > 1 else "data/paris.osm.pbf"))
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument("pbf", nargs="?", default="data/ile_de_france.osm.pbf")
+    ap.add_argument("--landmarks", type=int, default=3000, help="nombre de lieux remarquables (les plus connus)")
+    ap.add_argument("--places-bbox", default=",".join(map(str, PARIS)), help="zone des commerces mis en avant : ouest,sud,est,nord")
+    a = ap.parse_args()
+    main(Path(a.pbf), a.landmarks, tuple(map(float, a.places_bbox.split(","))))
