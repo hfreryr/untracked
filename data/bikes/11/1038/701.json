@@ -1,0 +1,1 @@
+{"type":"FeatureCollection","features":[{"type":"Feature","properties":{"k":"shared"},"geometry":{"type":"LineString","coordinates":[[2.47495,49.1535],[2.47499,49.15349],[2.47515,49.15344]]}},{"type":"Feature","properties":{"k":"shared"},"geometry":{"type":"LineString","coordinates":[[2.47486,49.15352],[2.47495,49.1535]]}}]}
