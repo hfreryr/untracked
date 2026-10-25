@@ -22,10 +22,8 @@ jobs:
         with: { python-version: '3.12' }
       - run: pip install osmium==4.3.1 duckdb==1.5.6
       - name: Extrait OSM d'Île-de-France (somme de contrôle vérifiée ; Paris seulement jusqu'au 23/10/2026)
-        run: |
-          B=https://download.openstreetmap.fr/extracts/europe/france
-          curl -sSfL --retry 3 -o idf.osm.pbf $B/ile_de_france.osm.pbf
-          curl -sSfL $B/ile_de_france.osm.pbf.md5 | awk '{print $1"  idf.osm.pbf"}' | md5sum -c -
+        # OSM France, et Geofabrik en secours si OSM France ne répond pas (panne du 25/10/2026)
+        run: bash app/scripts/fetch_idf.sh idf.osm.pbf
       # mesuré le 23/10 en local : 41 600 lieux complétés (Overture, All The Places, annuaire) en 18 min
       - run: python app/scripts/build_extras.py idf.osm.pbf --out out/extras.json
       - name: Horaires publiés par les sites des lieux (Common Crawl d'abord, visites espacées, robots.txt respecté)
