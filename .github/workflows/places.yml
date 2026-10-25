@@ -34,10 +34,8 @@ jobs:
         run: pip install osmium==4.3.1
       - if: steps.fresh.outputs.skip != 'true'
         name: Extrait OSM d'Île-de-France (somme de contrôle vérifiée)
-        run: |
-          B=https://download.openstreetmap.fr/extracts/europe/france
-          curl -sSfL --retry 3 -o idf.osm.pbf $B/ile_de_france.osm.pbf
-          curl -sSfL $B/ile_de_france.osm.pbf.md5 | awk '{print $1"  idf.osm.pbf"}' | md5sum -c -
+        # OSM France, et Geofabrik en secours si OSM France ne répond pas (panne du 25/10/2026)
+        run: bash app/scripts/fetch_idf.sh idf.osm.pbf
       - if: steps.fresh.outputs.skip != 'true'
         run: |
           curl -sSfL -o facades.json https://untrackedmaps.app/data/facades.json || echo '{}' > facades.json
