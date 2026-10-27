@@ -495,7 +495,7 @@ const tests = {
     await p.click('.chip.add'); await p.waitForTimeout(800);
     await p.click('.ce-toggle[aria-label="Afficher Cafés"]');
     await p.fill('input[aria-label="Nom du raccourci Restaurants"]', 'Restos'); await p.press('input[aria-label="Nom du raccourci Restaurants"]', 'Tab');
-    await p.click('section[aria-label="Personnaliser les raccourcis"] .close'); await p.waitForTimeout(500);
+    await p.click('section[aria-label="Personnaliser les catégories"] .close'); await p.waitForTimeout(500);
     const chips = await p.$$eval('.chips .chip', (els) => els.map((e) => e.textContent.trim()));
     assert(chips.includes('Restos') && !chips.includes('Cafés'), `raccourcis non appliqués : ${chips.join(', ')}`);
     await p.reload({ waitUntil: 'networkidle' }); await p.waitForTimeout(2000);
