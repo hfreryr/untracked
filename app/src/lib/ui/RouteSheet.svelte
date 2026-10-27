@@ -10,6 +10,8 @@
   import LegCards from './LegCards.svelte';
   import ModeIcon from './ModeIcon.svelte';
   import LegChain from './LegChain.svelte';
+  import TraficIcon from './TraficIcon.svelte';
+  import { tripAlert } from '#lib/trafic.js';
   import WhenPicker from './WhenPicker.svelte';
 
   let { from, to, mode, routes, picked, pickedStreet, showVia, legExits,
@@ -122,6 +124,7 @@
     <ul class="t-opts" aria-label={tx('itin.propositions')}>
       {#each current.data as o, i}
         {@const fare = tripFare(o.legs)}
+        {@const ta = tripAlert(o)}
         <li data-peek-end={i === 0 ? '' : null}>
           <button class="t-opt" class:sel={i === picked} onclick={() => app.openTransit(i)}>
             <span class="opt-top">
@@ -130,6 +133,7 @@
               <span class="big-dur">{fmtDuration(o.duration)}</span>
             </span>
             {@render depart(o)}
+            {#if ta}<span class="t-alert {ta.alert.level}"><TraficIcon skip={ta.alert.skip} />{ta.alert.station ? ta.alert.title : ta.alert.header}</span>{/if}
             {#if tags[i]}<span class="sum-tag best">{tags[i]}</span>{/if}
           </button>
         </li>
@@ -162,6 +166,10 @@
 </section>
 
 <style>
+  /* info trafic sous une proposition (trafic.js) : une seule ligne, la plus grave */
+  .t-alert { display: flex; gap: 6px; align-items: flex-start; margin-top: 6px; font-size: var(--fs-meta); font-weight: 600; line-height: 1.3; text-align: left; }
+  .t-alert.orange { color: var(--warn); }
+  .t-alert.red { color: var(--closed); }
   /* Onglets des modes, en tête de fiche (comme Google Maps) : icône + temps, trait sous le mode choisi */
   .mode-tabs { display: flex; margin: 0 -16px; padding: 0 8px; border-bottom: 1px solid var(--line); }
   .mode-tab {

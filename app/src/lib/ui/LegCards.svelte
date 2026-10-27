@@ -11,12 +11,16 @@
   import { legCards, nextDepartures } from '#lib/legcards.js';
   import ModeIcon from './ModeIcon.svelte';
   import Rame from './Rame.svelte';
+  import TraficIcon from './TraficIcon.svelte';
+  import TraficDialog from './TraficDialog.svelte';
+  import { alertSub } from '#lib/trafic.js';
 
   /** @type {{ it: any, picked: number, legExits: Record<string, any>, from: any, to: any, now: number }} */
   let { it, picked, legExits, from, to, now } = $props();
   const app = getContext('app');
   const cards = $derived(legCards(it.legs, to?.label || ''));
   let open = $state({});                 // étapes dont la liste des arrêts est dépliée
+  let traf = $state(null);               // info trafic ouverte { alerts, leg }
   let entry = $state(null);              // meilleure entrée de la première station { key, exit }
 
   // Meilleure entrée de la station de départ : l'accès RATP le plus proche du point de départ, sinon l'entrée OSM.
@@ -65,6 +69,18 @@
           <span class="title"><span class="arrow" aria-hidden="true">→</span> {leg.headsign}</span>
         </button>
         <p class="sub">{tx('itin.depuis', { from: leg.from })}</p>
+        {@const tf = leg.trafic}
+        {#each (tf?.all || []).slice(0, 2) as a (a.key)}
+          <!-- info trafic au plus près de l'action, comme Citymapper (maquette du 27/10/2026) -->
+          <button class="al {a.level}" onclick={() => (traf = { alerts: [a], leg })}>
+            <TraficIcon skip={a.skip} />
+            <span class="al-t"><b>{a.title}</b>{alertSub(a, new Date(now))}</span>
+            <span class="al-more">{tx('trafic.details')}</span>
+          </button>
+        {/each}
+        {#if (tf?.all.length || 0) > 2}
+          <button class="more al-all" onclick={() => (traf = { alerts: tf.all, leg })}>{tx('trafic.autres_messages', { n: tf.all.length - 2 })}</button>
+        {/if}
         {#if deps?.length}
           <p class="deps">
             {#if it.board?.realTime}<span class="live" title={tx('itin.horaire_en_temps_reel')}>●</span>{/if}
@@ -87,10 +103,14 @@
         {#if open[c.li]}
           <ul class="stops" style:--c={leg.color}>
             <li>{leg.from}<span>{fmtTime(leg.start)}</span></li>
-            {#each leg.stopNames || [] as s}<li class="mid">{s}</li>{/each}
+            {#each leg.stopNames || [] as s}
+              {#if leg.trafic?.skipped.includes(s)}<li class="mid x"><s>{s}</s><span>{tx('trafic.non_desservie')}</span></li>
+              {:else}<li class="mid">{s}</li>{/if}
+            {/each}
             <li>{leg.to}<span>{fmtTime(leg.end)}</span></li>
           </ul>
         {/if}
+        {#each leg.trafic?.lifts || [] as a (a.key)}<p class="lift">{a.header}</p>{/each}
       {:else if c.kind === 'off'}
         {@const tip = tipOf(c.li)}
         <button class="head" onclick={() => app.focusOnLeg(c.li)}>
@@ -112,6 +132,7 @@
     <span class="time">{fmtTime(it.end)}</span>
   </li>
 </ol>
+{#if traf}<TraficDialog alerts={traf.alerts} leg={traf.leg} onclose={() => (traf = null)} />{/if}
 
 <style>
   .cards { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 8px; }
@@ -147,5 +168,19 @@
   .stops li { display: flex; justify-content: space-between; padding: 4px 0; font-weight: 600; }
   .stops li.mid { font-weight: 400; color: var(--muted); }
   .stops span { color: var(--muted); font-weight: 400; font-variant-numeric: tabular-nums; }
+  /* info trafic (trafic.js) */
+  .al { display: flex; gap: 8px; align-items: flex-start; width: calc(100% - 40px); margin: 9px 0 0 40px; padding: 9px 10px; border: 0; border-radius: 10px;
+    font: inherit; font-size: var(--fs-meta); line-height: 1.3; text-align: left; cursor: pointer; }
+  .al.orange { background: var(--warn-bg); color: var(--warn); }
+  .al.red { background: var(--closed-bg); color: var(--closed); }
+  .al-t { flex: 1; min-width: 0; color: var(--ink); }
+  .al-t b { display: block; font-weight: 700; }
+  .al.orange .al-t b { color: var(--warn); }
+  .al.red .al-t b { color: var(--closed); }
+  .al-more { align-self: center; font-weight: 600; color: var(--accent); white-space: nowrap; }
+  .stops li.x { color: var(--warn); font-weight: 600; }
+  .stops li.x s { color: var(--muted); font-weight: 400; }
+  .stops li.x span { color: var(--warn); font-weight: 600; }
+  .lift { margin: 8px 0 0 40px; font-size: var(--fs-small); color: var(--muted); }
   @media (prefers-reduced-motion: reduce) { .more svg { transition: none; } }
 </style>

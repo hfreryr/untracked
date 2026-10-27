@@ -43,7 +43,7 @@
 .walk-chip svg { width: 18px; height: 18px; }
 .badge {
   display: inline-grid; place-items: center; min-width: 26px; height: 24px; padding: 0 7px; border-radius: 7px;
-  font-size: 13px; font-weight: 700; line-height: 1; white-space: nowrap;
+  font-size: 13px; font-weight: 700; line-height: 1; white-space: nowrap; position: relative;   /* pastille d'info trafic (TraficPip) */
 }
 .badge.small { height: 20px; min-width: 22px; font-size: 12px; padding: 0 6px; margin-right: 4px; }
 .live { color: var(--open); font-size: 10px; vertical-align: 2px; }
@@ -94,6 +94,9 @@
   --fav: #D63A7A;
   --open: #18843d;   /* contraste 4,8:1 sur blanc */
   --closed: #c5221f;
+  --warn: #9a4d00;      /* info trafic perturbé : 6,3:1 sur blanc */
+  --warn-bg: #fff3e3;
+  --closed-bg: #fdecea;
   --shadow-float: 0 0 0 0.5px rgb(0 0 0 / 0.06), 0 2px 6px rgb(0 0 0 / 0.08), 0 8px 24px rgb(0 0 0 / 0.08);
   --shadow-chip: 0 0 0 0.5px rgb(0 0 0 / 0.07), 0 1px 4px rgb(0 0 0 / 0.12);
   --shadow-sheet: 0 -1px 0 rgb(0 0 0 / 0.04), 0 -8px 30px rgb(0 0 0 / 0.12);
@@ -127,6 +130,12 @@
     --fav: #f06ba0;
     --open: #4cc46b;
     --closed: #ff6b61;
+  --warn: #ffad5c;
+  --warn-bg: #3a2b17;
+  --closed-bg: #3d1d1b;
+    --warn: #ffad5c;
+    --warn-bg: #3a2b17;
+    --closed-bg: #3d1d1b;
     --shadow-float: 0 0 0 0.5px rgb(255 255 255 / 0.06), 0 2px 8px rgb(0 0 0 / 0.5), 0 8px 24px rgb(0 0 0 / 0.4);
     --shadow-chip: 0 0 0 0.5px rgb(255 255 255 / 0.08), 0 1px 4px rgb(0 0 0 / 0.5);
     --shadow-sheet: 0 -1px 0 rgb(255 255 255 / 0.05), 0 -8px 30px rgb(0 0 0 / 0.5);
