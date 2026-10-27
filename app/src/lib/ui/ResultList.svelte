@@ -37,7 +37,7 @@
       <li class="pinned-li"><PinnedRow inSearch={true} /></li>
     {/if}
     {#if app.assigning && app.activeQuery.trim().length < 2}
-      <li class="note">{tx('resultats.tapez_adresse_de_votre_puis', { lieu: app.assigning === 'home' ? tx('resultats.maison') : tx('resultats.travail') })}
+      <li class="note">{(app.assigning === 'home' || app.assigning === 'work' ? tx('resultats.tapez_adresse_de_votre_puis', { lieu: app.assigning === 'home' ? tx('resultats.maison') : tx('resultats.travail') }) : tx('raccourcis.tapez_adresse_puis', { nom: app.shortcutName(app.assigning) }))}
         <button class="link" onmousedown={(e) => { e.preventDefault(); app.assigning = null; }}>{tx('resultats.annuler')}</button></li>
     {/if}
     {#if app.activeQuery.trim().length < 2 && !app.editing && !app.assigning && !app.recents.length}

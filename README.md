@@ -18,7 +18,7 @@ Untracked Maps est une app web de cartographie grand public, construite sur [Ope
 - **Transports en commun** : prochains passages en temps réel, sorties de métro, place conseillée dans la rame, info trafic (travaux, incidents, stations non desservies) d'Île-de-France Mobilités via Transitous.
 - **Carte vélo** : pistes, bandes et voies bus, double-sens cyclables et voies où le vélo est autorisé (réseau refait chaque nuit depuis OSM, Île-de-France), affichée aussi pendant un itinéraire à vélo.
 - **Itinéraires** à pied, à vélo, en transports et en voiture : choix entre plusieurs trajets, départ ou arrivée à l'heure choisie, arrêt intermédiaire, guidage pas à pas vocal (panneau inspiré de Plans, flèche de position qui glisse en continu ; depuis votre position, l'itinéraire suit vos déplacements). En transports, le détail se lit étape par étape (meilleure entrée, rame dessinée, arrêts dépliables, meilleure sortie) et toucher une étape la montre sur la carte.
-- **Mes lieux** sans compte ni serveur : listes, Maison et Travail, import depuis Google Takeout, transfert vers un autre appareil par lien ou QR code, sauvegarde chiffrée.
+- **Mes lieux** sans compte ni serveur : listes, Maison, Travail et raccourcis personnels (nom et icône au choix), import depuis Google Takeout, transfert vers un autre appareil par lien ou QR code, sauvegarde chiffrée.
 - **Position** : direction façon boussole, carte qui tourne avec vous.
 - **À propos (bouton ⓘ)** : la promesse (montrée une seule fois, à la première ouverture), l'origine de chaque information et ses licences, signaler une erreur. La mention « © OpenStreetMap » s'affiche 5 s à chaque ouverture, comme le permettent les règles d'attribution d'OSM.
 

@@ -15,6 +15,7 @@
   import ImportSheet from '#lib/ui/ImportSheet.svelte';
   import TransferSheet from '#lib/ui/TransferSheet.svelte';
   import ListPicker from '#lib/ui/ListPicker.svelte';
+  import ShortcutDialog from '#lib/ui/ShortcutDialog.svelte';
   import PhotoViewer from '#lib/ui/PhotoViewer.svelte';
   import TopBar from '#lib/ui/TopBar.svelte';
   import CategorySheet from '#lib/ui/CategorySheet.svelte';
@@ -41,6 +42,7 @@
   import { createMyPlaces } from '#lib/myplacesflow.js';
   import { createChips } from '#lib/chipsflow.js';
   import { createShortcuts } from '#lib/shortcutsflow.js';
+  import { cleanCustoms, fromPins, customOf } from '#lib/customshortcuts.js';
   import { createMapDraw } from '#lib/mapdraw.js';
   import { createZoom } from '#lib/zoom.js';
   import { createMapSetup } from '#lib/mapsetup.svelte.js';
@@ -128,6 +130,11 @@
   let assigning = $state(null);      // 'home' | 'work' : la prochaine adresse choisie devient ce raccourci
   const SHORT_NAMES = { home: tx('transfert.maison'), work: tx('transfert.travail') };
   const placeShortcut = $derived(place ? ['home', 'work'].find((k) => shortcuts[k] && sameSpot(shortcuts[k], place)) : null);
+  // Raccourcis personnels (customshortcuts.js) ; à la première ouverture, les anciens lieux épinglés en deviennent.
+  const CUSTOM_KEY = 'raccourcis-perso';
+  let customs = $state((() => { try { const raw = localStorage.getItem(CUSTOM_KEY); if (raw) return cleanCustoms(JSON.parse(raw)); } catch { /* rien */ } return fromPins(pins, favorites, placeKey); })());
+  let shortcutDlg = $state(null);    // fenêtre nom + icône d'un raccourci { id, name, icon, place }
+  const placeCustom = $derived(customOf(customs, place, sameSpot));
 
   // Onglets de catégories
   let chipPrefs = $state(loadChipPrefs());
@@ -672,7 +679,10 @@
     get toastTimer() { return toastTimer; }, set toastTimer(v) { toastTimer = v; }, get toggleChip() { return toggleChip; },
     get togglePin() { return togglePin; }, get toggleZoom() { return toggleZoom; }, get topH() { return topH; }, set topH(v) { topH = v; },
     get transfer() { return transfer; }, set transfer(v) { transfer = v; }, get useMyPosition() { return useMyPosition; },
-    get useShortcut() { return useShortcut; }, get userMoved() { return userMoved; }, set userMoved(v) { userMoved = v; },
+    get useShortcut() { return useShortcut; }, get CUSTOM_KEY() { return CUSTOM_KEY; }, get customs() { return customs; }, set customs(v) { customs = v; },
+    get shortcutDlg() { return shortcutDlg; }, set shortcutDlg(v) { shortcutDlg = v; }, get placeCustom() { return placeCustom; },
+    get saveCustoms() { return saveCustoms; }, get shortcutName() { return shortcutName; }, get askAddress() { return askAddress; }, get assignTo() { return assignTo; },
+    get openShortcutDlg() { return openShortcutDlg; }, get saveShortcutDlg() { return saveShortcutDlg; }, get deleteCustom() { return deleteCustom; }, get useCustom() { return useCustom; }, get userMoved() { return userMoved; }, set userMoved(v) { userMoved = v; },
     get via() { return via; }, set via(v) { via = v; }, get viewChosen() { return viewChosen; }, set viewChosen(v) { viewChosen = v; },
     get viewHash() { return viewHash; }, set viewHash(v) { viewHash = v; }, get viewer() { return viewer; }, set viewer(v) { viewer = v; },
     get viewerEl() { return viewerEl; }, set viewerEl(v) { viewerEl = v; },
@@ -687,7 +697,7 @@
   const { setupMap } = createMapSetup(app);
   const { clampZoom, toggleZoom, zoomStart, zoomMove, zoomEnd } = createZoom(app);
   const { favData, addCustomLayers, drawRoute, syncBike, bikeOn, line, shade, dimPlaces, setMapMode, fitOptions, boundsOf, fitTo, onMapClick, openPoint, openFeature, frame, placeMarker, labelColor, clearSelPhoto, clearPhotoPins, clearSelection, showSelection } = createMapDraw(app);
-  const { saveFavorites, setShortcut, useShortcut } = createShortcuts(app);
+  const { saveFavorites, setShortcut, useShortcut, saveCustoms, shortcutName, askAddress, assignTo, openShortcutDlg, saveShortcutDlg, deleteCustom, useCustom } = createShortcuts(app);
   const { saveChips, moveChip, toggleChip, renameChip, resetChips, catOf } = createChips(app);
   const { sameSpot, saveAll, keepOf, saveTap, setMembership, togglePin, removeFromList, createList, renameList, setListStyle, deleteList, refreshSaved, openSavedList, shareList, keepIncomingList, makeTransfer, shareTransfer, applyIncoming, makeBackup, doRestore } = createMyPlaces(app);
   const { remember, forgetRecents, openPlace, sharePlace, loadDepartures, closePlace } = createPlace(app);
@@ -716,6 +726,7 @@
   <PromiseBanner />
   <InstallCard />
   <UpdateBanner />
+  {#if shortcutDlg}<ShortcutDialog />{/if}
 
   {#if listPicker && place && !directions}
     <ListPicker />

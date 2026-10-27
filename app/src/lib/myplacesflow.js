@@ -1,5 +1,6 @@
 // Mes lieux : listes, épingles, Maison et Travail, transfert et sauvegarde.
 // Code sorti de +page.svelte : il lit et modifie l'état de l'écran par l'objet « app » (bloc « app » de la page).
+import { fromPins, mergeCustoms } from '#lib/customshortcuts.js';
 import { tx } from '#lib/i18n/index.js';
 import { LIST_COLORS, backupFile, mergeInto, newListId, pack, packList, readBackup, restore, sameSpot, snapshot } from '#lib/myplaces.js';
 import { PARIS } from '#lib/places.js';
@@ -142,7 +143,7 @@ export function createMyPlaces(app) {
   async function makeTransfer() {
     app.hubPanel = 'transfer';
     app.transfer = null;
-    const data = await pack(snapshot({ lists: app.lists, places: app.favorites, shortcuts: app.shortcuts, pins: app.pins, chips: app.chipPrefs }));
+    const data = await pack(snapshot({ lists: app.lists, places: app.favorites, shortcuts: app.shortcuts, pins: app.pins, chips: app.chipPrefs, customs: app.customs }));
     const u = new URL(location.href);
     u.hash = `transfert=${data}`;
     const url = u.toString();
@@ -167,13 +168,17 @@ export function createMyPlaces(app) {
     app.lists = m.lists;
     app.favorites = m.places;
     app.pins = [...new Set([...app.pins, ...r.pins])];
+    // raccourcis personnels reçus ; une ancienne sauvegarde n'a que des « épinglés » : ils deviennent des raccourcis
+    const got = r.customs.length ? r.customs : fromPins(r.pins, app.favorites, app.placeKey);
+    app.customs = mergeCustoms(app.customs, got, sameSpot);
+    app.saveCustoms();
     for (const k of ['home', 'work']) if (r.shortcuts[k] && !app.shortcuts[k]) app.setShortcut(k, r.shortcuts[k]);
     if (r.chips?.length) { app.chipPrefs = r.chips; app.saveChips(); }
     saveAll();
     return m.added;
   }
   async function makeBackup() {
-    const file = await backupFile(snapshot({ lists: app.lists, places: app.favorites, shortcuts: app.shortcuts, pins: app.pins, chips: app.chipPrefs }), app.backupPassword.trim());
+    const file = await backupFile(snapshot({ lists: app.lists, places: app.favorites, shortcuts: app.shortcuts, pins: app.pins, chips: app.chipPrefs, customs: app.customs }), app.backupPassword.trim());
     app.backupPassword = '';
     try {
       if (navigator.canShare?.({ files: [file] })) await navigator.share({ files: [file], title: tx('meslieux.sauvegarde_de_mes_lieux') });
