@@ -1,3 +1,4 @@
+import { legTrafic } from '#lib/trafic.js';
 import { rankTransit } from '#lib/transitrank.js';
 import { tx } from '#lib/i18n/index.js';
 import { city, inBox } from './cities/index.js';
@@ -226,6 +227,7 @@ export async function transitRoutes(from, to, signal, when = new Date(), modes =
         stopNames: (l.intermediateStops || []).map((s) => s.name).filter(Boolean),   // arrêts dépliables de l'étape
         fromPos: l.from?.lat != null ? { lat: l.from.lat, lon: l.from.lon } : null,
         realTime: l.realTime,
+        trafic: l.mode === 'WALK' ? null : legTrafic(l),   // info trafic de l'étape, pendant l'étape (trafic.js)
         // heure prévue au départ de l'arrêt (le retard se lit par différence avec start)
         scheduled: l.scheduledStartTime ? new Date(l.scheduledStartTime) : null,
         coords: l.legGeometry

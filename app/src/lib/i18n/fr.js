@@ -390,6 +390,22 @@ export default {
 
   'itin.marche': 'Marche {fmtDuration}',
   'itin.ligne': 'Ligne',
+
+  // ——— Info trafic (trafic.js, TraficDialog.svelte) ———
+  'trafic.station_non_desservie': '{station} non desservie',
+  'trafic.cause_a': '{cause}, à {station}',
+  'trafic.a_station': 'À {station}',
+  'trafic.jusquau': 'jusqu\'au {date}',
+  'trafic.jusqua_heure': 'jusqu\'à {heure}',
+  'trafic.non_desservie': 'non desservie',
+  'trafic.perturbe': 'trafic perturbé',
+  'trafic.interrompu': 'trafic interrompu',
+  'trafic.details': 'Détails',
+  'trafic.autres_messages': ({ n }) => `${n} ${pluriel(n, 'autre message', 'autres messages')}`,
+  'trafic.n_messages': ({ n }) => `${n} ${pluriel(n, 'message', 'messages')} sur ce trajet`,
+  'trafic.depuis': 'Depuis',
+  'trafic.jusqu_au_label': 'Jusqu\'au',
+  'trafic.source': 'Info trafic Île-de-France Mobilités, via Transitous',
   'itin.en_transports_en_commun': 'en transports en commun',
   'itin.a_velo': 'à vélo',
   'itin.en_voiture': 'en voiture',

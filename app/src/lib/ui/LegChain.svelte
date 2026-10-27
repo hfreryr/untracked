@@ -2,6 +2,7 @@
 <script>
   import { tx } from '#lib/i18n/index.js';
   import ModeIcon from './ModeIcon.svelte';
+  import TraficPip from './TraficPip.svelte';
   import { MODE_NAMES, fmtDuration } from '#lib/routing.js';
   import { badge } from '#lib/routeview.js';
   let { it } = $props();
@@ -15,7 +16,7 @@
         <span class="walk-chip" aria-label={tx('itin.marche', { fmtDuration: fmtDuration(leg.duration) })}><ModeIcon id="walk" /></span>
       {:else}
         <span class="badge" style:background={leg.color} style:color={leg.textColor}
-          aria-label={`${MODE_NAMES[leg.mode] || tx('itin.ligne')} ${leg.line}`}>{badge(leg)}</span>
+          aria-label={`${MODE_NAMES[leg.mode] || tx('itin.ligne')} ${leg.line}${leg.trafic?.level ? `, ${leg.trafic.level === 'red' ? tx('trafic.interrompu') : tx('trafic.perturbe')}` : ''}`}>{badge(leg)}{#if leg.trafic?.level}<TraficPip level={leg.trafic.level} />{/if}</span>
       {/if}
     {/each}
   </span>

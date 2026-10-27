@@ -792,6 +792,45 @@ z.close()`, zip]);
     await p.click('.t-head .back'); await p.waitForSelector('.t-opt', { timeout: 3000 });
     await ctx.close();
   },
+  async 'transports : info trafic (pastille, message dans l’étape, détails, station barrée), accessible clair et sombre'() {
+    // messages ajoutés à la vraie réponse de Transitous, valables maintenant (les vrais dépendent de l'actualité)
+    const now = Date.now(), per = [{ start: new Date(now - 3600e3).toISOString(), end: new Date(now + 6 * 3600e3).toISOString() }];
+    for (const dark of [false, true]) {
+      const { p, ctx, errors } = await page({ bypassCSP: true, colorScheme: dark ? 'dark' : 'light', geolocation: { latitude: 48.8867, longitude: 2.3431 } });
+      await p.route('**/api/v5/plan**', async (route) => {
+        const r = await route.fetch(); const j = await r.json();
+        for (const it of j.itineraries || []) {
+          const l = it.legs.find((x) => x.mode !== 'WALK');
+          l.alerts = [{ impactPeriod: per, effect: 'NO_SERVICE', headerText: 'Métro 4 : Incident technique - Trafic interrompu', descriptionText: '<p>Le trafic est interrompu.<br>Reprise estim&#233;e vers 18 h.</p>' }];
+          const mid = l.intermediateStops?.[0];
+          if (mid) { mid.alerts = [{ impactPeriod: per, effect: 'NO_SERVICE', headerText: 'Métro 4 : Travaux - Arrêt non desservi', descriptionText: 'Arrêt non desservi.' }]; }
+        }
+        await route.fulfill({ response: r, json: j });
+      });
+      await p.fill('#search', 'Panthéon'); await p.waitForTimeout(3500); await pick(p); await p.waitForTimeout(2500);
+      await p.click('.action.primary'); await p.waitForTimeout(2000);
+      await p.click('.mode-tabs .mode-tab >> nth=2'); await p.waitForSelector('.t-opt', { timeout: 25000 });
+      // liste : pastille sur la ligne et une ligne de texte, en rouge (trafic interrompu)
+      assert(await p.$('.t-opt .badge .pip.red'), 'pas de pastille sur la ligne perturbée');
+      assert(/Trafic interrompu/.test(await p.textContent('.t-opt .t-alert.red >> nth=0')), 'message absent de la liste');
+      // détail : le message dans l'étape, puis ses détails dans une fenêtre qui se ferme par Échap
+      await p.click('.t-opt >> nth=0'); await p.waitForSelector('.card.ride .al', { timeout: 5000 });
+      assert((await p.locator('.card.ride .al.red').count()) >= 1, 'message absent de l’étape');
+      await p.click('.card.ride .more:not(.al-all) >> nth=0');
+      // la première station intermédiaire de chaque étape est « non desservie » : barrée dans la liste des arrêts
+      if (await p.locator('.card.ride >> nth=0 >> .stops li.mid').count()) assert(/non desservie/.test(await p.textContent('.card.ride >> nth=0 >> .stops li.x')), 'station non desservie non barrée');
+      await p.click('.card.ride .al.red >> nth=0'); await p.waitForSelector('.dlg', { timeout: 3000 });
+      assert(/Reprise estimée vers 18 h/.test(await p.textContent('.dlg')), 'texte du transporteur absent ou mal décodé');
+      await p.addScriptTag({ content: AXE });
+      const v = await p.evaluate(async () => (await window.axe.run(document, { runOnly: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'] })).violations
+        .map((x) => `${x.id} (${x.nodes.length}) : ${x.nodes[0].target.join(' ')}`));
+      assert(!v.length, `${dark ? 'sombre' : 'clair'} : ${v.join(' | ')}`);
+      await p.keyboard.press('Escape'); await p.waitForTimeout(300);
+      assert(!(await p.$('.dlg')), 'la fenêtre ne se ferme pas par Échap');
+      assert(!errors.length, errors.join(' | '));
+      await ctx.close();
+    }
+  },
   async 'transports : prix du trajet et choix des modes (« Bus et tram » seulement)'() {
     const { p, ctx, errors } = await page({ geolocation: { latitude: 48.8867, longitude: 2.3431 } });
     await p.fill('#search', '57 rue de rennes'); await p.waitForSelector('.results li.opt button', { timeout: 30000 }); await pick(p); await p.waitForTimeout(2500);
