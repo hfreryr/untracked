@@ -1,5 +1,6 @@
 // Itinéraire : départ, arrivée, étapes, calcul et choix du mode.
 // Code sorti de +page.svelte : il lit et modifie l'état de l'écran par l'objet « app » (bloc « app » de la page).
+import { accessPoint, withAccess } from '#lib/access.js';
 import { tx } from '#lib/i18n/index.js';
 import { empty } from '#lib/maplayers.js';
 import { streetRoute, trafficEstimate, transitRoutes, transitWithStop, transitModesFor } from '#lib/routing.js';
@@ -12,7 +13,8 @@ export function createDirections(app) {
   async function startDirections() {
     app.directions = true;
     app.dimPlaces(true);
-    app.to = { label: app.place.name, lat: app.place.lat, lon: app.place.lon };
+    app.to = { label: app.place.name, lat: app.place.lat, lon: app.place.lon, osmType: app.place.osmType, osmId: app.place.osmId,
+      ...(app.info?.covered ? { access: app.info.access || null } : {}) };
     app.clearSelection();
     app.placeMarker(app.to.lon, app.to.lat);
     app.via = null;
@@ -123,19 +125,22 @@ export function createDirections(app) {
       }
       if (id === app.mode) app.drawRoute(!keep);
     };
-    const v = app.showVia ? app.via : null;
+    // grands lieux : on vise leur accès le plus proche de l'autre bout (access.js), pas leur centre
+    const ends = Promise.all([withAccess(app.from), withAccess(app.to), withAccess(app.showVia ? app.via : null)])
+      .then(([f, t, via]) => ({ from: accessPoint(f, via || t), to: accessPoint(t, via || f), v: via ? accessPoint(via, f) : null }));
     // serveur FOSSGIS : une demande par seconde ; le mode affiché passe en premier
     const prio = (m) => (m === app.mode ? 0 : 1);
-    run('walk', () => streetRoute(app.from, app.to, 'walk', signal, v, prio('walk')));
-    run('bike', () => streetRoute(app.from, app.to, 'bike', signal, v, prio('bike')));
+    run('walk', async () => { const e = await ends; return streetRoute(e.from, e.to, 'walk', signal, e.v, prio('walk')); });
+    run('bike', async () => { const e = await ends; return streetRoute(e.from, e.to, 'bike', signal, e.v, prio('bike')); });
     const modes = transitModesFor(app.transitPref);
     // heure choisie (when.js) : maintenant, partir à, ou arriver à
     const w = app.when, at = new Date(w ? w.t : Date.now()), arrive = !!w?.arrive;
-    run('transit', () => (v ? transitWithStop(app.from, v, app.to, signal, at, modes, arrive) : transitRoutes(app.from, app.to, signal, at, modes, arrive)));
+    run('transit', async () => { const e = await ends; return e.v ? transitWithStop(e.from, e.v, e.to, signal, at, modes, arrive) : transitRoutes(e.from, e.to, signal, at, modes, arrive); });
     run('car', async () => {
-      const r = await streetRoute(app.from, app.to, 'car', signal, v, prio('car'));
+      const e = await ends;
+      const r = await streetRoute(e.from, e.to, 'car', signal, e.v, prio('car'));
       // trafic habituel à l'heure du départ (pour « arriver à » : départ estimé sans trafic, à l'heure près)
-      const t = await trafficEstimate(app.from, app.to, new Date(arrive ? +at - r.duration * 1000 : +at));
+      const t = await trafficEstimate(e.from, e.to, new Date(arrive ? +at - r.duration * 1000 : +at));
       const withTraffic = (x) => ({ ...x, freeDuration: x.duration, duration: x.duration * t.factor, traffic: t.label });
       return { ...withTraffic(r), alts: r.alts.map(withTraffic) };
     });
