@@ -293,10 +293,6 @@ export default {
 
   'fiche.voir_la_photo_sur_en_plein_ecran': 'Voir la photo {i} sur {n} en plein écran',
   'fiche.retire': '{nom} retiré',
-  'fiche.desepingle': 'Désépinglé',
-  'fiche.epingle_en_haut_de_mes_lieux': 'Épinglé en haut de Mes lieux',
-  'fiche.epingle': 'Épinglé',
-  'fiche.epingler': 'Épingler',
   'fiche.lieu': 'Lieu',
   'fiche.enregistre_garde_sur_cet_appareil': '{nom} enregistré · gardé sur cet appareil',
   'fiche.retirer_2': 'Retirer « {nom} »',
@@ -390,6 +386,38 @@ export default {
 
   'itin.marche': 'Marche {fmtDuration}',
   'itin.ligne': 'Ligne',
+
+  // ——— Raccourcis personnels (customshortcuts.js, ShortcutDialog.svelte, PinnedRow.svelte) ———
+  'raccourcis.nouveau': 'Nouveau raccourci',
+  'raccourcis.nouveau_court': 'Nouveau',
+  'raccourcis.ajouter_aux': 'Ajouter aux raccourcis',
+  'raccourcis.modifier': 'Modifier le raccourci',
+  'raccourcis.raccourci': 'Raccourci',
+  'raccourcis.nom': 'Nom',
+  'raccourcis.nom_exemple': 'Foot, Salle, Chez maman…',
+  'raccourcis.icone': 'Icône',
+  'raccourcis.adresse_ensuite': 'Vous choisirez l\'adresse juste après.',
+  'raccourcis.choisir_adresse': 'Choisir l\'adresse',
+  'raccourcis.ajouter': 'Ajouter',
+  'raccourcis.enregistrer': 'Enregistrer',
+  'raccourcis.ajoute': '« {nom} » ajouté aux raccourcis',
+  'raccourcis.tapez_adresse': 'Tapez l\'adresse de « {nom} »',
+  'raccourcis.tapez_adresse_puis': 'Tapez l\'adresse de « {nom} », puis choisissez-la dans la liste.',
+  'raccourcis.nom_et_icone': 'Nom et icône',
+  'raccourcis.changer_adresse': 'Changer l\'adresse',
+  'raccourcis.supprimer': 'Supprimer',
+  'raccourcis.icone_sport': 'Sport',
+  'raccourcis.icone_nature': 'Nature',
+  'raccourcis.icone_loisirs': 'Loisirs et culture',
+  'raccourcis.icone_proches': 'Proches',
+  'raccourcis.icone_etudes': 'Études',
+  'raccourcis.icone_courses': 'Courses',
+  'raccourcis.icone_manger': 'Manger et boire',
+  'raccourcis.icone_sante': 'Santé',
+  'raccourcis.icone_transport': 'Transport',
+  'raccourcis.icone_voyage': 'Voyage',
+  'raccourcis.icone_demarches': 'Démarches',
+  'raccourcis.icone_autre': 'Autre',
 
   // ——— Info trafic (trafic.js, TraficDialog.svelte) ———
   'trafic.station_non_desservie': '{station} non desservie',
@@ -520,7 +548,6 @@ export default {
   'photos.panoramax_2': '{auteur}, Panoramax ({lic})',
   // ——— Enregistrer dans une liste ———
   'enregistrer.enregistrer_dans': 'Enregistrer dans',
-  'enregistrer.epingler_en_haut_de_la_recherche': 'Épingler en haut de la recherche',
   'enregistrer.termine': 'Terminé',
 
   // ——— Transfert depuis un autre appareil ———

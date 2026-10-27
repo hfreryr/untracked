@@ -31,10 +31,6 @@
         <input bind:value={app.newListName} placeholder={tx('liste.nouvelle_liste')} aria-label={tx('liste.nom_de_la_nouvelle_liste')} maxlength="40" />
         <button class="link" disabled={!app.newListName.trim()}>{tx('liste.creer')}</button>
       </form>
-      <label class="pin-toggle">
-        <input type="checkbox" checked={app.pins.includes(app.placeKey(app.place))} onchange={() => app.togglePin(app.place)} />
-        {tx('enregistrer.epingler_en_haut_de_la_recherche')}
-      </label>
       <button class="go wide done" onclick={() => (app.listPicker = false)}>{tx('enregistrer.termine')}</button>
     </section>
 
@@ -66,8 +62,6 @@
   .new-list { display: flex; gap: 8px; align-items: center; min-height: 50px; border-bottom: 1px solid var(--line); }
   .new-list input { flex: 1; border: 0; background: none; font: inherit; font-size: 16px; color: var(--ink); padding: 10px 0; min-width: 0; }
   .new-list .link:disabled { opacity: 0.4; }
-  .pin-toggle { display: flex; align-items: center; gap: 10px; font-size: 15px; padding: 14px 0 6px; cursor: pointer; }
-  .pin-toggle input { width: 20px; height: 20px; accent-color: var(--accent-btn); }
   .go.wide.done { width: 100%; margin: 14px 0 4px; height: 46px; background: var(--accent-btn); }
   .close ~ h1 { margin-right: 44px; }
   h1 { font-size: 24px; line-height: 1.2; font-weight: 700; letter-spacing: -0.02em; margin: 2px 44px 2px 0; text-wrap: balance; }

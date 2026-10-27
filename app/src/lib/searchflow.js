@@ -334,8 +334,7 @@ export function createSearch(app) {
     if (app.assigning) {
       const which = app.assigning;
       app.assigning = null;
-      app.setShortcut(which, r);
-      app.say(`${app.SHORT_NAMES[which]} : ${r.name}`);
+      app.assignTo(which, r);
       app.query = '';
     } else app.query = r.name;
     app.openPlace(r);

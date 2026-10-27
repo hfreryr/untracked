@@ -154,9 +154,10 @@
 
       {#if !app.isAddress}
         <div class="end-btns">
-          <button class="end-btn" class:on={app.isPinned} onclick={() => { const was = app.isPinned; app.togglePin(app.place); app.say(was ? tx('fiche.desepingle') : tx('fiche.epingle_en_haut_de_mes_lieux')); }}>
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3.5h6l-1 6 3.5 3.5h-11L10 9.5zM12 13v7.5" /></svg>
-            <span>{app.isPinned ? tx('fiche.epingle') : tx('fiche.epingler')}</span>
+          <!-- ajoute le lieu aux raccourcis de la rangée (nom et icône au choix) ; remplace « Épingler » (27/10/2026) -->
+          <button class="end-btn" class:on={!!app.placeCustom} onclick={() => app.openShortcutDlg(app.placeCustom ? { id: app.placeCustom.id } : { place: app.place })}>
+            {#if app.placeCustom}<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5" /></svg>{:else}<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6v12M6 12h12" /></svg>{/if}
+            <span>{tx('raccourcis.raccourci')}</span>
           </button>
           <a class="end-btn" aria-label={tx('fiche.signaler_un_probleme_sur')} href={app.osmNoteUrl} target="_blank" rel="noopener">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4 21 19.5H3z" /><path d="M12 10v4.5M12 17v.3" /></svg>

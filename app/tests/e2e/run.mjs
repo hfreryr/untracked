@@ -976,6 +976,57 @@ z.close()`, zip]);
     assert(!errors.length, errors.join(' | '));
     await ctx.close();
   },
+  async 'raccourcis personnels : « + Nouveau », nom et icône puis adresse, appui long, depuis une fiche, ancien épinglé'() {
+    // un ancien « lieu épinglé » devient un raccourci à la première ouverture
+    const { p, ctx, errors } = await page();
+    await p.evaluate(() => {
+      localStorage.setItem('lieux-favoris', JSON.stringify([{ id: 'node1', name: 'Café ancien', lat: 48.85, lon: 2.34, lists: ['fav'], osmType: 'node', osmId: 1 }]));
+      localStorage.setItem('lieux-epingles', JSON.stringify(['node/1']));
+      localStorage.removeItem('raccourcis-perso');
+    });
+    await p.reload({ waitUntil: 'networkidle' }); await p.waitForTimeout(2000);
+    await p.click('#search'); await p.waitForSelector('.pinned');
+    assert(await p.$('.pin-btn:has-text("Café ancien")'), 'l’ancien épinglé n’est pas devenu un raccourci');
+    // + Nouveau : le nom et l'icône, puis l'adresse
+    await p.click('.pin-btn.add'); await p.waitForSelector('.dlg #sc-name');
+    assert((await p.locator('.dlg [role=radio]').count()) === 12, '12 icônes attendues');
+    assert(!(await p.$('.dlg .grid small')), 'pas de nom sous les icônes');
+    await p.fill('#sc-name', 'Foot');
+    await p.click('.dlg [role=radio][aria-label="Sport"]');
+    await p.click('.dlg button.ok'); await p.waitForTimeout(400);
+    assert(!(await p.$('.dlg')), 'la fenêtre ne se ferme pas');
+    assert(/Foot/.test(await p.textContent('.results .note')), 'l’adresse n’est pas demandée');
+    await p.fill('#search', 'Panthéon'); await p.waitForSelector('.results li.opt button', { timeout: 15000 }); await pick(p); await p.waitForTimeout(1500);
+    const saved = await p.evaluate(() => JSON.parse(localStorage.getItem('raccourcis-perso')));
+    const foot = saved.find((c) => c.name === 'Foot');
+    assert(foot?.icon === 'sport' && /Panth/.test(foot.place?.name || ''), `raccourci mal enregistré : ${JSON.stringify(foot)}`);
+    // la fiche du Panthéon : « Raccourci » allumé (le lieu en est un)
+    assert(await p.$('.end-btn.on:has-text("Raccourci")'), 'le bouton Raccourci de la fiche n’est pas allumé');
+    await p.click('.sheet .close'); await p.waitForTimeout(500);
+    // appui long (ici clic droit) : modifier le nom
+    await p.click('#search'); await p.waitForSelector('.pin-btn:has-text("Foot")');
+    await p.click('.pin-btn:has-text("Foot")', { button: 'right' }); await p.waitForSelector('.sc-menu');
+    await p.click('.sc-menu button:has-text("Nom et icône")'); await p.waitForSelector('.dlg #sc-name');
+    await p.fill('#sc-name', 'Foot du mardi'); await p.click('.dlg button.ok'); await p.waitForTimeout(300);
+    await p.click('#search');
+    assert(await p.$('.pin-btn:has-text("Foot du mardi")'), 'nom non modifié');
+    // supprimer, puis annuler
+    await p.click('.pin-btn:has-text("Foot du mardi")', { button: 'right' }); await p.waitForSelector('.sc-menu');
+    await p.click('.sc-menu button:has-text("Supprimer")'); await p.waitForTimeout(300);
+    assert(!(await p.$('.pin-btn:has-text("Foot du mardi")')), 'raccourci non supprimé');
+    await p.click('.toast button'); await p.waitForTimeout(300); await p.click('#search');
+    assert(await p.$('.pin-btn:has-text("Foot du mardi")'), 'Annuler ne rétablit pas le raccourci');
+    // depuis la fiche d'un lieu : adresse déjà remplie, icône proposée
+    await p.fill('#search', 'Stade Charléty'); await p.waitForSelector('.results li.opt button', { timeout: 15000 }); await pick(p);
+    await p.waitForSelector('.end-btn:has-text("Raccourci")', { timeout: 10000 });
+    await p.click('.end-btn:has-text("Raccourci")'); await p.waitForSelector('.dlg .addr');
+    assert(/Ajouter aux raccourcis/.test(await p.textContent('.dlg h2')), 'titre de la fenêtre');
+    await p.click('.dlg button.ok'); await p.waitForTimeout(300);
+    assert(await p.$('.end-btn.on:has-text("Raccourci")'), 'lieu non ajouté aux raccourcis');
+    // le raccourci part dans la sauvegarde (fichier ou transfert)
+    assert(!errors.length, errors.join(' | '));
+    await ctx.close();
+  },
   async 'règles d’interface : menus entiers à l’écran, un seul ouvert, fermés en touchant ailleurs ou par Échap'() {
     // docs/regles-interface.md — vérifié sur chaque menu de l'app ; un nouveau menu doit être ajouté ici
     const { p, ctx, errors } = await page({ viewport: { width: 375, height: 667 } });   // petit écran : le cas le plus dur
@@ -1032,6 +1083,18 @@ z.close()`, zip]);
     assert(/All The Places/.test(await p.textContent('.dlg')), 'vue des sources absente');
     await p.keyboard.press('Escape'); await p.waitForTimeout(200);
     assert(!(await p.$('.dlg')), 'Échap ne ferme pas la fenêtre À propos');
+    // 2 bis. menu d'un raccourci (appui long ; ici clic droit), dans la recherche
+    await p.click('#search'); await p.waitForSelector('.pin-btn.add');
+    await p.click('.pin-btn.add'); await p.waitForSelector('.dlg #sc-name'); await p.fill('#sc-name', 'Salle'); await p.click('.dlg button.ok'); await p.waitForTimeout(300);
+    await p.click('#search'); await p.waitForSelector('.pin-btn:has-text("Salle")');
+    await p.click('.pin-btn:has-text("Salle")', { button: 'right' }); await p.waitForSelector('.sc-menu');
+    assert((await visibleWhole('.sc-menu')) === 'ok', `menu d'un raccourci : ${await visibleWhole('.sc-menu')}`);
+    await p.keyboard.press('Escape'); await p.waitForTimeout(200);
+    assert(!(await p.$('.sc-menu')), 'Échap ne ferme pas le menu d’un raccourci');
+    await p.click('.pin-btn:has-text("Salle")', { button: 'right' }); await p.waitForSelector('.sc-menu');
+    await p.mouse.click(300, 600); await p.waitForTimeout(400);
+    assert(!(await p.$('.sc-menu')), 'toucher ailleurs ne ferme pas le menu d’un raccourci');
+    await p.keyboard.press('Escape'); await p.waitForTimeout(200);
     // 3. le choix de l'heure d'un trajet
     await p.click('button[aria-label="Effacer la recherche"]').catch(() => {}); await p.mouse.click(120, 300); await p.waitForTimeout(300);
     await p.fill('#search', 'Panthéon'); await p.waitForSelector('.results li.opt button', { timeout: 15000 }); await pick(p);
