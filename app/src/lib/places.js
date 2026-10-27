@@ -88,7 +88,8 @@ export function fromTags(t) {
     good: goodToKnow(t),
     fee: t.fee,
     wikidata: t.wikidata,
-    wikipedia: t.wikipedia
+    wikipedia: t.wikipedia,
+    access: Array.isArray(t._acc) ? t._acc : null     // accès d'un grand lieu (build_places.py), pour l'itinéraire
   };
 }
 

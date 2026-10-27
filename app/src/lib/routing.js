@@ -196,6 +196,11 @@ export async function transitRoutes(from, to, signal, when = new Date(), modes =
     toPlace: `${to.lat},${to.lon}`,
     time: when.toISOString(),
     numItineraries: '10',
+    // marche au départ et à l'arrivée : jusqu'à 30 min (15 par défaut chez Transitous, qui écartait des trajets plus
+    // rapides : stade Maurice-Baquet depuis la gare de Gentilly, 28/10/2026). Citymapper et Google Maps n'affichent
+    // pas de limite ; le classement par heure d'arrivée (transitrank.js) garde les longues marches derrière.
+    maxPreTransitTime: '1800',
+    maxPostTransitTime: '1800',
     ...(arrive ? { arriveBy: 'true' } : {}),
     ...(modes ? { transitModes: modes.join(',') } : {})
   });

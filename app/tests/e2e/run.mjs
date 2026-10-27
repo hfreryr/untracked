@@ -831,6 +831,29 @@ z.close()`, zip]);
       await ctx.close();
     }
   },
+  async 'grand lieu : l’itinéraire vise l’accès le plus proche, marche jusqu’à 30 min (stade Maurice-Baquet)'() {
+    const { p, ctx, errors } = await page({ geolocation: { latitude: 48.8826, longitude: 2.3497 } });
+    // accès du stade tels que build_places.py les prépare (bord de la rue d'Arcueil), ajoutés à la tuile servie
+    await p.route('**/places/14/**', async (route) => {
+      const r = await route.fetch(); const j = await r.json().catch(() => null);
+      const it = j?.t?.find((x) => x[0] === 31361433);
+      if (it) it[3]._acc = [[2.34314, 48.81167], [2.34435, 48.81246]];
+      await route.fulfill({ response: r, json: j });
+    });
+    const plans = [];
+    p.on('request', (r) => { if (r.url().includes('/api/v5/plan?')) plans.push(new URL(r.url())); });
+    await p.fill('#search', 'Stade Maurice Baquet'); await p.waitForSelector('.results li.opt button', { timeout: 15000 }); await pick(p);
+    await p.waitForSelector('.action.primary', { timeout: 15000 }); await p.waitForTimeout(2500);
+    await p.click('.action.primary'); await p.waitForTimeout(1500);
+    await p.click('.mode-tabs .mode-tab >> nth=2'); await p.waitForSelector('.t-opt', { timeout: 25000 });
+    const q = plans.at(-1)?.searchParams;
+    assert(q, 'aucune demande à Transitous');
+    // venant de Barbès (au nord) : l'accès nord, pas le centre du terrain
+    assert(q.get('toPlace') === '48.81246,2.34435', `point visé : ${q.get('toPlace')}`);
+    assert(q.get('maxPostTransitTime') === '1800' && q.get('maxPreTransitTime') === '1800', 'limite de marche non relevée');
+    assert(!errors.length, errors.join(' | '));
+    await ctx.close();
+  },
   async 'transports : prix du trajet et choix des modes (« Bus et tram » seulement)'() {
     const { p, ctx, errors } = await page({ geolocation: { latitude: 48.8867, longitude: 2.3431 } });
     await p.fill('#search', '57 rue de rennes'); await p.waitForSelector('.results li.opt button', { timeout: 30000 }); await pick(p); await p.waitForTimeout(2500);
