@@ -8,21 +8,27 @@
     <meta name="color-scheme" content="light dark" />
     <link rel="manifest" href="./manifest.webmanifest" />
     <meta name="apple-mobile-web-app-title" content="Untracked Maps" />
+    <!-- app installée sur iPhone : la carte passe sous l'heure et la caméra, comme une app (porteur, 28/10) ;
+         les éléments du haut se décalent de env(safe-area-inset-top). Depuis iOS 26.1, iOS pose lui-même un dégradé
+         sombre sous l'heure (non réglable par le site) ; iOS lit ce réglage à l'installation : réinstaller pour le voir. -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <link rel="icon" href="./icon.svg" type="image/svg+xml" />
     <link rel="icon" href="./favicon-32.png" type="image/png" sizes="32x32" />
     <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
     <title>Untracked Maps</title>
-    <meta http-equiv="content-security-policy" content="default-src 'self'; worker-src 'self' blob:; connect-src 'self' https://tiles.openfreemap.org https://photon.komoot.io https://data.geopf.fr https://valhalla1.openstreetmap.de https://api.transitous.org https://www.wikidata.org https://fr.wikipedia.org https://commons.wikimedia.org; font-src 'self'; img-src 'self' data: blob: https:; manifest-src 'self'; object-src 'none'; script-src 'self' 'sha256-ymJQzIUVSlI0t7AF991m2w7hP+SW/HLmvGzrydvHb/M='; style-src 'self' 'unsafe-inline'; base-uri 'self'; form-action 'self'">
+    <meta http-equiv="content-security-policy" content="default-src 'self'; worker-src 'self' blob:; connect-src 'self' https://tiles.openfreemap.org https://photon.komoot.io https://data.geopf.fr https://valhalla1.openstreetmap.de https://api.transitous.org https://www.wikidata.org https://fr.wikipedia.org https://commons.wikimedia.org; font-src 'self'; img-src 'self' data: blob: https:; manifest-src 'self'; object-src 'none'; script-src 'self' 'sha256-KV+j7+aMrvSk660Ba2uTRoc6Yzm4r/wLXuZE2+mQvW4='; style-src 'self' 'unsafe-inline'; base-uri 'self'; form-action 'self'">
 		<link href="./_app/immutable/entry/start.Dk-zCwye.js" rel="modulepreload">
 		<link href="./_app/immutable/entry/payload.DSmR2FwN.js" rel="modulepreload">
 		<link href="./_app/immutable/chunks/CRzLMJPS.js" rel="modulepreload">
 		<link href="./_app/immutable/chunks/DOwIy_W9.js" rel="modulepreload">
 		<link href="./_app/immutable/chunks/Cj1ebnDs.js" rel="modulepreload">
 		<link href="./_app/immutable/chunks/DXAf7Idc.js" rel="modulepreload">
-		<link href="./_app/immutable/entry/app.D6GsejVO.js" rel="modulepreload">
+		<link href="./_app/immutable/entry/app.C1KglwHy.js" rel="modulepreload">
 		<link href="./_app/immutable/nodes/0.D_lMivKT.js" rel="modulepreload">
-		<link href="./_app/immutable/nodes/3.BV4l73ZX.js" rel="modulepreload">
-		<link href="./_app/immutable/chunks/C3NJEQ_M.js" rel="modulepreload">
+		<link href="./_app/immutable/nodes/3.Zh1g32vI.js" rel="modulepreload">
+		<link href="./_app/immutable/chunks/CYz2t1fb.js" rel="modulepreload">
 		
 		<link href="./_app/immutable/assets/3.BmuWk0Se.css" rel="stylesheet">
   </head>
@@ -30,16 +36,16 @@
     <div style="display: contents">
 			<script>
 				{
-					__sveltekit_1jw6k3f = {
+					__sveltekit_zgapr = {
 						base: new URL(".", location).pathname.slice(0, -1),
-						version: "1793192061953"
+						version: "1793198205890"
 					};
 
 					const element = document.currentScript.parentElement;
 
 					import("./_app/immutable/entry/start.Dk-zCwye.js").then(async (kit) => {
-						kit.init(__sveltekit_1jw6k3f);
-						const app = await import("./_app/immutable/entry/app.D6GsejVO.js");
+						kit.init(__sveltekit_zgapr);
+						const app = await import("./_app/immutable/entry/app.C1KglwHy.js");
 						kit.start(app, element);
 					});
 				}
