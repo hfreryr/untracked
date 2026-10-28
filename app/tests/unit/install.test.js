@@ -16,3 +16,13 @@ test('« Plus tard » : une seule fois de nouveau, deux semaines après', () => 
   assert.ok(canOffer({ ...base, dismissed: { n: 1, at: base.now - 15 * day } }));
   assert.ok(!canOffer({ ...base, dismissed: { n: 2, at: base.now - 60 * day } }));
 });
+
+test('signes d’usage : lieu, raccourci, geste (catégories, import, guidage) ou 3e jour d’utilisation', async () => {
+  const { isEngaged } = await import('../../src/lib/install.js');
+  assert.equal(isEngaged({ signs: {} }), false);
+  assert.equal(isEngaged({ saved: 1, signs: {} }), true);
+  assert.equal(isEngaged({ shortcuts: 1, signs: {} }), true);            // Maison, Travail ou raccourci personnel
+  assert.equal(isEngaged({ signs: { acts: true } }), true);
+  assert.equal(isEngaged({ signs: { days: ['2026-10-26', '2026-10-27'] } }), false);
+  assert.equal(isEngaged({ signs: { days: ['2026-10-26', '2026-10-27', '2026-10-28'] } }), true);
+});

@@ -1,17 +1,20 @@
-<!-- Invitation à installer l'app sur l'écran d'accueil (maquette validée le 21/10, install.js) :
-     une carte après le premier lieu enregistré, et la fenêtre des deux gestes sur iPhone (ouverte aussi depuis ⓘ). -->
+<!-- Rappel d'installation (install.js) : une carte après un signe d'usage (lieu, raccourci, catégories, import,
+     guidage, 3e jour), et la fenêtre des gestes sur iPhone (ouverte aussi depuis le bandeau d'accueil, le bouton rond et ⓘ). -->
 <script>
   import { tx } from '#lib/i18n/index.js';
   import { getContext } from 'svelte';
   import Dialog from '#lib/ui/Dialog.svelte';
-  import { canOffer, installWay, isStandalone, laterTapped, onInstallChange, promptInstall, readDismissed } from '#lib/install.js';
+  import { canOffer, installWay, isStandalone, laterTapped, onInstallChange, promptInstall, readDismissed, isEngaged, noteDay, readSigns } from '#lib/install.js';
 
   // État et actions de la page (voir le bloc « app » de +page.svelte)
   const app = getContext('app');
   let way = $state(installWay());
   let closed = $state(false);          // fermée pour cette fois (« Plus tard » ou « Installer »)
-  $effect(() => onInstallChange(() => (way = installWay())));
-  const show = $derived(!closed && !!way && canOffer({ standalone: isStandalone(), saved: app.favorites.length > 0, dismissed: readDismissed(), now: Date.now(), installable: !!way })
+  noteDay();
+  let signs = $state(readSigns());
+  $effect(() => onInstallChange(() => { way = installWay(); signs = readSigns(); }));
+  const engaged = $derived(isEngaged({ saved: app.favorites.length, shortcuts: (app.shortcuts.home ? 1 : 0) + (app.shortcuts.work ? 1 : 0) + app.customs.length, signs }));
+  const show = $derived(!closed && !!way && canOffer({ standalone: isStandalone(), saved: engaged, dismissed: readDismissed(), now: Date.now(), installable: !!way })
     && !app.place && !app.category && !app.directions && !app.nav && !app.showPromise && !app.importOpen && !app.editChips && !app.aboutOpen && !app.focused);
 
   // « Installer » : la fenêtre du téléphone (Android), sinon les deux gestes (iPhone)

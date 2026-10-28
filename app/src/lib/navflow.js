@@ -1,5 +1,6 @@
 // Guidage pas à pas : voix, étapes, suivi de la position et recalcul.
 // Code sorti de +page.svelte : il lit et modifie l'état de l'écran par l'objet « app » (bloc « app » de la page).
+import { noteEngaged } from '#lib/install.js';
 import { tx } from '#lib/i18n/index.js';
 import { MODE_NAMES, fmtDistance, fmtDuration, fmtTime, streetRoute, trafficEstimate } from '#lib/routing.js';
 import { empty } from '#lib/maplayers.js';
@@ -155,6 +156,7 @@ export function createNav(app) {
     app.rerouting = false;
   }
   function endNav() {
+    noteEngaged();                                   // un guidage mené : l'app a servi (install.js)
     if (app.navWatch != null) navigator.geolocation.clearWatch(app.navWatch);
     app.navWatch = null;
     clearInterval(app.navTick);

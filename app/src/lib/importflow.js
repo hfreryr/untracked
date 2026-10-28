@@ -1,5 +1,6 @@
 // Import des lieux enregistrés dans Google Maps (fichier Takeout lu sur l'appareil).
 // Code sorti de +page.svelte : il lit et modifie l'état de l'écran par l'objet « app » (bloc « app » de la page).
+import { noteEngaged } from '#lib/install.js';
 import { tx } from '#lib/i18n/index.js';
 import { PARIS } from '#lib/places.js';
 import { mergeInto } from '#lib/myplaces.js';
@@ -67,7 +68,7 @@ export function createImport(app) {
       app.importing = '';
       app.importOpen = false;
       if (!added && !extra) app.say((places.length ? tx('import.ces_lieux_sont_deja_dans_vos_favoris') : tx('import.aucun_lieu_trouve_dans_ce_fichier')) + (listsMissing ? tx('import.listes_absentes') : ''));
-      else app.say(tx('import.lieu_importe', { n: added, extra, manquants: (missed ? tx('import.introuvable', { n: missed }) : '') + (unsure ? tx('import.a_verifier', { n: unsure }) : '') + (listsMissing ? tx('import.listes_absentes') : '') }));
+      else { noteEngaged(); app.say(tx('import.lieu_importe', { n: added, extra, manquants: (missed ? tx('import.introuvable', { n: missed }) : '') + (unsure ? tx('import.a_verifier', { n: unsure }) : '') + (listsMissing ? tx('import.listes_absentes') : '') })); }
     } catch {
       app.importing = '';
       app.say(tx('import.ce_fichier_a_pas_pu_etre_lu'));
