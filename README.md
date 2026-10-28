@@ -51,6 +51,7 @@ L'objectif : que l'app affiche « vérifié il y a 3 semaines » plutôt que des
 | Fraîcheur des lieux | Détection Paris 6e, puis vérification de 50 cas sur le terrain | Détection ✅, vérification à faire |
 | Questions sur place | Vérification par les utilisateurs, avec leur compte OSM | Après l'annonce à la communauté |
 | Autonomie | Nos propres serveurs Île-de-France (recherche, itinéraires, transports) | À chiffrer |
+| Magasins d'applications | Être aussi dans Google Play et l'App Store (« ah mais c'est seulement sur internet ? ») | **Question ouverte** (28/10) : Google Play faisable, App Store risqué ; à reprendre si l'absence des magasins freine l'adoption malgré le bouton « Installer » ([docs/magasins-applications.md](docs/magasins-applications.md)) |
 | Photos d'ambiance des lieux | Ce que Google et Apple ont et qu'aucune source ouverte n'a | Mesuré et cadre juridique vérifié le 13/10 ([docs/photos-lieux.md](docs/photos-lieux.md)) : seules voies propres = accord du commerçant, photos des utilisateurs. **En suspens** (décision du 13/10) |
 
 ### Photos d'ambiance : ce qui a été mesuré (13/10/2026)
