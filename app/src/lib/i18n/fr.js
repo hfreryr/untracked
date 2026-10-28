@@ -21,6 +21,7 @@ export default {
   'installer.pourquoi': 'Elle s\'ouvre comme une app, et vos lieux y sont mieux protégés.',
   'installer.plus_tard': 'Plus tard',
   'installer.installer': 'Installer',
+  'installer.installer_app': 'Installer l\'app',
   'installer.merci': 'Untracked Maps est sur votre écran d\'accueil.',
   'installer.iphone_titre': 'Installer sur l\'iPhone',
   'installer.iphone_sous_titre': 'Trois gestes dans Safari, une seule fois.',

@@ -1,11 +1,13 @@
 // Raccourcis de catégories : afficher, ordonner, renommer.
 // Code sorti de +page.svelte : il lit et modifie l'état de l'écran par l'objet « app » (bloc « app » de la page).
+import { noteEngaged } from '#lib/install.js';
 import { ALL_CATEGORIES, CHIPS_KEY } from '#lib/categories.js';
 
 /** @param {any} app */
 export function createChips(app) {
   // ——— Onglets personnalisés ———
   function saveChips() {
+    noteEngaged();                                   // catégories personnalisées : on compte revenir (install.js)
     try { localStorage.setItem(CHIPS_KEY, JSON.stringify(app.chipPrefs)); } catch { /* rien */ }
   }
   function moveChip(i, d) {

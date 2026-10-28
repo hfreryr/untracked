@@ -6,7 +6,10 @@
   import AboutDialog from '#lib/ui/AboutDialog.svelte';
   import MapCredit from '#lib/ui/MapCredit.svelte';
   import BikeLegend from '#lib/ui/BikeLegend.svelte';
+  import { installWay, onInstallChange } from '#lib/install.js';
   let layersBtn = $state();
+  let installable = $state(!!installWay());
+  $effect(() => onInstallChange(() => (installable = !!installWay())));
 
   // État et actions de la page (voir le bloc « app » de +page.svelte)
   const app = getContext('app');
@@ -54,6 +57,12 @@
             {tx('carte.mes_lieux_sur_la_carte')}
           </label>
         </div>
+      {/if}
+      {#if installable}
+        <!-- tant que l'app n'est pas installée : un bouton rond, même taille que les autres (porteur, 28/10) -->
+        <button class="round-btn install" onclick={() => app.startInstall?.()} aria-label={tx('installer.installer_app')} title={tx('installer.installer_app')}>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m-4.5-4.5L12 15l4.5-4.5M5 19.5h14" /></svg>
+        </button>
       {/if}
       <button class="round-btn" bind:this={layersBtn} onclick={() => (app.showModes = !app.showModes)} aria-label={tx('carte.type_de_carte')} aria-expanded={app.showModes} aria-haspopup="menu">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3.5 8.5 4.5L12 12.5 3.5 8z" /><path d="m3.5 12 8.5 4.5 8.5-4.5M3.5 16l8.5 4.5 8.5-4.5" /></svg>
@@ -108,6 +117,7 @@
     display: grid; place-items: center; cursor: pointer; color: var(--ink);
   }
   .round-btn svg { width: 22px; height: 22px; }
+  .round-btn.install { background: var(--accent-btn); color: #fff; }
   .modes-pop { display: flex; gap: 10px; padding: 14px; background: var(--card); border-radius: 20px; box-shadow: var(--shadow-float);
     width: min(330px, calc(100vw - 24px)); box-sizing: border-box; }
   .modes-pop button {

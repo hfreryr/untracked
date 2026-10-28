@@ -338,6 +338,41 @@ const tests = {
     assert(!errors.length, errors.join(' | '));
     await ctx.close();
   },
+  async 'installer dès la première ouverture : bandeau, bouton rond permanent, rappel après un raccourci (28/10)'() {
+    const IPHONE = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1';
+    let ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, locale: 'fr-FR', userAgent: IPHONE });
+    let p = await ctx.newPage(); const errors = []; p.on('pageerror', (e) => errors.push(e.message));
+    await p.goto(`http://localhost:${PORT}/`); await p.waitForSelector('.promise', { timeout: 8000 });
+    // bandeau d'accueil : deux boutons, « Plus tard » et « Installer l'app », sans phrase en plus
+    assert((await p.locator('.promise .row.two button').allTextContents()).map((t) => t.trim()).join('|') === "Plus tard|Installer l'app", 'boutons du bandeau');
+    await p.click(".promise button:has-text(\"Installer l'app\")"); await p.waitForSelector('.dlg .steps');
+    await p.keyboard.press('Escape'); await p.waitForTimeout(300);
+    assert(!(await p.$('.promise')), 'le bandeau reste après « Installer »');
+    // bouton rond, même taille que celui des types de carte
+    const sz = (sel) => p.$eval(sel, (e) => { const r = e.getBoundingClientRect(); return `${Math.round(r.width)}x${Math.round(r.height)}`; });
+    assert((await sz('.round-btn.install')) === (await sz('button[aria-label="Type de carte"]')), 'bouton Installer pas à la taille des autres');
+    await p.click('.round-btn.install'); await p.waitForSelector('.dlg .steps');
+    await p.keyboard.press('Escape');
+    await ctx.close();
+    // rappel : après un raccourci (sans aucun lieu enregistré), la carte d'invitation apparaît
+    ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, locale: 'fr-FR', userAgent: IPHONE });
+    await ctx.addInitScript(() => localStorage.setItem('promesse-vue', '1'));
+    p = await ctx.newPage(); p.on('pageerror', (e) => errors.push(e.message));
+    await p.goto(`http://localhost:${PORT}/`); await p.waitForTimeout(2500);
+    assert(!(await p.$('.install')), 'carte de rappel sans aucun signe d’usage');
+    await p.click('#search'); await p.click('.pin-btn.add'); await p.waitForSelector('.dlg #sc-name');
+    await p.fill('#sc-name', 'Foot'); await p.click('.dlg button.ok'); await p.waitForTimeout(300);
+    await p.keyboard.press('Escape'); await p.evaluate(() => document.activeElement?.blur()); await p.mouse.click(200, 500); await p.waitForTimeout(800);
+    assert(await p.$('.install'), 'pas de rappel après un raccourci');
+    // ordinateur sans installation possible : aucun bouton
+    await ctx.close();
+    ctx = await browser.newContext({ viewport: { width: 1280, height: 800 }, locale: 'fr-FR' });
+    p = await ctx.newPage(); await p.goto(`http://localhost:${PORT}/`); await p.waitForTimeout(2500);
+    assert(!(await p.$('.round-btn.install')), 'bouton Installer affiché alors que le navigateur ne sait pas installer');
+    assert(await p.$('.promise button:has-text("Compris")'), 'bandeau classique attendu sans installation possible');
+    assert(!errors.length, errors.join(' | '));
+    await ctx.close();
+  },
   async 'filtres des listes : terrasse sur les restaurants, seulement les filtres utiles, lieux sans information à part (21/10)'() {
     const { p, ctx, errors } = await page({ geolocation: { latitude: 48.853, longitude: 2.333 } });
     await p.click('.chip:has-text("Restaurants")'); await p.waitForTimeout(6000);

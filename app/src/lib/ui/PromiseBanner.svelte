@@ -3,15 +3,20 @@
 <script>
   import { tx } from '#lib/i18n/index.js';
   import { getContext } from 'svelte';
+  import { installWay, onInstallChange } from '#lib/install.js';
 
   // État et actions de la page (voir le bloc « app » de +page.svelte)
   const app = getContext('app');
   function more() { app.closePromise(); app.aboutOpen = true; }
+  // « c'est seulement sur internet ? » (porteur, 28/10) : dès la première ouverture, on propose d'installer l'app
+  let way = $state(installWay());
+  $effect(() => onInstallChange(() => (way = installWay())));
+  function install() { app.closePromise(); app.startInstall?.(); }
 </script>
 
 
   {#if app.showPromise && !app.place && !app.category && !app.directions && !app.importOpen && !app.editChips}
-    <div class="promise" role="note">
+    <div class="promise" class:above-install={!!way} role="note">
       <p class="title">
         <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10.5" width="14" height="10" rx="2.5" /><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5" /></svg>
         {tx('promesse.une_carte_qui_ne_vous_piste_pas')}
@@ -20,14 +25,23 @@
       <ul class="proof">
         <li>{tx('promesse.zero_traceur')}</li><li>{tx('promesse.zero_cookie')}</li><li>{tx('promesse.code_ouvert')}</li>
       </ul>
-      <div class="row">
-        <span class="hint">{tx('promesse.pour_en_savoir_plus')}
-          <button class="info" onclick={more} aria-label={tx('apropos.bouton')}>
-            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5" /><path d="M12 11v5" /><circle cx="12" cy="8" r=".9" class="solid" /></svg>
+      {#if way}
+        <div class="row two">
+          <button class="later" onclick={app.closePromise}>{tx('installer.plus_tard')}</button>
+          <button class="ok" onclick={install}>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m-4.5-4.5L12 15l4.5-4.5M5 19.5h14" /></svg>{tx('installer.installer_app')}
           </button>
-        </span>
-        <button class="ok" onclick={app.closePromise}>{tx('promesse.compris')}</button>
-      </div>
+        </div>
+      {:else}
+        <div class="row">
+          <span class="hint">{tx('promesse.pour_en_savoir_plus')}
+            <button class="info" onclick={more} aria-label={tx('apropos.bouton')}>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5" /><path d="M12 11v5" /><circle cx="12" cy="8" r=".9" class="solid" /></svg>
+            </button>
+          </span>
+          <button class="ok" onclick={app.closePromise}>{tx('promesse.compris')}</button>
+        </div>
+      {/if}
     </div>
   {/if}
 
@@ -49,6 +63,12 @@
   .info { position: relative; width: 32px; height: 32px; border: 0; background: none; color: var(--accent); display: grid; place-items: center; cursor: pointer; padding: 0; }
   .info::after { content: ''; position: absolute; inset: -6px; }
   .info svg { width: 22px; height: 22px; }
+  .row.two { gap: 10px; }
+  .row.two button { flex: 1; min-height: 44px; border-radius: 22px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+  .row.two svg { width: 19px; height: 19px; }
+  .later { border: 0; background: var(--fill); color: var(--accent); font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; }
   .ok { border: 0; background: var(--accent-btn); color: #fff; font: inherit; font-size: 15px; font-weight: 600; border-radius: 20px; min-height: 40px; padding: 0 20px; cursor: pointer; }
-  @media (min-width: 768px) { .promise { left: auto; right: 76px; bottom: 16px; width: 380px; } }
+  /* un bouton rond de plus (Installer) dans la pile de droite : le bandeau monte d'autant */
+  .promise.above-install { bottom: calc(254px + env(safe-area-inset-bottom)); }
+  @media (min-width: 768px) { .promise, .promise.above-install { left: auto; right: 76px; bottom: 16px; width: 380px; } }
 </style>
