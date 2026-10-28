@@ -232,3 +232,12 @@ button { font: inherit; color: inherit; }
 .maplibregl-canvas-container.maplibregl-interactive { cursor: default; }
 .maplibregl-canvas-container.maplibregl-interactive:active { cursor: grabbing; }
 .maplibregl-ctrl-bottom-right { margin-bottom: env(safe-area-inset-bottom); }
+
+/* App installée sur iPhone (barre d'état transparente, app.html) : un léger voile en haut de la carte pour que l'heure
+   et la batterie, écrites en blanc par iOS, restent lisibles sur une carte claire. Rien ailleurs (navigateur, Android). */
+@media (display-mode: standalone) {
+  body::before {
+    content: ''; position: fixed; z-index: 3; left: 0; right: 0; top: 0; height: calc(env(safe-area-inset-top) + 10px);
+    background: linear-gradient(rgb(0 0 0 / 0.32), rgb(0 0 0 / 0)); pointer-events: none;
+  }
+}
