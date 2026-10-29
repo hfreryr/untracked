@@ -28,6 +28,13 @@ dépendance technique : l'app marche sans eux.
   passer demanderait des fonctions propres à l'iPhone (notifications, partage natif…), donc un projet iOS à maintenir.
 - Effort estimé : plusieurs semaines, sans garantie.
 
+## Ce que seule une app des magasins permettrait (29/10/2026)
+
+- **Guidage en haut de l'écran** pendant un itinéraire, comme Plans et Google Maps : « Activités en direct » (Dynamic
+  Island) sur iPhone, réservées aux apps écrites avec les outils d'Apple ; notification de guidage sur Android, qu'une
+  app web ne peut pas tenir à jour une fois quittée (suivi de la position mis en pause). Constat, non contredit par nos
+  recherches ; pas de source officielle l'énonçant mot pour mot.
+
 ## Recommandation (28/10/2026)
 
 1. Google Play plus tard, avec un compte d'organisation (structure porteuse du projet).

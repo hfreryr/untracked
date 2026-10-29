@@ -21,7 +21,7 @@
   app.startInstall = async () => {
     closed = true;
     if (installWay() === 'prompt') { if (await promptInstall()) app.say(tx('installer.merci')); }
-    else app.installSteps = true;
+    else app.installSteps = installWay();       // la fenêtre adaptée au navigateur
   };
 </script>
 
@@ -39,21 +39,43 @@
 {/if}
 
 {#if app.installSteps}
-  <Dialog title={tx('installer.iphone_titre')} onclose={() => (app.installSteps = false)}>
-    <p class="sub">{tx('installer.iphone_sous_titre')}</p>
-    <!-- relevé sur l'iPhone du porteur (iOS, 21/10) : Partager, puis « En voir plus », puis « Sur l'écran d'accueil » -->
-    <ol class="steps">
-      <li><span class="n" aria-hidden="true">1</span><span>{tx('installer.etape_1')}
-        <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 15V4M8.5 7.5 12 4l3.5 3.5" /><path d="M8 10.5H6.5v9.5h11v-9.5H16" /></svg></span>
-        <strong>{tx('installer.partager')}</strong> <small>{tx('installer.etape_1_suite')}</small></span></li>
-      <li><span class="n" aria-hidden="true">2</span><span>{tx('installer.etape_2')}
-        <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m7 10 5 5 5-5" /></svg></span>
-        <strong>{tx('installer.en_voir_plus')}</strong></span></li>
-      <li><span class="n" aria-hidden="true">3</span><span>{tx('installer.etape_3')}
-        <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="4" /><path d="M12 8.5v7M8.5 12h7" /></svg></span>
-        <strong>{tx('installer.sur_ecran_accueil')}</strong>{tx('installer.etape_3_suite')} <strong>{tx('installer.ajouter')}</strong></span></li>
-    </ol>
-    {#if app.favorites.length}<p class="note">{tx('installer.iphone_lieux')}</p>{/if}
+  {@const w = app.installSteps}
+  {@const ios = w === 'ios' || w === 'ios-other'}
+  <Dialog title={w === 'firefox' ? tx('installer.firefox_titre') : ios ? tx('installer.iphone_titre') : tx('installer.installer_app')} onclose={() => (app.installSteps = false)}>
+    {#if ios}
+      <p class="sub">{tx('installer.iphone_sous_titre')}</p>
+      <!-- relevé sur l'iPhone du porteur (iOS, 21/10) : Partager, puis « En voir plus », puis « Sur l'écran d'accueil » ;
+           autres navigateurs de l'iPhone : Partager est parfois dans leur menu, et « En voir plus » n'existe pas -->
+      <ol class="steps">
+        <li><span class="n" aria-hidden="true">1</span><span>{tx('installer.etape_1')}
+          <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 15V4M8.5 7.5 12 4l3.5 3.5" /><path d="M8 10.5H6.5v9.5h11v-9.5H16" /></svg></span>
+          <strong>{tx('installer.partager')}</strong> <small>{w === 'ios' ? tx('installer.etape_1_suite') : tx('installer.etape_1_autres')}</small></span></li>
+        {#if w === 'ios'}
+          <li><span class="n" aria-hidden="true">2</span><span>{tx('installer.etape_2')}
+            <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m7 10 5 5 5-5" /></svg></span>
+            <strong>{tx('installer.en_voir_plus')}</strong></span></li>
+        {/if}
+        <li><span class="n" aria-hidden="true">{w === 'ios' ? 3 : 2}</span><span>{tx('installer.etape_3')}
+          <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="4" /><path d="M12 8.5v7M8.5 12h7" /></svg></span>
+          <strong>{tx('installer.sur_ecran_accueil')}</strong>{tx('installer.etape_3_suite')} <strong>{tx('installer.ajouter')}</strong></span></li>
+      </ol>
+      {#if app.favorites.length}<p class="note">{tx('installer.iphone_lieux')}</p>{/if}
+    {:else if w === 'firefox'}
+      <!-- Firefox Android ne prévient pas le site qu'il sait installer : son menu, puis « Installer » (ou l'ancien nom) -->
+      <p class="sub">{tx('installer.firefox_sous_titre')}</p>
+      <ol class="steps">
+        <li><span class="n" aria-hidden="true">1</span><span>{tx('installer.etape_1')}
+          <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="5.5" r="1.2" /><circle cx="12" cy="12" r="1.2" /><circle cx="12" cy="18.5" r="1.2" /></svg></span>
+          <strong>{tx('installer.le_menu')}</strong></span></li>
+        <li><span class="n" aria-hidden="true">2</span><span>{tx('installer.etape_1')}
+          <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 4v11m-4.5-4.5L12 15l4.5-4.5M5 19.5h14" /></svg></span>
+          <strong>{tx('installer.installer')}</strong> <small>{tx('installer.firefox_autre_nom')}</small></span></li>
+      </ol>
+    {:else}
+      <!-- DuckDuckGo sur Android, Brave sur iPhone : pas d'installation possible ici (docs/installation-navigateurs.md) -->
+      <p class="msg">{w === 'ios-brave' ? tx('installer.ouvrir_dans_safari') : tx('installer.ouvrir_dans_autre')}</p>
+      <button class="copy" onclick={async () => { try { await navigator.clipboard.writeText(location.origin + '/'); app.say(tx('installer.lien_copie')); } catch { /* refusé */ } }}>{tx('installer.copier_le_lien')}</button>
+    {/if}
   </Dialog>
 {/if}
 
@@ -72,6 +94,8 @@
   .later { border: 0; background: none; color: var(--accent); font: inherit; font-size: 15px; font-weight: 600; min-height: 40px; padding: 0 10px; cursor: pointer; }
   .go { border: 0; background: var(--accent-btn); color: #fff; font: inherit; font-size: 15px; font-weight: 600; border-radius: 20px; min-height: 40px; padding: 0 20px; cursor: pointer; }
   .sub { color: var(--muted); margin-bottom: 8px; }
+  .msg { font-size: 15.5px; line-height: 1.45; }
+  .copy { display: block; width: 100%; margin-top: 16px; min-height: 48px; border: 0; border-radius: 14px; background: var(--accent-btn); color: #fff; font: inherit; font-size: 16px; font-weight: 700; cursor: pointer; }
   .steps { list-style: none; margin: 0; padding: 0; }
   .steps small { display: block; color: var(--muted); font-size: 13px; }
   .steps li { display: flex; gap: 14px; align-items: center; padding: 12px 0; border-top: 1px solid var(--line); font-size: 15.5px; line-height: 1.4; }

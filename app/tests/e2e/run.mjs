@@ -373,6 +373,29 @@ const tests = {
     assert(!errors.length, errors.join(' | '));
     await ctx.close();
   },
+  async 'installer selon le navigateur : Firefox Android (menu), DuckDuckGo Android (ouvrir ailleurs), Chrome iPhone (29/10)'() {
+    const errors = [];
+    const open = async (ua) => {
+      const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, locale: 'fr-FR', userAgent: ua, permissions: ['clipboard-read', 'clipboard-write'] });
+      await ctx.addInitScript(() => localStorage.setItem('promesse-vue', '1'));
+      const p = await ctx.newPage(); p.on('pageerror', (e) => errors.push(e.message));
+      await p.goto(`http://localhost:${PORT}/`); await p.waitForTimeout(2500);
+      await p.click('.round-btn.install'); await p.waitForSelector('.dlg');
+      return { ctx, p, text: await p.textContent('.dlg') };
+    };
+    let r = await open('Mozilla/5.0 (Android 14; Mobile; rv:132.0) Gecko/132.0 Firefox/132.0');
+    assert(/Installer depuis Firefox/.test(r.text) && /le menu/.test(r.text) && /Ajouter l.app à l.écran d.accueil/.test(r.text), `Firefox : ${r.text}`);
+    await r.ctx.close();
+    r = await open('Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/130.0.0.0 Mobile DuckDuckGo/5 Safari/537.36');
+    assert(/ouvrez cette page dans Chrome ou Firefox/.test(r.text), `DuckDuckGo : ${r.text}`);
+    await r.p.click('.dlg .copy'); await r.p.waitForTimeout(300);
+    assert(/Lien copié/.test(await r.p.textContent('.toast')), 'lien non copié');
+    await r.ctx.close();
+    r = await open('Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/130.0.6723.90 Mobile/15E148 Safari/604.1');
+    assert(/dans le menu ⋯ ou ≡/.test(r.text) && !/En voir plus/.test(r.text), `Chrome iPhone : ${r.text}`);
+    await r.ctx.close();
+    assert(!errors.length, errors.join(' | '));
+  },
   async 'filtres des listes : terrasse sur les restaurants, seulement les filtres utiles, lieux sans information à part (21/10)'() {
     const { p, ctx, errors } = await page({ geolocation: { latitude: 48.853, longitude: 2.333 } });
     await p.click('.chip:has-text("Restaurants")'); await p.waitForTimeout(6000);
