@@ -41,7 +41,7 @@
       <ul>
         {#each list as p (+p.time)}
           <li>
-            <button class:cur={p.current} disabled={p.current || app.retiming != null} aria-current={p.current ? 'true' : undefined}
+            <button class:cur={p.current} disabled={p.current || app.retiming != null || app.showVia} aria-current={p.current ? 'true' : undefined}
               onclick={() => app.retimeLeg(li, p.time)}>
               <span class="t">{fmtTime(p.time)}</span>
               {#if p.realTime}<span class="live" title={tx('itin.horaire_en_temps_reel')}>●</span>{/if}
