@@ -396,6 +396,14 @@ export default {
 
   'itin.marche': 'Marche {fmtDuration}',
   'itin.ligne': 'Ligne',
+  'itin.autres_passages': 'Voir les autres passages',
+  'itin.masquer_passages': 'Masquer les autres passages',
+  'itin.chargement_passages': 'Recherche des passages…',
+  'itin.passages_indisponibles': 'Passages indisponibles pour le moment.',
+  'itin.aucun_autre_passage': 'Pas d\'autre passage dans l\'heure.',
+  'itin.passage_choisi': 'Choisi',
+  'itin.vers': 'vers {dest}',
+  'itin.passage_impossible': 'Impossible de recalculer le trajet avec ce passage.',
 
   // ——— Raccourcis personnels (customshortcuts.js, ShortcutDialog.svelte, PinnedRow.svelte) ———
   'raccourcis.nouveau': 'Nouveau raccourci',

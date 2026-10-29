@@ -1,6 +1,7 @@
 // Itinéraire : départ, arrivée, étapes, calcul et choix du mode.
 // Code sorti de +page.svelte : il lit et modifie l'état de l'écran par l'objet « app » (bloc « app » de la page).
 import { accessPoint, withAccess } from '#lib/access.js';
+import { retime } from '#lib/passages.js';
 import { tx } from '#lib/i18n/index.js';
 import { empty } from '#lib/maplayers.js';
 import { streetRoute, trafficEstimate, transitRoutes, transitWithStop, transitModesFor } from '#lib/routing.js';
@@ -145,6 +146,28 @@ export function createDirections(app) {
       return { ...withTraffic(r), alts: r.alts.map(withTraffic) };
     });
   }
+  /**
+   * Autre passage choisi à l'étape `li` du trajet affiché (LegCards) : le trajet est recalculé depuis cet arrêt, avec
+   * les correspondances qui suivent (passages.js). Le trajet d'origine reste dans la liste des propositions.
+   */
+  async function retimeLeg(li, time) {
+    const r = app.routes.transit;
+    const it = r?.data?.[app.picked];
+    if (!it) return;
+    app.retiming = li;
+    try {
+      const [f, t] = await Promise.all([withAccess(app.from), withAccess(app.to)]);
+      const it2 = await retime(it, li, time, accessPoint(t, f), transitModesFor(app.transitPref));
+      const data = r.data.slice();
+      data[app.picked] = it2;
+      app.routes = { ...app.routes, transit: { ...r, data } };
+      app.drawRoute(false);
+    } catch {
+      app.say(tx('itin.passage_impossible'));
+    } finally {
+      app.retiming = null;
+    }
+  }
   // Départ = votre position : l'itinéraire suit vos déplacements (porteur, 21/10), discrètement.
   // Au plus un calcul toutes les 30 s et seulement après 50 m : les serveurs prêtés limitent les demandes (FOSSGIS : 1 par seconde).
   let lastFollow = 0;
@@ -216,5 +239,5 @@ export function createDirections(app) {
     app.picked = 0;
     computeRoutes();
   }
-  return { startDirections, openDirections, closeDirections, pointOf, setPoint, addStop, removeStop, editField, useMyPosition, swap, computeRoutes, followFrom, chooseMode, sheetToTop, pickStreet, pickTransit, openTransit, closeTransit, focusOnLeg, setTransitPref, setWhen };
+  return { retimeLeg, startDirections, openDirections, closeDirections, pointOf, setPoint, addStop, removeStop, editField, useMyPosition, swap, computeRoutes, followFrom, chooseMode, sheetToTop, pickStreet, pickTransit, openTransit, closeTransit, focusOnLeg, setTransitPref, setWhen };
 }

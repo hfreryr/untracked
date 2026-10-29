@@ -133,6 +133,7 @@
   // Raccourcis personnels (customshortcuts.js) ; à la première ouverture, les anciens lieux épinglés en deviennent.
   const CUSTOM_KEY = 'raccourcis-perso';
   let customs = $state((() => { try { const raw = localStorage.getItem(CUSTOM_KEY); if (raw) return cleanCustoms(JSON.parse(raw)); } catch { /* rien */ } return fromPins(pins, favorites, placeKey); })());
+  let retiming = $state(null);       // étape dont le trajet est recalculé avec un autre passage (passages.js)
   let shortcutDlg = $state(null);    // fenêtre nom + icône d'un raccourci { id, name, icon, place }
   const placeCustom = $derived(customOf(customs, place, sameSpot));
 
@@ -679,6 +680,7 @@
     get toastTimer() { return toastTimer; }, set toastTimer(v) { toastTimer = v; }, get toggleChip() { return toggleChip; },
     get togglePin() { return togglePin; }, get toggleZoom() { return toggleZoom; }, get topH() { return topH; }, set topH(v) { topH = v; },
     get transfer() { return transfer; }, set transfer(v) { transfer = v; }, get useMyPosition() { return useMyPosition; },
+    get retimeLeg() { return retimeLeg; }, get retiming() { return retiming; }, set retiming(v) { retiming = v; },
     get useShortcut() { return useShortcut; }, get CUSTOM_KEY() { return CUSTOM_KEY; }, get customs() { return customs; }, set customs(v) { customs = v; },
     get shortcutDlg() { return shortcutDlg; }, set shortcutDlg(v) { shortcutDlg = v; }, get placeCustom() { return placeCustom; },
     get saveCustoms() { return saveCustoms; }, get shortcutName() { return shortcutName; }, get askAddress() { return askAddress; }, get assignTo() { return assignTo; },
@@ -704,7 +706,7 @@
   const { clearSearch, hitFilter, catIcon, applyHit, displayName, collectCategory, applyOpenFilter, setOpenAt, momentFrom, quickMoment, nearView, reloadCategoryHere, pickCategory, clearCategory, dist, openCategoryFromSearch, onKey, pickResult, openResult, showAllResults, showBrand, toggleFilter } = createSearch(app);
   const { say, isolate, closeTop, onPopState, onKeyDown, undoToast, showMe } = createScreen(app);
   const { setHeading, onOrientation, startCompass, startWatch, stopWatch, getPosition, startupLocate, locError, locDetail, locate, pickOnMap } = createLocation(app);
-  const { startDirections, openDirections, closeDirections, pointOf, setPoint, addStop, removeStop, editField, useMyPosition, swap, computeRoutes, followFrom, chooseMode, sheetToTop, pickStreet, pickTransit, openTransit, closeTransit, focusOnLeg, setTransitPref, setWhen } = createDirections(app);
+  const { retimeLeg, startDirections, openDirections, closeDirections, pointOf, setPoint, addStop, removeStop, editField, useMyPosition, swap, computeRoutes, followFrom, chooseMode, sheetToTop, pickStreet, pickTransit, openTransit, closeTransit, focusOnLeg, setTransitPref, setWhen } = createDirections(app);
   const { speak, transitSteps, startNav, onFix, updateNav, stepBy, reroute, endNav } = createNav(app);
   const { importFile } = createImport(app);
 </script>

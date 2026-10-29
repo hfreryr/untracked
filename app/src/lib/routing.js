@@ -185,6 +185,38 @@ export const ALL_KINDS = Object.keys(TRANSIT_KINDS);
 /** Modes Transitous des familles gardées ; null = toutes (aucun filtre). */
 export const transitModesFor = (kept) => (!kept || kept.length >= ALL_KINDS.length ? null : kept.flatMap((k) => TRANSIT_KINDS[k] || []));
 
+/** Une étape de Transitous (api/v5/plan) dans notre forme. */
+export function mapLeg(l) {
+  return {
+    mode: l.mode,
+    line: l.routeShortName || '',
+    color: l.routeColor ? `#${l.routeColor}` : '#5B6573',
+    textColor: l.routeTextColor ? `#${l.routeTextColor}` : '#FFFFFF',
+    headsign: l.headsign || '',
+    from: l.from?.name === 'START' ? tx('recherche.depart') : l.from?.name,
+    to: l.to?.name === 'END' ? tx('recherche.arrivee') : l.to?.name,
+    toPos: l.to?.lat != null ? { lat: l.to.lat, lon: l.to.lon } : null,
+    fromStop: l.from?.stopId || null,
+    toStop: l.to?.stopId || null,
+    tripId: l.tripId || null,            // le véhicule pris (autres passages : passages.js)
+    directionId: l.directionId ?? null,
+    start: new Date(l.startTime),
+    end: new Date(l.endTime),
+    duration: l.duration,
+    distance: l.distance || 0,
+    stops: (l.intermediateStops || []).length,
+    stopNames: (l.intermediateStops || []).map((s) => s.name).filter(Boolean),   // arrêts dépliables de l'étape
+    fromPos: l.from?.lat != null ? { lat: l.from.lat, lon: l.from.lon } : null,
+    realTime: l.realTime,
+    trafic: l.mode === 'WALK' ? null : legTrafic(l),   // info trafic de l'étape, pendant l'étape (trafic.js)
+    // heure prévue au départ de l'arrêt (le retard se lit par différence avec start)
+    scheduled: l.scheduledStartTime ? new Date(l.scheduledStartTime) : null,
+    coords: l.legGeometry
+      ? (l.mode === 'WALK' ? streetLine : (c) => smooth(c, 3))(decodePolyline(l.legGeometry.points, l.legGeometry.precision || 6))
+      : []
+  };
+}
+
 /**
  * Transports en commun : plusieurs propositions, triées par heure d'arrivée. modes : null (tous) ou liste Transitous.
  * arrive : « when » est l'heure d'arrivée souhaitée (paramètre arriveBy de Transitous, vérifié le 16/10/2026).
@@ -213,32 +245,7 @@ export async function transitRoutes(from, to, signal, when = new Date(), modes =
       duration: raw.duration,
       start: new Date(raw.startTime),
       end: new Date(raw.endTime),
-      legs: raw.legs.map((l) => ({
-        mode: l.mode,
-        line: l.routeShortName || '',
-        color: l.routeColor ? `#${l.routeColor}` : '#5B6573',
-        textColor: l.routeTextColor ? `#${l.routeTextColor}` : '#FFFFFF',
-        headsign: l.headsign || '',
-        from: l.from?.name === 'START' ? tx('recherche.depart') : l.from?.name,
-        to: l.to?.name === 'END' ? tx('recherche.arrivee') : l.to?.name,
-        toPos: l.to?.lat != null ? { lat: l.to.lat, lon: l.to.lon } : null,
-        fromStop: l.from?.stopId || null,
-        toStop: l.to?.stopId || null,
-        start: new Date(l.startTime),
-        end: new Date(l.endTime),
-        duration: l.duration,
-        distance: l.distance || 0,
-        stops: (l.intermediateStops || []).length,
-        stopNames: (l.intermediateStops || []).map((s) => s.name).filter(Boolean),   // arrêts dépliables de l'étape
-        fromPos: l.from?.lat != null ? { lat: l.from.lat, lon: l.from.lon } : null,
-        realTime: l.realTime,
-        trafic: l.mode === 'WALK' ? null : legTrafic(l),   // info trafic de l'étape, pendant l'étape (trafic.js)
-        // heure prévue au départ de l'arrêt (le retard se lit par différence avec start)
-        scheduled: l.scheduledStartTime ? new Date(l.scheduledStartTime) : null,
-        coords: l.legGeometry
-          ? (l.mode === 'WALK' ? streetLine : (c) => smooth(c, 3))(decodePolyline(l.legGeometry.points, l.legGeometry.precision || 6))
-          : []
-      }))
+      legs: raw.legs.map(mapLeg)
     };
     it.board = it.legs.find((l) => l.mode !== 'WALK') || null; // premier véhicule : arrêt et heure de départ
     if (!it.board) continue; // trajet entièrement à pied : l'onglet « À pied » s'en charge
