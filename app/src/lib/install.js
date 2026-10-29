@@ -28,8 +28,25 @@ if (typeof window !== 'undefined') {
   window.addEventListener('appinstalled', () => { deferred = null; listeners.forEach((f) => f()); });
 }
 export const onInstallChange = (f) => { listeners.add(f); return () => listeners.delete(f); };
-/** Comment installer ici : 'prompt' (fenêtre du téléphone), 'ios' (deux gestes à montrer) ou null (rien à proposer). */
-export const installWay = () => (isStandalone() ? null : deferred ? 'prompt' : isIos() ? 'ios' : null);
+/**
+ * Navigateur, d'après le nom qu'il annonce (vérifié en ligne le 29/10/2026, docs/installation-navigateurs.md) :
+ * 'ios' (Safari), 'ios-other' (Chrome, Firefox, Edge, DuckDuckGo… sur iPhone : Partager → Sur l'écran d'accueil),
+ * 'ios-brave' (Brave sur iPhone : ne sait pas encore ajouter d'app), 'firefox' (Android : menu → Installer, sans
+ * prévenir le site), 'elsewhere' (DuckDuckGo sur Android : pas d'installation connue) ou null. Pure, donc testable.
+ */
+export function browserOf(ua, { ios = false, brave = false } = {}) {
+  if (ios) {
+    if (brave) return 'ios-brave';
+    return /CriOS|FxiOS|EdgiOS|OPiOS|DuckDuckGo|Ddg\//.test(ua) ? 'ios-other' : 'ios';
+  }
+  if (!/Android/.test(ua)) return null;
+  if (/DuckDuckGo\//.test(ua)) return 'elsewhere';
+  if (/Firefox\//.test(ua) && !/Chrome\//.test(ua)) return 'firefox';
+  return null;
+}
+/** Comment installer ici : 'prompt' (fenêtre du téléphone), une des façons de browserOf, ou null (rien à proposer). */
+export const installWay = () => (isStandalone() ? null : deferred ? 'prompt'
+  : browserOf(navigator.userAgent, { ios: isIos(), brave: !!navigator.brave }));
 /** Ouvre la fenêtre d'installation du navigateur (Android). Renvoie true si la personne a accepté. */
 export async function promptInstall() {
   if (!deferred) return false;

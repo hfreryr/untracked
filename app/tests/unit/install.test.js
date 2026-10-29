@@ -26,3 +26,21 @@ test('signes d’usage : lieu, raccourci, geste (catégories, import, guidage) o
   assert.equal(isEngaged({ signs: { days: ['2026-10-26', '2026-10-27'] } }), false);
   assert.equal(isEngaged({ signs: { days: ['2026-10-26', '2026-10-27', '2026-10-28'] } }), true);
 });
+
+test('navigateur reconnu d’après son nom annoncé : la bonne façon d’installer (29/10)', async () => {
+  const { browserOf } = await import('../../src/lib/install.js');
+  const SAFARI = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1';
+  const CHROME_IOS = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/130.0.6723.90 Mobile/15E148 Safari/604.1';
+  const FIREFOX_IOS = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) FxiOS/132.0 Mobile/15E148 Safari/605.1.15';
+  const FIREFOX_ANDROID = 'Mozilla/5.0 (Android 14; Mobile; rv:132.0) Gecko/132.0 Firefox/132.0';
+  const DDG_ANDROID = 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/130.0.0.0 Mobile DuckDuckGo/5 Safari/537.36';
+  const CHROME_ANDROID = 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Mobile Safari/537.36';
+  assert.equal(browserOf(SAFARI, { ios: true }), 'ios');
+  assert.equal(browserOf(SAFARI, { ios: true, brave: true }), 'ios-brave');        // Brave sur iPhone se présente comme Safari
+  assert.equal(browserOf(CHROME_IOS, { ios: true }), 'ios-other');
+  assert.equal(browserOf(FIREFOX_IOS, { ios: true }), 'ios-other');
+  assert.equal(browserOf(FIREFOX_ANDROID), 'firefox');
+  assert.equal(browserOf(DDG_ANDROID), 'elsewhere');
+  assert.equal(browserOf(CHROME_ANDROID), null);         // Chrome : sa propre fenêtre d'installation (ou déjà installée)
+  assert.equal(browserOf('Mozilla/5.0 (Windows NT 10.0; Win64; x64) Firefox/132.0'), null);   // ordinateur : rien
+});
