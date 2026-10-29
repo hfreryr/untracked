@@ -889,6 +889,24 @@ z.close()`, zip]);
       await ctx.close();
     }
   },
+  async 'transports : autres passages d’une étape, trajet recalculé avec le passage choisi (29/10)'() {
+    const { p, ctx, errors } = await page({ geolocation: { latitude: 48.8867, longitude: 2.3431 } });
+    await p.fill('#search', 'Panthéon'); await p.waitForTimeout(3500); await pick(p); await p.waitForTimeout(2500);
+    await p.click('.action.primary'); await p.waitForTimeout(2000);
+    await p.click('.mode-tabs .mode-tab >> nth=2'); await p.waitForSelector('.t-opt', { timeout: 25000 });
+    await p.click('.t-opt >> nth=0'); await p.waitForSelector('.card.ride .deps', { timeout: 5000 });
+    await p.click('.card.ride .deps >> nth=0');
+    await p.waitForSelector('.pas li button', { timeout: 20000 });
+    const opts = await p.locator('.pas li button:not([disabled])').count();
+    assert(opts >= 1, `aucun autre passage proposé : ${await p.textContent('.pas')}`);
+    assert(await p.$('.pas li button.cur'), 'le passage du trajet n’est pas marqué');
+    const chosen = (await p.textContent('.pas li button:not([disabled]) >> nth=0 >> .t')).trim();
+    await p.click('.pas li button:not([disabled]) >> nth=0');
+    // le trajet est recalculé : la liste se recharge, avec le passage choisi marqué
+    await p.waitForFunction((t) => document.querySelector('.pas li button.cur .t')?.textContent.trim() === t, chosen, { timeout: 20000 });
+    assert(!errors.length, errors.join(' | '));
+    await ctx.close();
+  },
   async 'grand lieu : l’itinéraire vise l’accès le plus proche, marche jusqu’à 30 min (stade Maurice-Baquet)'() {
     const { p, ctx, errors } = await page({ geolocation: { latitude: 48.8826, longitude: 2.3497 } });
     // accès du stade tels que build_places.py les prépare (bord de la rue d'Arcueil), ajoutés à la tuile servie

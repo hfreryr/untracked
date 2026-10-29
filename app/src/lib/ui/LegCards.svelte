@@ -11,6 +11,7 @@
   import { legCards, nextDepartures } from '#lib/legcards.js';
   import ModeIcon from './ModeIcon.svelte';
   import Rame from './Rame.svelte';
+  import Passages from './Passages.svelte';
   import TraficIcon from './TraficIcon.svelte';
   import TraficDialog from './TraficDialog.svelte';
   import { alertSub } from '#lib/trafic.js';
@@ -81,15 +82,16 @@
         {#if (tf?.all.length || 0) > 2}
           <button class="more al-all" onclick={() => (traf = { alerts: tf.all, leg })}>{tx('trafic.autres_messages', { n: tf.all.length - 2 })}</button>
         {/if}
-        {#if deps?.length}
-          <p class="deps">
+        <!-- toucher l'horaire : les autres passages, et le trajet recalculé avec celui qu'on choisit (Passages.svelte) -->
+        <Passages {it} li={c.li} {now}>
+          {#if deps?.length}
             {#if it.board?.realTime}<span class="live" title={tx('itin.horaire_en_temps_reel')}>●</span>{/if}
             <span>{tx('itin.prochains_passages')}</span>
             <b class="mins">{tx('itin.dans_minutes', { mins: deps.join(', ') })}</b>
-          </p>
-        {:else}
-          <p class="deps"><span>{tx('itin.depart_a', { heure: fmtTime(leg.start) })}</span>{#if leg.realTime}<span class="live" title={tx('itin.horaire_en_temps_reel')}>●</span>{/if}</p>
-        {/if}
+          {:else}
+            <span>{tx('itin.depart_a', { heure: fmtTime(leg.start) })}</span>{#if leg.realTime}<span class="live" title={tx('itin.horaire_en_temps_reel')}>●</span>{/if}
+          {/if}
+        </Passages>
         {#if tip?.place}
           <div class="board">
             <span>{tx('itin.ou_monter')} <b>{WHERE[tip.place.where] || ''}</b></span>
