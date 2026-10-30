@@ -388,7 +388,7 @@ const tests = {
     // choix de la liste d'un lieu : fiche-fenêtre, fermée d'un glissement
     await p.fill('#search', 'Panthéon'); await p.waitForSelector('.results li.opt button', { timeout: 15000 }); await pick(p);
     await p.waitForSelector('.phead h1', { timeout: 15000 }); await p.waitForTimeout(800);
-    await p.click('.action.more'); await p.click('.pmenu button:has-text("Ajouter à une liste")'); await p.waitForSelector('section.sheet .new-list', { timeout: 5000 }); await p.waitForTimeout(500);
+    await p.click('.action.save'); await p.waitForSelector('section.sheet .new-list', { timeout: 5000 }); await p.waitForTimeout(500);
     await swipe('section.sheet', 260); await p.waitForTimeout(500);
     assert(!(await p.$('section.sheet .new-list')), 'glisser vers le bas ne ferme pas le choix de la liste');
     assert(!errors.length, errors.join(' | '));
@@ -560,12 +560,12 @@ const tests = {
     const { p, ctx, errors } = await page();
     await p.click('.chip:has-text("Restaurants")'); await p.waitForTimeout(6000);
     await p.click('.nearby li button >> nth=0'); await p.waitForTimeout(3000);
-    await p.click('.action.fav'); await p.waitForTimeout(500);                         // cœur : ajouté aux Favoris
-    await p.click('.action.more');                                                     // Plus
-    await p.click('.pmenu button:has-text("Enregistré dans")');
+    await p.click('.action.save'); await p.check('.pick-lists li:has-text("Favoris") input'); await p.click('.done'); await p.waitForTimeout(500);   // Enregistrer → Favoris
+    assert(await p.$('.action.save.on'), 'bouton non marqué « Enregistré »');
+    await p.click('.action.save');                                                     // Enregistré : les listes du lieu
     await p.waitForSelector('.pick-lists'); await p.uncheck('.pick-lists li:has-text("Favoris") input'); await p.waitForTimeout(400);
     await p.click('.done'); await p.waitForTimeout(500);
-    assert((await p.locator('.action.fav.on').count()) === 0, 'toujours enregistré');
+    assert((await p.locator('.action.save.on').count()) === 0, 'toujours enregistré');
     assert(!errors.length, errors.join(' | '));
     await ctx.close();
   },
@@ -614,7 +614,7 @@ const tests = {
     const { p, ctx, errors } = await page();
     await p.click('.chip:has-text("Restaurants")'); await p.waitForTimeout(6000);
     await p.click('.nearby li button >> nth=0'); await p.waitForTimeout(3000);
-    await p.click('.action.fav'); await p.waitForTimeout(500);
+    await p.click('.action.save'); await p.check('.pick-lists li:has-text("Favoris") input'); await p.click('.done'); await p.waitForTimeout(500);
     await p.click('.close'); await p.waitForTimeout(500);
     await p.click('.chip:has-text("Mes lieux")'); await p.waitForTimeout(1200);
     await p.click('.hub-lists > li > button:has-text("Favoris")'); await p.waitForTimeout(1200);
@@ -629,8 +629,8 @@ const tests = {
   async 'Mes lieux : favori, nouvelle liste, renommer, supprimer'() {
     const { p, ctx, errors } = await page();
     await p.fill('#search', "Ed's rue Muller"); await p.waitForSelector('.results li.opt button', { timeout: 20000 }); await pick(p); await p.waitForTimeout(3000);
-    await p.click('.action.fav');                                // cœur : ajouté aux Favoris
-    await p.waitForSelector('.toast'); assert(/Favoris/.test(await p.textContent('.toast')), 'pas de confirmation du favori');
+    await p.click('.action.save'); await p.check('.pick-lists li:has-text("Favoris") input'); await p.click('.done'); await p.waitForTimeout(500);   // Enregistrer → Favoris
+    assert(/Enregistré/.test(await p.textContent('.action.save')), 'pas de confirmation de l’enregistrement');
     await p.click('.close'); await p.waitForTimeout(500);
     await p.click('.chip:has-text("Mes lieux")'); await p.waitForTimeout(1200);
     await p.fill('.hub-lists .new-list input', 'Brunch'); await p.press('.hub-lists .new-list input', 'Enter'); await p.waitForTimeout(500);
@@ -1099,9 +1099,11 @@ z.close()`, zip]);
     // favori et « Plus » dans la rangée d'actions, plus de barre flottante (30/10/2026) ; les listes dans « Plus »
     await p.waitForSelector('.actions .action.more', { timeout: 10000 });
     assert(!(await p.$('.fab')), 'barre flottante encore présente');
-    assert(await p.$('.actions .action.fav'), 'bouton Favori absent de la rangée');
+    // « Enregistrer » ouvre le choix de la liste, Favoris en tête (P8, 30/10/2026)
+    await p.click('.action.save'); await p.waitForSelector('.pick-lists');
+    assert(/Favoris/.test(await p.textContent('.pick-lists li >> nth=0')), 'Favoris pas en tête du choix de liste');
+    await p.click('.done'); await p.waitForTimeout(400);
     await p.click('.action.more'); await p.waitForSelector('.pmenu');
-    assert(await p.$('.pmenu button:has-text("Ajouter à une liste")'), '« Ajouter à une liste » absent du menu Plus');
     await p.mouse.click(195, 200); await p.waitForTimeout(400);
     assert(!(await p.$('.pmenu')), 'le menu ⋯ reste ouvert après un toucher ailleurs');
     await ctx.close();

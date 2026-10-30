@@ -219,13 +219,7 @@
   // Liens vers OpenStreetMap : c'est l'utilisateur qui modifie, sur le site d'OSM (nous n'écrivons rien).
   const osmEditUrl = $derived(place?.osmType ? `https://www.openstreetmap.org/edit?${place.osmType}=${place.osmId}` : null);
   const osmNoteUrl = $derived(place ? `https://www.openstreetmap.org/note/new#map=19/${(+place.lat).toFixed(6)}/${(+place.lon).toFixed(6)}` : '');
-  const inFav = $derived(!!savedEntry?.lists?.includes('fav'));
   const isPinned = $derived(!!place && pins.includes(placeKey(place)));
-  function favTap() {
-    const was = inFav;
-    setMembership('fav', !was);
-    if (!was) say(tx('ecran.ajoute_a', { name: listOf('fav').name }), { label: tx('ecran.autre_liste'), run: () => (listPicker = true) });
-  }
   async function copyAddress() {
     placeMenu = false;
     try { await navigator.clipboard.writeText([title, address].filter(Boolean).join(', ')); say(tx('ecran.adresse_copiee')); } catch { /* refusé */ }
@@ -585,7 +579,7 @@
     get dist() { return dist; }, get doRestore() { return doRestore; }, get dragY() { return dragY; }, set dragY(v) { dragY = v; },
     get drawRoute() { return drawRoute; }, get syncBike() { return syncBike; }, get bikeOn() { return bikeOn; }, get editChips() { return editChips; }, set editChips(v) { editChips = v; },
     get editField() { return editField; }, get editing() { return editing; }, set editing(v) { editing = v; }, get endNav() { return endNav; },
-    get exits() { return exits; }, set exits(v) { exits = v; }, get famColor() { return famColor; }, get favTap() { return favTap; },
+    get exits() { return exits; }, set exits(v) { exits = v; }, get famColor() { return famColor; },
     get favorites() { return favorites; }, set favorites(v) { favorites = v; },
     get fieldEl() { return fieldEl; }, set fieldEl(v) { fieldEl = v; },
     get fieldQuery() { return fieldQuery; }, set fieldQuery(v) { fieldQuery = v; }, get fitTo() { return fitTo; },
@@ -595,7 +589,7 @@
     get gesture() { return gesture; }, set gesture(v) { gesture = v; }, get getPosition() { return getPosition; },
     get heading() { return heading; }, set heading(v) { heading = v; }, get hubPanel() { return hubPanel; }, set hubPanel(v) { hubPanel = v; },
     get importFile() { return importFile; }, get importOpen() { return importOpen; }, set importOpen(v) { importOpen = v; },
-    get importing() { return importing; }, set importing(v) { importing = v; }, get inFav() { return inFav; },
+    get importing() { return importing; }, set importing(v) { importing = v; },
     get incoming() { return incoming; }, set incoming(v) { incoming = v; }, get info() { return info; }, set info(v) { info = v; },
     get infoStrip() { return infoStrip; }, get innerH() { return innerH; }, set innerH(v) { innerH = v; },
     get isAddress() { return isAddress; }, get isFav() { return isFav; }, get isPinned() { return isPinned; },
