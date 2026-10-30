@@ -6,7 +6,7 @@
 //    à remplacer par notre propre instance avant tout lancement public.
 //
 // Ce qui est envoyé : le texte tapé et un point de référence (centre de la carte ou position), rien d'autre.
-import { covered, inFrance } from '#lib/searchscope.js';
+import { covered, hasPlaces, inFrance } from '#lib/searchscope.js';
 import { mergeAddresses, townAt, withTown } from '#lib/addressnear.js';
 import { tx } from '#lib/i18n/index.js';
 import { city } from './cities/index.js';
@@ -161,9 +161,16 @@ const sameAs = (a, b) => a.id === b.id || (Math.hypot((a.lon - b.lon) * 0.66, a.
  * onEarly(résultats) : appelé tout de suite avec les résultats du téléphone quand ils sont nets, sans attendre Photon.
  */
 async function findByName(query, at, signal, limit = 7, onEarly = null) {
-  // hors de la zone couverte : nos données n'ont rien d'ici, Photon cherche autour du point, sans cadre
-  if (!covered(at)) return byName(query, at, signal, limit, true);
   const intent = intentOf(query);
+  // hors de la zone couverte : pas d'index de recherche ; les types de lieux (« boulangerie ouverte ») viennent des tuiles
+  // s'il y en a ici (autres villes), les noms de Photon, autour du point, sans cadre
+  if (!covered(at)) {
+    if (intent && hasPlaces(at)) {
+      const r = await byIntent(intent, at, limit);
+      if (r.length) return r;
+    }
+    return byName(query, at, signal, limit, true);
+  }
   if (intent) {
     const r = await byIntent(intent, at, limit);
     if (r.length) return r;

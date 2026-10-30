@@ -29,7 +29,7 @@
         <svg class="lens" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" /><path d="M15.5 15.5 20 20" /></svg>
         <input id="search" type="search" placeholder={hint} aria-label={tx('recherche.rechercher_un_lieu_ou_une_adresse')}
           autocomplete="off" enterkeyhint="search" bind:value={app.query}
-          onfocus={() => { warmSearch(app.me || (app.map && { lat: app.map.getCenter().lat, lon: app.map.getCenter().lng })); app.focused = true; app.editChips = false; app.importOpen = false; app.showModes = false; app.closePlace(); app.clearCategory(); }} onblur={() => setTimeout(() => (app.focused = false), 150)} onkeydown={app.onKey} />
+          onfocus={() => { warmSearch(app.me || (app.map && { lat: app.map.getCenter().lat, lon: app.map.getCenter().lng })); app.focused = true; app.editChips = false; app.importOpen = false; app.showModes = false; app.closePlace(); app.clearCategory(); }} onblur={(e) => { const el = e.currentTarget; setTimeout(() => { if (document.activeElement !== el) app.focused = false; }, 150); }} onkeydown={app.onKey} />
         {#if app.query}
           <button class="icon-btn" onclick={app.clearSearch} aria-label={tx('recherche.effacer_la_recherche')}>
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10M17 7 7 17" /></svg>
