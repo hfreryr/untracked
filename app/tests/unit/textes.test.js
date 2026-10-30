@@ -26,6 +26,7 @@ const ALLOWED = {
   'lib/geocode.js': (s) => /^(Photon|Géoplateforme) /.test(s),   // message d'erreur technique (console)
   'lib/mapstyle.js': (s) => /sans-serif/.test(s),                // police de rendu des pictogrammes
   'lib/placeinfo.js': (s) => /^(File|Category):$/.test(s),      // préfixes de l'API Wikimedia Commons
+  'lib/mangrove.js': (s) => /PUBLIC KEY-----/.test(s),            // en-tête de clé publique (format PEM)
 };
 
 const CODE = /[|=&{}]|\.json\b|\b(rotate|translate\w*|scale)\(|cubic-bezier|ease-in|^Inter |^UntrackedMaps|^Europe\/|^Île-de-France$/;

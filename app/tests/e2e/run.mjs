@@ -142,10 +142,37 @@ const tests = {
     assert(/\d+ avis/.test(rev) && /★/.test(rev), `section Avis absente : ${rev}`);
     assert(/Mangrove/.test(rev) && /CC BY 4\.0/.test(rev), 'source ou licence des avis absente');
     await ctx.close();
-    // Panthéon : pas d'avis, pas de section vide
+    // Panthéon : pas d'avis, seulement l'invitation à en écrire un (ni liste vide, ni source)
     ({ p, ctx, errors } = await page({}, '#carte=18/48.846219/2.346008&lieu=way/16407465'));
     await p.waitForSelector('.sheet h1', { timeout: 15000 }); await p.waitForTimeout(2000);
-    assert(!(await p.$('.rev')), 'section Avis vide affichée');
+    assert(!(await p.$('.rev li')) && !(await p.$('.rev .src')), 'avis ou source affichés sans avis');
+    assert(!errors.length, errors.join(' | '));
+    await ctx.close();
+  },
+  async 'écrire un avis : une étoile ouvre la fenêtre, pseudo « Générer », publié directement chez Mangrove, gardé sur le téléphone'() {
+    let { p, ctx, errors } = await page({}, '#carte=18/48.846219/2.346008&lieu=way/16407465');
+    await p.waitForSelector('.sheet h1', { timeout: 15000 }); await p.waitForTimeout(1500);
+    assert(/Soyez le premier/.test(await p.$eval('.rev', (e) => e.innerText)), 'invitation au premier avis absente');
+    await ctx.close();
+    ({ p, ctx, errors } = await page({}, '#carte=18/48.861574/2.370638&lieu=node/3194013327'));
+    const sent = [];
+    await ctx.route('https://api.mangrove.reviews/**', (r) => { sent.push(r.request()); r.fulfill({ status: 200, body: 'true' }); });
+    await p.waitForSelector('.rev .rate', { timeout: 15000 });
+    await p.click('.rev .rate .star >> nth=3');                                     // 4 étoiles
+    await p.waitForSelector('.dlg #rev-text');
+    assert((await p.locator('.dlg .star.on').count()) === 4, 'la note touchée n’est pas reprise');
+    await p.click('.dlg .gen');
+    assert(/ (du|des|de la) /.test(await p.inputValue('#rev-nick')), 'pseudo non généré');
+    await p.fill('#rev-text', 'Très bon, un peu cher.');
+    await p.click('.dlg .go'); await p.waitForSelector('.dlg', { state: 'detached', timeout: 10000 });
+    assert(sent.length === 1 && sent[0].method() === 'PUT' && /\/submit\//.test(sent[0].url()), 'avis non envoyé à Mangrove');
+    const payload = JSON.parse(Buffer.from(sent[0].url().split('/submit/')[1].split('.')[1], 'base64url').toString());
+    assert(payload.rating === 80 && payload.opinion === 'Très bon, un peu cher.' && payload.metadata.osm_id === 'node/3194013327', `contenu inattendu : ${JSON.stringify(payload)}`);
+    assert(/Merci/.test(await p.textContent('.toast')), 'pas de remerciement');
+    const rev = await p.$eval('.rev', (e) => e.innerText);
+    assert(/Votre avis/.test(rev) && /Modifier/.test(rev) && /un peu cher/.test(rev), `mon avis non affiché : ${rev.slice(0, 200)}`);
+    await p.reload({ waitUntil: 'networkidle' }); await p.waitForSelector('.rev', { timeout: 15000 });
+    assert(/Votre avis/.test(await p.$eval('.rev', (e) => e.innerText)), 'mon avis oublié au rechargement');
     assert(!errors.length, errors.join(' | '));
     await ctx.close();
   },
@@ -361,7 +388,7 @@ const tests = {
     // choix de la liste d'un lieu : fiche-fenêtre, fermée d'un glissement
     await p.fill('#search', 'Panthéon'); await p.waitForSelector('.results li.opt button', { timeout: 15000 }); await pick(p);
     await p.waitForSelector('.phead h1', { timeout: 15000 }); await p.waitForTimeout(800);
-    await p.click('.fab button >> nth=1'); await p.waitForSelector('section.sheet .new-list', { timeout: 5000 }); await p.waitForTimeout(500);
+    await p.click('.action.more'); await p.click('.pmenu button:has-text("Ajouter à une liste")'); await p.waitForSelector('section.sheet .new-list', { timeout: 5000 }); await p.waitForTimeout(500);
     await swipe('section.sheet', 260); await p.waitForTimeout(500);
     assert(!(await p.$('section.sheet .new-list')), 'glisser vers le bas ne ferme pas le choix de la liste');
     assert(!errors.length, errors.join(' | '));
@@ -533,12 +560,12 @@ const tests = {
     const { p, ctx, errors } = await page();
     await p.click('.chip:has-text("Restaurants")'); await p.waitForTimeout(6000);
     await p.click('.nearby li button >> nth=0'); await p.waitForTimeout(3000);
-    await p.click('.fab button >> nth=0'); await p.waitForTimeout(500);              // cœur : ajouté aux Favoris
-    await p.click('.fab button >> nth=2');                                           // ⋯
+    await p.click('.action.fav'); await p.waitForTimeout(500);                         // cœur : ajouté aux Favoris
+    await p.click('.action.more');                                                     // Plus
     await p.click('.pmenu button:has-text("Enregistré dans")');
     await p.waitForSelector('.pick-lists'); await p.uncheck('.pick-lists li:has-text("Favoris") input'); await p.waitForTimeout(400);
     await p.click('.done'); await p.waitForTimeout(500);
-    assert((await p.locator('.fab button.on').count()) === 0, 'toujours enregistré');
+    assert((await p.locator('.action.fav.on').count()) === 0, 'toujours enregistré');
     assert(!errors.length, errors.join(' | '));
     await ctx.close();
   },
@@ -587,7 +614,7 @@ const tests = {
     const { p, ctx, errors } = await page();
     await p.click('.chip:has-text("Restaurants")'); await p.waitForTimeout(6000);
     await p.click('.nearby li button >> nth=0'); await p.waitForTimeout(3000);
-    await p.click('.fab button >> nth=0'); await p.waitForTimeout(500);
+    await p.click('.action.fav'); await p.waitForTimeout(500);
     await p.click('.close'); await p.waitForTimeout(500);
     await p.click('.chip:has-text("Mes lieux")'); await p.waitForTimeout(1200);
     await p.click('.hub-lists > li > button:has-text("Favoris")'); await p.waitForTimeout(1200);
@@ -602,7 +629,7 @@ const tests = {
   async 'Mes lieux : favori, nouvelle liste, renommer, supprimer'() {
     const { p, ctx, errors } = await page();
     await p.fill('#search', "Ed's rue Muller"); await p.waitForSelector('.results li.opt button', { timeout: 20000 }); await pick(p); await p.waitForTimeout(3000);
-    await p.click('.fab button >> nth=0');                       // cœur : ajouté aux Favoris
+    await p.click('.action.fav');                                // cœur : ajouté aux Favoris
     await p.waitForSelector('.toast'); assert(/Favoris/.test(await p.textContent('.toast')), 'pas de confirmation du favori');
     await p.click('.close'); await p.waitForTimeout(500);
     await p.click('.chip:has-text("Mes lieux")'); await p.waitForTimeout(1200);
@@ -631,7 +658,7 @@ const tests = {
   async 'Maison et raccourcis personnalisés'() {
     const { p, ctx, errors } = await page();
     await p.fill('#search', "Ed's rue Muller"); await p.waitForSelector('.results li.opt button', { timeout: 20000 }); await pick(p); await p.waitForTimeout(3000);
-    await p.click('.fab button[aria-label="Plus d\'options"]');
+    await p.click('.action.more');
     await p.click('.pmenu button:has-text("Définir comme Maison")'); await p.waitForTimeout(500);
     assert(/Maison enregistré/.test(await p.textContent('.toast')), 'Maison non enregistrée');
     await p.click('.close'); await p.waitForTimeout(500);
@@ -1069,9 +1096,12 @@ z.close()`, zip]);
     await ctx.close();
     ({ p, ctx } = await page());
     await p.fill('#search', 'Panthéon'); await p.waitForSelector('.results li.opt button', { timeout: 15000 }); await pick(p);
-    await p.waitForSelector('.fab', { timeout: 10000 });
-    assert(await p.$('.fab button[aria-label="Ajouter à une liste"] svg path[d^="M7.5 4h9"]'), 'icône signet absente');
-    await p.click('.fab button[aria-label="Plus d\'options"]'); await p.waitForSelector('.pmenu');
+    // favori et « Plus » dans la rangée d'actions, plus de barre flottante (30/10/2026) ; les listes dans « Plus »
+    await p.waitForSelector('.actions .action.more', { timeout: 10000 });
+    assert(!(await p.$('.fab')), 'barre flottante encore présente');
+    assert(await p.$('.actions .action.fav'), 'bouton Favori absent de la rangée');
+    await p.click('.action.more'); await p.waitForSelector('.pmenu');
+    assert(await p.$('.pmenu button:has-text("Ajouter à une liste")'), '« Ajouter à une liste » absent du menu Plus');
     await p.mouse.click(195, 200); await p.waitForTimeout(400);
     assert(!(await p.$('.pmenu')), 'le menu ⋯ reste ouvert après un toucher ailleurs');
     await ctx.close();
@@ -1230,7 +1260,7 @@ z.close()`, zip]);
     });
     // 1. menu « ⋯ » d'une fiche, fiche à mi-hauteur (bug du 16/10 : première ligne rognée par la fiche)
     await p.fill('#search', 'Panthéon'); await p.waitForSelector('.results li.opt button', { timeout: 15000 }); await pick(p);
-    await p.waitForSelector('.fab', { timeout: 10000 }); await p.waitForTimeout(800);
+    await p.waitForSelector('.action.more', { timeout: 10000 }); await p.waitForTimeout(800);
     const more = 'button[aria-label="Plus d\'options"]';
     await p.click(more); await p.waitForSelector('.pmenu');
     assert((await visibleWhole('.pmenu')) === 'ok', `menu ⋯ : ${await visibleWhole('.pmenu')}`);
