@@ -8,7 +8,7 @@ charge les 1 à 4 tuiles autour de la vue et y lit tout (horaires, téléphone, 
 Entrée : un extrait OSM (ex. https://download.openstreetmap.fr/extracts/europe/france/ile_de_france/paris-latest.osm.pbf,
          mis à jour chaque nuit).
 Sortie : static/data/places/14/{x}/{y}.json  (zoom 14 ≈ 2,4 km de côté à Paris)
-         static/data/places/index.json      (tuiles disponibles, date de l'extrait)
+         static/data/places/index.json      (tuiles disponibles, nombre de lieux, date de l'extrait)
 
 Format d'une tuile : {"v":1,"t":[[id, lon, lat, {tags}, devanture?], …]}
   Grands lieux (stade, parc, hôpital… plus de 150 m de diagonale) : leurs accès dans l'étiquette "_acc" ([[lon, lat], …]),
@@ -302,7 +302,7 @@ def main():
         sizes.append(len(s))
     index = {
         "v": 1, "zoom": args.zoom, "built": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-        "source": os.path.basename(args.pbf), "tiles": sorted(f"{x}/{y}" for x, y in h.tiles),
+        "source": os.path.basename(args.pbf), "count": h.count, "tiles": sorted(f"{x}/{y}" for x, y in h.tiles),
     }
     (out / "index.json").write_text(json.dumps(index, separators=(",", ":")))
     print(f"{na} grands lieux avec accès (sur {len(h.big)}) ; {nf} devantures ; {ne} lieux complétés hors OSM ; {nr} rues proches ; " + f"{h.count} lieux dans {len(h.tiles)} tuiles (zoom {args.zoom}), {sum(sizes)/1e6:.1f} Mo bruts, "

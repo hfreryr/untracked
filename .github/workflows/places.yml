@@ -52,6 +52,9 @@ jobs:
         name: "Garde-fou : si l'extrait paraît tronqué ou vide, on ne publie pas"
         run: python -c "import json,sys; i=json.load(open('out/places/index.json')); n=len(i['tiles']); print(n,'tuiles'); sys.exit(0 if n >= 2000 else 1)"
       - if: steps.fresh.outputs.skip != 'true'
+        name: "Garde-fou : pas de publication si les lieux ou les tuiles baissent de plus de 10 % par rapport à la version en ligne"
+        run: python app/scripts/check_publish.py out/places/index.json
+      - if: steps.fresh.outputs.skip != 'true'
         name: Publier dans gh-pages/data/places
         run: |
           git fetch --depth=1 origin gh-pages

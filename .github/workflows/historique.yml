@@ -1,0 +1,31 @@
+# Historique du site limité : chaque dimanche, les publications de plus de 7 jours (branche gh-pages) sont regroupées
+# en une seule. Le dépôt ne grossit plus à chaque nuit, et on peut toujours revenir à une publication des 7 derniers
+# jours (restore.yml). Voir app/scripts/prune_history.sh.
+name: Historique du site (ménage hebdomadaire)
+on:
+  schedule:
+    - cron: '20 11 * * 0'
+  workflow_dispatch:
+concurrency:
+  group: places          # jamais en même temps que la publication de nuit
+  cancel-in-progress: false
+permissions:
+  contents: write
+jobs:
+  prune:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+        with: { ref: main, path: main }
+      - name: Regrouper les publications de plus de 7 jours
+        run: |
+          git clone -q --single-branch --branch gh-pages "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" site
+          cd site
+          old=$(git rev-parse HEAD)
+          echo "avant : $(git rev-list --count HEAD) publications"
+          new=$(bash ../main/app/scripts/prune_history.sh HEAD 7)
+          [ -n "$new" ] || exit 0
+          [ "$(git rev-parse "$new^{tree}")" = "$(git rev-parse "$old^{tree}")" ] || { echo "contenu différent : abandon"; exit 1; }
+          echo "après : $(git rev-list --count "$new") publications"
+          # refusé si une publication est arrivée entre-temps (elle n'est jamais écrasée)
+          git push --force-with-lease=gh-pages:"$old" origin "$new:gh-pages"
