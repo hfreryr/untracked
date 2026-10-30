@@ -26,7 +26,9 @@ export const C = {
   label: '#2E3135',
   labelSoft: '#7C8187',
   roadLabel: '#6A6E73',
-  halo: '#FFFFFF'
+  halo: '#FFFFFF',
+  landFar: '#F7F3E6',       // terre en vue large
+  border: '#A58BB8'         // frontières (violet doux, distinct des routes et de l'eau)
 };
 
 export const FONT = {
@@ -152,6 +154,7 @@ const DARK = {
   '#4A84B5': '#7DB0DA', '#8C9096': '#9AA0A6', '#6A6E73': '#A3A8AE', '#5F656C': '#AEB3B9',
   '#2B4793': '#9DB2F2', '#7C8187': '#8A9097', '#2E3135': '#E6E8EB', '#A2A6AB': '#6F757C',
   '#62666C': '#B0B5BB',
+  '#F7F3E6': '#2C343A', '#A58BB8': '#9C88C9',     // terre en vue large (gris-vert, détachée de la mer), frontières
   // noms des lieux, par famille
   '#B55A25': '#F0A06A', '#3352A8': '#8FA8F0', '#3253AA': '#8FA8F0', '#0E717B': '#5FC6D0', '#0E7681': '#5FC6D0',
   '#306F40': '#7CC48D', '#2F6E3F': '#7CC48D', '#A83A36': '#F08A85', '#A8392F': '#F08A85', '#78427D': '#D29AD6'
@@ -193,7 +196,8 @@ function lightStyle(base) {
         attribution: '<a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a> © <a href="https://www.openmaptiles.org/" target="_blank" rel="noopener">OpenMapTiles</a> © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">contributeurs OpenStreetMap</a>' }
     },
     layers: [
-      { id: 'land', type: 'background', paint: { 'background-color': C.land } },
+      // vue large (pays, région) : terre un peu plus claire pour bien la détacher de la mer, comme Plans (porteur, 30/10/2026)
+      { id: 'land', type: 'background', paint: { 'background-color': ['interpolate', ['linear'], ['zoom'], 7, C.landFar, 10, C.land] } },
       { id: 'landuse-alt', type: 'fill', source: 'omt', 'source-layer': 'landuse', minzoom: 12,
         filter: ['match', ['get', 'class'], ['commercial', 'retail', 'hospital', 'school', 'university', 'college', 'railway'], true, false],
         paint: { 'fill-color': C.landAlt } },
@@ -225,12 +229,21 @@ function lightStyle(base) {
         paint: { 'line-color': C.path, 'line-width': zoom([16, 0.8, 19, 2]), 'line-dasharray': [2.5, 2] } },
       // rues grises à tous les zooms, sans liseré (comme Plans)
       ...roadPair('road-minor', ['minor', 'service'], { color: C.road, casing: C.roadCase, widths: [12, 0.4, 14, 1.6, 16, 6, 19, 22], caseFade: [14, 15] }),
-      ...roadPair('road-mid', ['tertiary', 'secondary'], { color: C.road, casing: C.majorCase, widths: [10, 0.6, 14, 3.2, 16, 9, 19, 30] }),
-      ...roadPair('road-major', ['primary', 'trunk'], { color: C.road, casing: C.majorCase, widths: [8, 0.8, 14, 4.6, 16, 12, 19, 36] }),
-      ...roadPair('road-highway', ['motorway'], { color: C.highway, casing: C.highwayCase, widths: [6, 0.8, 14, 5.5, 16, 13, 19, 38] }),
+      // vue large : seules les grandes routes, fines (sinon un écheveau illisible, 30/10/2026)
+      ...roadPair('road-mid', ['tertiary', 'secondary'], { color: C.road, casing: C.majorCase, widths: [10, 0.6, 14, 3.2, 16, 9, 19, 30], minzoom: 9 }),
+      ...roadPair('road-major', ['primary', 'trunk'], { color: C.road, casing: C.majorCase, widths: [8, 0.6, 14, 4.6, 16, 12, 19, 36], minzoom: 7.5, caseFade: [9, 11] }),
+      ...roadPair('road-highway', ['motorway'], { color: C.highway, casing: C.highwayCase, widths: [5, 0.7, 8, 1.2, 14, 5.5, 16, 13, 19, 38], caseFade: [8, 10] }),
       { id: 'rail', type: 'line', source: 'omt', 'source-layer': 'transportation', minzoom: 12,
         filter: ['all', ['==', ['get', 'class'], 'rail'], ['!=', ['get', 'brunnel'], 'tunnel']],
         paint: { 'line-color': C.rail, 'line-width': zoom([12, 0.8, 18, 2.5]) } },
+      // frontières : pays toujours visibles, régions en vue large (pas les limites en mer), comme Plans (30/10/2026)
+      { id: 'boundary-region', type: 'line', source: 'omt', 'source-layer': 'boundary', minzoom: 5, maxzoom: 11,
+        filter: ['all', ['==', ['get', 'admin_level'], 4], ['!=', ['get', 'maritime'], 1]],
+        paint: { 'line-color': C.border, 'line-width': zoom([5, 0.6, 10, 1]), 'line-dasharray': [3, 2], 'line-opacity': 0.55 } },
+      { id: 'boundary-country', type: 'line', source: 'omt', 'source-layer': 'boundary',
+        filter: ['all', ['==', ['get', 'admin_level'], 2], ['!=', ['get', 'maritime'], 1]],
+        layout: { 'line-join': 'round' },
+        paint: { 'line-color': C.border, 'line-width': zoom([3, 0.8, 7, 1.6, 12, 2.4]), 'line-opacity': 0.9 } },
       { id: 'boundary-city', type: 'line', source: 'omt', 'source-layer': 'boundary', maxzoom: 13,
         filter: ['==', ['get', 'admin_level'], 8],
         paint: { 'line-color': '#C9C3BA', 'line-width': 1, 'line-dasharray': [3, 2] } },
