@@ -27,6 +27,7 @@
     [tx('apropos.n_annuaire'), tx('apropos.s_annuaire'), 'https://lannuaire.service-public.fr'],
     [tx('apropos.sites_des_lieux'), tx('apropos.s_sites'), ''],
     [tx('apropos.n_photos'), tx('apropos.s_photos'), 'https://panoramax.fr'],
+    [tx('apropos.n_mangrove'), tx('apropos.s_mangrove'), 'https://mangrove.reviews/terms'],
     [tx('apropos.n_qrank'), tx('apropos.s_qrank'), 'https://qrank.toolforge.org']
   ];
   const SERVICES = [
