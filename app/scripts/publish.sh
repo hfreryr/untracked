@@ -22,6 +22,7 @@ git ls-files -z | grep -z -v -E '^data/places/|^data/zones/|^data/bikes/|^data/b
   mkdir -p "$(dirname "$f")"; cp "$ROOT/app/build/$f" "$f"
 done
 touch .nojekyll
+bash "$ROOT/app/scripts/site_budget.sh" .
 git add -A
 git commit -q -m "$MSG" || { echo "rien à publier"; exit 0; }
 git push -q origin HEAD:gh-pages

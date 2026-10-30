@@ -67,6 +67,7 @@ jobs:
           if python -c "import json,sys; n=len(json.load(open('out/bikes.geojson'))['features']); print(n,'voies cyclables à Paris'); sys.exit(0 if n >= 5000 else 1)"; then
             rm -rf pages/data/bikes && cp -r out/bikes pages/data/bikes && cp out/bikes.geojson pages/data/bikes.geojson
           else echo "réseau cyclable non publié"; fi
+          bash app/scripts/site_budget.sh pages   # plafond de poids du site (700 Mo), voir docs/villes.md
           cd pages && git add -A data/places && { [ ! -d data/bikes ] || git add -A data/bikes data/bikes.geojson; }
           git -c user.name=untracked-bot -c user.email=bot@untrackedmaps.app commit -qm "Lieux par tuile et réseau cyclable : extrait OSM du $(date -u +%F)" || exit 0
           git push origin HEAD:gh-pages
