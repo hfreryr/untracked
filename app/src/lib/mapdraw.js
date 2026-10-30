@@ -10,6 +10,7 @@ import { roundCorners } from '#lib/roundline.js';
 import { createBikeTiles } from '#lib/biketiles.js';
 import { typeLabel } from '#lib/places.js';
 import { setSatellite } from '#lib/satellite.js';
+import { loadTransitLines } from '#lib/transitlines.js';
 
 /** @param {any} app */
 export function createMapDraw(app) {
@@ -130,7 +131,7 @@ export function createMapDraw(app) {
   const transitLoaded = new WeakSet();      // sources déjà remplies (un nouveau style en crée une neuve, vide)
   function showTransitLines(on) {
     const src = app.map.getSource('transit');
-    if (on && src && !transitLoaded.has(src)) { src.setData(new URL('data/transit-lines.geojson', location.href).href); transitLoaded.add(src); }
+    if (on && src && !transitLoaded.has(src)) { transitLoaded.add(src); loadTransitLines().then((d) => src.setData(d)); }
     for (const id of ['transit-case', 'transit-line', 'transit-label']) app.map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none');
   }
   function setMapMode(m) {
