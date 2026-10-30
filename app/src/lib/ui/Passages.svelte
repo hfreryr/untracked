@@ -27,6 +27,8 @@
 
 <button class="deps" aria-expanded={open} onclick={() => (open = !open)} aria-label={open ? tx('itin.masquer_passages') : tx('itin.autres_passages')}>
   {@render children()}
+  <!-- libellé visible (P8, 30/10 : sans lui, l'horaire ne paraissait pas touchable) -->
+  <span class="more">{open ? tx('itin.masquer') : tx('itin.autres_departs')}</span>
   <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5" /></svg>
 </button>
 {#if open}
@@ -63,7 +65,8 @@
   .deps :global(.mins) { color: var(--open); font-weight: 700; margin-left: auto; }
   .deps :global(.live), .live { color: var(--open); font-size: 10px; }
   .chev { width: 16px; height: 16px; flex: none; fill: none; stroke: var(--accent); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; transition: transform 0.2s; }
-  .deps:not(:has(:global(.mins))) .chev { margin-left: auto; }
+  .more { margin-left: 8px; color: var(--accent); font-weight: 600; white-space: nowrap; }
+  .deps:not(:has(:global(.mins))) .more { margin-left: auto; }
   .deps[aria-expanded='true'] .chev { transform: rotate(180deg); }
   .pas { margin: 4px 0 0 40px; }
   ul { list-style: none; margin: 0; padding: 0; }

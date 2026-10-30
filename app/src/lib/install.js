@@ -37,7 +37,7 @@ export const onInstallChange = (f) => { listeners.add(f); return () => listeners
 export function browserOf(ua, { ios = false, brave = false } = {}) {
   if (ios) {
     if (brave) return 'ios-brave';
-    return /CriOS|FxiOS|EdgiOS|OPiOS|DuckDuckGo|Ddg\//.test(ua) ? 'ios-other' : 'ios';
+    return /CriOS|FxiOS|EdgiOS|OPiOS|DuckDuckGo|Ddg\/|Ecosia/i.test(ua) ? 'ios-other' : 'ios';
   }
   if (!/Android/.test(ua)) return null;
   if (/DuckDuckGo\//.test(ua)) return 'elsewhere';

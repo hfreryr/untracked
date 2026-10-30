@@ -1,6 +1,7 @@
 <!-- Fiche itinéraire : modes en onglets, résumé de l'itinéraire choisi (ce que montre l'aperçu),
      puis étapes et autres itinéraires en tirant la fiche. Modèle : Google Maps et Plans (voir docs/espace-ecran.md). -->
 <script>
+  import { covered } from '#lib/searchscope.js';
   import { tx } from '#lib/i18n/index.js';
   import { tripFare, fmtEuros } from '#lib/fares.js';
   import { draggable } from '#lib/sheet.js';
@@ -51,7 +52,7 @@
   {#if mode === 'transit' && setTransitPref && !app.transitDetail}
     <!-- chaque mode se retire d'un toucher (P4 : « seulement le métro » ; P5 : « je ne veux pas prendre le bus ») -->
     <div class="t-prefs" role="group" aria-label={tx('itin.modes_de_transport')}>
-      {#each [['metro', tx('itin.metro')], ['rail', tx('itin.rer_et_train')], ['tram', tx('itin.tram')], ['bus', tx('itin.bus')]] as [id, label]}
+      {#each [['metro', tx('itin.metro')], ['rail', app.to && !covered(app.to) ? tx('ecran.train') : tx('itin.rer_et_train')], ['tram', tx('itin.tram')], ['bus', tx('itin.bus')]] as [id, label]}
         <button class="t-pref" class:on={transitPref.includes(id)} aria-pressed={transitPref.includes(id)} onclick={() => setTransitPref(id)}>
           {#if transitPref.includes(id)}<svg class="tick" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5" /></svg>{/if}{label}
         </button>

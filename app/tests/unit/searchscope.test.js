@@ -14,3 +14,10 @@ test('géocodeur d’adresses de l’État : France seulement', () => {
   assert.equal(inFrance({ lat: 43.7, lon: 7.27 }), true);      // Nice
   assert.equal(inFrance({ lat: 52.37, lon: 4.89 }), false);    // Amsterdam
 });
+
+test('« RER » seulement en Île-de-France ; ailleurs, un train (P8 à Amsterdam)', async () => {
+  const { modeHere } = await import('#lib/routing.js');
+  assert.equal(modeHere('SUBURBAN', { lat: 48.85, lon: 2.35 }), 'SUBURBAN');
+  assert.equal(modeHere('REGIONAL_RAIL', { lat: 52.37, lon: 4.9 }), 'RAIL');
+  assert.equal(modeHere('TRAM', { lat: 52.37, lon: 4.9 }), 'TRAM');
+});

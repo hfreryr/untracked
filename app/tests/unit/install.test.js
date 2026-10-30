@@ -39,6 +39,7 @@ test('navigateur reconnu d’après son nom annoncé : la bonne façon d’insta
   assert.equal(browserOf(SAFARI, { ios: true, brave: true }), 'ios-brave');        // Brave sur iPhone se présente comme Safari
   assert.equal(browserOf(CHROME_IOS, { ios: true }), 'ios-other');
   assert.equal(browserOf(FIREFOX_IOS, { ios: true }), 'ios-other');
+  assert.equal(browserOf(SAFARI.replace('Safari/604.1', 'Ecosia ios@11.4.0 Safari/604.1'), { ios: true }), 'ios-other');   // P8 (30/10)
   assert.equal(browserOf(FIREFOX_ANDROID), 'firefox');
   assert.equal(browserOf(DDG_ANDROID), 'elsewhere');
   assert.equal(browserOf(CHROME_ANDROID), null);         // Chrome : sa propre fenêtre d'installation (ou déjà installée)
