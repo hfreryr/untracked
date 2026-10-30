@@ -421,6 +421,7 @@ def main():
     ap.add_argument("--overture-release", help="version d'Overture (par défaut : la plus récente)")
     ap.add_argument("--qrank", help="qrank.csv.gz déjà téléchargé (sinon : le plus récent)")
     ap.add_argument("--atp", help="archive output.zip d'All The Places déjà téléchargée (sinon : la plus récente)")
+    ap.add_argument("--no-paris", action="store_true", help="sans les horaires de la Ville de Paris (autres villes : places-zones.yml)")
     args = ap.parse_args()
     t0 = time.time()
 
@@ -490,7 +491,7 @@ def main():
 
     today = time.strftime("%Y-%m-%d")
     try:
-        prows = paris_rows(paris_records(), today)
+        prows = [] if args.no_paris else paris_rows(paris_records(), today)
     except Exception as e:  # une source en panne ne bloque pas les autres
         print("Ville de Paris ignorée :", e, file=sys.stderr)
         prows = []

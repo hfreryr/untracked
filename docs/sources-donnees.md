@@ -31,6 +31,7 @@ Mesures faites sur l'extrait OSM de Paris (73 441 lieux nommés), scripts dans `
 
 - **Horaires** : ≈ 1 500 à 1 900 lieux de plus, dont ≈ 800 à 1 200 restos et cafés. Ça réduit le manque, ça ne le comble pas : **aucune source ouverte ne couvre les restaurants indépendants**.
 - **Sites et téléphones** : la plus grosse avancée (≈ 15 000 à 17 000 lieux), et la condition pour aller lire les horaires sur les sites.
+- **Lyon (30/10/2026, Overture 2026-10-21.0)** : mêmes sources qu'à Paris, sauf la Ville de Paris (`build_extras.py --no-paris`, tâche hebdomadaire `places-zones.yml`). Sur l'extrait du Rhône : 2 660 sites, 3 767 téléphones et 7 703 adresses Overture ; 201 sites, 279 téléphones et 102 horaires All The Places ; **7 387 lieux complétés** dans le cadre de l'agglomération, en 10 min. Lieux absents d'OSM : échantillon de 12 restaurants « absents » contrôlé à l'œil, la moitié existent sous un autre nom (« Kfc Lyon République » / « KFC ») ; pas d'affichage pour l'instant.
 - **Lieux absents d'OSM** : Overture compte 6 261 restos et cafés (confiance ≥ 0,8) sans correspondance dans OSM. Chiffre **non fiable** en l'état (variantes de nom, lieux fermés) : à contrôler sur un échantillon avant toute idée d'affichage.
 
 ## Règles qui ne bougent pas

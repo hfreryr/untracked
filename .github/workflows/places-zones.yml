@@ -3,6 +3,7 @@
 # (porteur, 30/10/2026 : plus de villes, mises à jour moins fréquentes, sobriété).
 # Extrait du département (openstreetmap.fr, somme de contrôle vérifiée), réduit au cadre de l'agglomération,
 # publié dans data/zones/<ville>/places/ du site, sans toucher au reste. Même garde-fou que la nuit (-10 %).
+# Avec les avis Mangrove et les compléments hors OSM (Overture, All The Places, annuaire), source affichée dans la fiche.
 name: Lieux des autres villes (hebdomadaire)
 on:
   schedule:
@@ -42,7 +43,7 @@ jobs:
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
         with: { python-version: '3.12' }
       - if: steps.due.outputs.zones != ''
-        run: pip install osmium==4.3.1
+        run: pip install osmium==4.3.1 duckdb==1.5.6
       - if: steps.due.outputs.zones != ''
         name: Construire, contrôler et publier
         env:
@@ -56,7 +57,11 @@ jobs:
             echo "::group::$id"
             IDF_SOURCES="https://download.openstreetmap.fr/extracts/europe/france/$extract.osm.pbf" bash app/scripts/fetch_idf.sh "$id.osm.pbf"
             python app/scripts/fetch_reviews.py --bbox "$bbox" --out "$id-reviews.json" || echo '[]' > "$id-reviews.json"
-            python app/scripts/build_places.py "$id.osm.pbf" --out "out/$id" --bbox "$bbox" --reviews "$id-reviews.json"
+            # compléments hors OSM (sites, téléphones, adresses, horaires d'enseignes) : Overture, All The Places, annuaire de
+            # l'administration, comme à Paris (build_extras.py) ; All The Places téléchargé une seule fois par passage
+            python app/scripts/build_extras.py "$id.osm.pbf" --out "$id-extras.json" --no-paris $([ -f atp.zip ] && echo --atp atp.zip) \
+              || echo '{"places":{}}' > "$id-extras.json"
+            python app/scripts/build_places.py "$id.osm.pbf" --out "out/$id" --bbox "$bbox" --reviews "$id-reviews.json" --extras "$id-extras.json"
             if python app/scripts/check_publish.py "out/$id/index.json" "https://untrackedmaps.app/data/zones/$id/places/index.json"; then
               rm -rf "pages/data/zones/$id/places" && mkdir -p "pages/data/zones/$id" && cp -r "out/$id" "pages/data/zones/$id/places"
             else
