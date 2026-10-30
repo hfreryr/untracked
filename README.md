@@ -27,7 +27,9 @@ Détails techniques et sources de données : [`app/README.md`](app/README.md).
 ## Deux chantiers
 
 ### 1. 🗺️ L'app (`app/`)
-SvelteKit + MapLibre, site statique. Fond de carte OpenFreeMap, recherche sur le téléphone (index préparé chaque nuit, voir `docs/recherche.md`) complétée par Photon, détails des lieux via Overpass, itinéraires Valhalla (FOSSGIS) et Transitous. Testée avec de vrais utilisateurs, chronométrés face à Google Maps.
+SvelteKit + MapLibre, site statique. Fond de carte OpenFreeMap, recherche sur le téléphone (index préparé chaque nuit, voir `docs/recherche.md`) complétée par Photon, détails des lieux dans des tuiles préparées chaque nuit depuis OSM (sans Overpass), itinéraires Valhalla (FOSSGIS) et Transitous. Testée avec de vrais utilisateurs, chronométrés face à Google Maps.
+
+**Données publiées** : une publication de nuit qui ferait baisser les lieux ou les tuiles de plus de 10 % est bloquée (`check_publish.py`, mail d'échec, la veille reste en ligne). Historique du site gardé 7 jours, regroupé chaque dimanche (`historique.yml`) ; pour revenir en arrière : Actions → « Revenir à une version du site » → date (`restore.yml`).
 
 ### 2. 🔍 Fraîcheur des lieux (`pipeline/`)
 Repérer les lieux d'OSM qui ne sont plus à jour, en commençant par les **commerces fermés**, en croisant OSM avec [Overture Maps](https://overturemaps.org). Pilote : Paris 6e.

@@ -1,0 +1,34 @@
+# Revenir à une version précédente du site (données comprises) en cas de mise à jour ratée.
+# Sur GitHub : Actions → « Revenir à une version du site » → Run workflow → date (AAAA-MM-JJ, dans les 7 derniers jours).
+# Le site redevient celui de la dernière publication de ce jour-là ; c'est une nouvelle publication, rien n'est effacé.
+# La publication de nuit suivante remettra des données neuves : la mettre en pause (Actions → « Lieux par tuile » →
+# Disable workflow) si le problème vient d'OSM et n'est pas encore corrigé.
+name: Revenir à une version du site
+on:
+  workflow_dispatch:
+    inputs:
+      date:
+        description: "Jour de la version à remettre en ligne (AAAA-MM-JJ)"
+        required: true
+concurrency:
+  group: places
+  cancel-in-progress: false
+permissions:
+  contents: write
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Remettre en ligne la version de ce jour
+        env:
+          DAY: ${{ inputs.date }}
+        run: |
+          [[ "$DAY" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] || { echo "date attendue : AAAA-MM-JJ"; exit 1; }
+          git clone -q --single-branch --branch gh-pages "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" site
+          cd site
+          c=$(git rev-list -1 --first-parent --before="$DAY 23:59:59 +0000" HEAD)
+          [ -n "$c" ] || { echo "aucune version ce jour-là ou avant (historique : 7 jours)"; exit 1; }
+          echo "version choisie : $(git log -1 --format='%h %cd %s' --date=iso "$c")"
+          [ "$(git rev-parse "$c^{tree}")" != "$(git rev-parse "HEAD^{tree}")" ] || { echo "déjà en ligne"; exit 0; }
+          new=$(git -c user.name=untracked-bot -c user.email=bot@untrackedmaps.app commit-tree "$c^{tree}" -p HEAD -m "Retour à la version du $DAY ($(git log -1 --format=%h "$c"))")
+          git push origin "$new:gh-pages"
