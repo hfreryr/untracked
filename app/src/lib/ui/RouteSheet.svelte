@@ -2,6 +2,7 @@
      puis étapes et autres itinéraires en tirant la fiche. Modèle : Google Maps et Plans (voir docs/espace-ecran.md). -->
 <script>
   import { covered } from '#lib/searchscope.js';
+  import { readBikeKind, saveBikeKind } from '#lib/bikekind.js';
   import { tx } from '#lib/i18n/index.js';
   import { tripFare, fmtEuros } from '#lib/fares.js';
   import { draggable } from '#lib/sheet.js';
@@ -17,6 +18,7 @@
 
   let { from, to, mode, routes, picked, pickedStreet, showVia, legExits,
     chooseMode, pickStreet, pickTransit, startNav, addStop, computeRoutes, transitPref = ['metro', 'rail', 'tram', 'bus'], setTransitPref, when = null } = $props();
+  let bikeKind = $state(readBikeKind());
   const current = $derived(routes[mode]);
   const app = getContext('app');   // transports : liste des propositions ou détail (transitDetail), étape choisie (focusLeg)
   // les comptes à rebours des départs (« dans 1, 4, 7 min ») avancent tout seuls, comme sur Citymapper
@@ -55,6 +57,16 @@
       {#each [['metro', tx('itin.metro')], ['rail', app.to && !covered(app.to) ? tx('ecran.train') : tx('itin.rer_et_train')], ['tram', tx('itin.tram')], ['bus', tx('itin.bus')]] as [id, label]}
         <button class="t-pref" class:on={transitPref.includes(id)} aria-pressed={transitPref.includes(id)} onclick={() => setTransitPref(id)}>
           {#if transitPref.includes(id)}<svg class="tick" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5" /></svg>{/if}{label}
+        </button>
+      {/each}
+    </div>
+  {/if}
+  {#if mode === 'bike'}
+    <!-- vélo classique ou électrique (P8) : même rangée que les modes de transport -->
+    <div class="t-prefs" role="radiogroup" aria-label={tx('itin.type_de_velo')}>
+      {#each [['classic', tx('itin.velo')], ['electric', tx('itin.velo_electrique')]] as [id, label]}
+        <button class="t-pref" class:on={bikeKind === id} role="radio" aria-checked={bikeKind === id} onclick={() => { bikeKind = id; saveBikeKind(id); computeRoutes(); }}>
+          {#if bikeKind === id}<svg class="tick" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5" /></svg>{/if}{label}
         </button>
       {/each}
     </div>

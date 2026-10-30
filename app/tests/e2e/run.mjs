@@ -841,6 +841,20 @@ z.close()`, zip]);
     assert(!errors.length, errors.join(' | '));
     await ctx.close();
   },
+  async 'vélo électrique : un toucher, trajet recalculé plus vite, choix gardé (P8, 30/10)'() {
+    const { p, ctx, errors } = await page({ geolocation: { latitude: 48.8867, longitude: 2.3431 } });
+    const sent = []; p.on('request', (r) => { if (/valhalla/.test(r.url()) && /bicycle/.test(decodeURIComponent(r.url()))) sent.push(decodeURIComponent(r.url())); });
+    await p.fill('#search', 'Panthéon'); await p.waitForSelector('.results li.opt button', { timeout: 20000 }); await pick(p); await p.waitForTimeout(2500);
+    await p.click('.action.primary'); await p.waitForTimeout(1500);
+    await p.click('.mode-tab[aria-label="Vélo"]'); await p.waitForSelector('.t-pref[aria-checked="true"]:has-text("Vélo")', { timeout: 15000 });
+    const before = sent.length;
+    await p.click('.t-pref:has-text("Vélo électrique")'); await p.waitForTimeout(4000);
+    assert(sent.length > before && /"cycling_speed":22/.test(sent[sent.length - 1]), 'trajet non recalculé pour un vélo électrique');
+    assert(await p.$('.t-pref[aria-checked="true"]:has-text("Vélo électrique")'), 'choix non marqué');
+    assert(await p.evaluate(() => localStorage.getItem('velo-type') === 'electric'), 'choix non gardé');
+    assert(!errors.length, errors.join(' | '));
+    await ctx.close();
+  },
   async 'carte vélo hors Île-de-France (Lyon) : les pistes du fond de carte, pas une carte vide'() {
     const { p, ctx, errors } = await page({ geolocation: { latitude: 45.76, longitude: 4.835 } }, '#carte=14/45.76/4.835');
     await p.click('button[aria-label="Type de carte"]'); await p.click('.modes-pop button:has-text("Vélo")'); await p.waitForTimeout(1500);
