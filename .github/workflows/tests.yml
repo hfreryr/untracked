@@ -30,7 +30,7 @@ jobs:
         with: { persist-credentials: false }
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
         with: { python-version: '3.12' }
-      - run: pip install rapidfuzz pytest pyyaml osmium==4.3.1
+      - run: pip install rapidfuzz pytest pyyaml osmium==4.3.1 shapely==2.2.0
       - name: Fichiers des actions GitHub lisibles (un YAML invalide arrête le calcul de nuit sans prévenir)
         run: python -c "import yaml,glob; [yaml.safe_load(open(f)) for f in glob.glob('.github/workflows/*.yml')]; print('ok')"
       - run: python -m pytest -q pipeline/tests app/scripts/tests
