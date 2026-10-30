@@ -1,4 +1,7 @@
 <script>
+  import Contributions from '#lib/ui/Contributions.svelte';
+  import { loadReviewer } from '#lib/reviewer.js';
+  import { levelOf } from '#lib/contrib.js';
   import { popover } from '#lib/popover.js';
   import { tx } from '#lib/i18n/index.js';
   import { getContext } from 'svelte';
@@ -20,6 +23,9 @@
   const choices = $derived(availableFilters(app.nearbyAll.map((n) => ({ t: n.t, sub: n.sub }))));
   const quand = () => (app.openAt?.now ? tx('horaires.maintenant') : momentLabel(app.openAt.at).replace(/ (\d)/, ' à $1'));
   const criteres = () => [...app.filters.map((k) => CRIT[k]), ...(app.openAt ? [tx('filtre.c_ouverts', { quand: quand() })] : [])].join(', ');
+  // ligne « Mes contributions » : niveau et nombre d'avis
+  const LEVEL_NAME = { eclaireur: () => tx('contrib.eclaireur'), passeur: () => tx('contrib.passeur'), vigie: () => tx('contrib.vigie'), phare: () => tx('contrib.phare') };
+  function contribLine() { const n = loadReviewer().mine.length, l = levelOf(n).level; return tx('contrib.resume', { n, niveau: l ? LEVEL_NAME[l.id]() : '' }); }
 </script>
 
 
@@ -50,6 +56,11 @@
             {/if}
           </li>
         </ul>
+        <!-- avis et niveaux (Contributions.svelte) -->
+        <ul class="rows hub-rows">
+          <li class="row"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3.5 2.6 5.5 6 .7-4.4 4.1 1.2 5.9L12 16.8l-5.4 2.9 1.2-5.9-4.4-4.1 6-.7z" /></svg>
+            <button class="row-btn" onclick={() => (app.hubPanel = 'contrib')}><span>{tx('contrib.titre')}<small class="why">{contribLine()}</small></span></button></li>
+        </ul>
         <h2 class="hub-h">{tx('liste.vos_donnees')}</h2>
         <ul class="rows hub-rows">
           <li class="row"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 19.5h14" /></svg>
@@ -64,6 +75,10 @@
             <button class="row-btn" onclick={() => { app.clearCategory(); app.editChips = true; }}><span>{tx('recherche.personnaliser_les_raccourcis')}</span></button></li>
         </ul>
         <p class="credit">{tx('liste.vos_lieux_restent_sur_cet_appareil')}</p>
+      {:else if app.category.saved && app.hubPanel === 'contrib'}
+        <button class="link back-link" onclick={() => (app.hubPanel = null)}>{tx('liste.mes_lieux')}</button>
+        <h1>{tx('contrib.titre')}</h1>
+        <Contributions />
       {:else if app.category.saved && app.hubPanel === 'transfer'}
         <button class="link back-link" onclick={() => (app.hubPanel = null)}>{tx('liste.mes_lieux')}</button>
         <h1>{tx('liste.transferer')}</h1>

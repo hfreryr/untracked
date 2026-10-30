@@ -11,6 +11,7 @@
   import PromiseBanner from '#lib/ui/PromiseBanner.svelte';
   import InstallCard from '#lib/ui/InstallCard.svelte';
   import UpdateBanner from '#lib/ui/UpdateBanner.svelte';
+  import ReviewAsk from '#lib/ui/ReviewAsk.svelte';
   import ChipsEditor from '#lib/ui/ChipsEditor.svelte';
   import ImportSheet from '#lib/ui/ImportSheet.svelte';
   import TransferSheet from '#lib/ui/TransferSheet.svelte';
@@ -462,7 +463,8 @@
 
 
   let when = $state(null);           // heure du trajet : null (maintenant) ou { t, arrive } (when.js)
-  let transitPref = $state(['metro', 'rail', 'tram', 'bus']);   // familles de transports gardées (routing.js TRANSIT_KINDS)
+  let transitPref = $state(['metro', 'rail', 'tram', 'bus']);
+  let reviewAskOn = $state(false);   // carte « Comment était X ? » affichée (ReviewAsk.svelte)   // familles de transports gardées (routing.js TRANSIT_KINDS)
   let lastFix = $state(null);   // dernière position reçue pendant le guidage (sans elle : étapes à la main)
 
 
@@ -549,6 +551,7 @@
     get startInstall() { return startInstall; }, set startInstall(v) { startInstall = v; },
     get openResult() { return openResult; }, get showAllResults() { return showAllResults; }, get showBrand() { return showBrand; },
     get resultsFor() { return resultsFor; }, get filters() { return filters; }, set filters(v) { filters = v; }, get toggleFilter() { return toggleFilter; },
+    get reviewAskOn() { return reviewAskOn; }, set reviewAskOn(v) { reviewAskOn = v; },
     get transitPref() { return transitPref; }, set transitPref(v) { transitPref = v; }, get setTransitPref() { return setTransitPref; },
     get themePref() { return themePref; }, set themePref(v) { themePref = v; }, get restyle() { return restyle; }, set restyle(v) { restyle = v; },
     get when() { return when; }, set when(v) { when = v; }, get setWhen() { return setWhen; }, get openDirections() { return openDirections; },
@@ -722,6 +725,7 @@
   <PromiseBanner />
   <InstallCard />
   <UpdateBanner />
+  <ReviewAsk />
   {#if shortcutDlg}<ShortcutDialog />{/if}
 
   {#if listPicker && place && !directions}

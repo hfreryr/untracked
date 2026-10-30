@@ -15,7 +15,7 @@
   $effect(() => onInstallChange(() => { way = installWay(); signs = readSigns(); }));
   const engaged = $derived(isEngaged({ saved: app.favorites.length, shortcuts: (app.shortcuts.home ? 1 : 0) + (app.shortcuts.work ? 1 : 0) + app.customs.length, signs }));
   const show = $derived(!closed && !!way && canOffer({ standalone: isStandalone(), saved: engaged, dismissed: readDismissed(), now: Date.now(), installable: !!way })
-    && !app.place && !app.category && !app.directions && !app.nav && !app.showPromise && !app.importOpen && !app.editChips && !app.aboutOpen && !app.focused);
+    && !app.place && !app.category && !app.directions && !app.nav && !app.showPromise && !app.importOpen && !app.editChips && !app.aboutOpen && !app.focused && !app.reviewAskOn);   // (une seule carte à la fois : « Comment était X ? » d'abord)
 
   // « Installer » : la fenêtre du téléphone (Android), sinon les deux gestes (iPhone)
   app.startInstall = async () => {

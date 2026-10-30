@@ -1,5 +1,7 @@
 // Guidage pas à pas : voix, étapes, suivi de la position et recalcul.
 // Code sorti de +page.svelte : il lit et modifie l'état de l'écran par l'objet « app » (bloc « app » de la page).
+import { ARROWS, readArrow, readAsks, saveAsks, withArrival } from '#lib/contrib.js';
+import { loadReviewer } from '#lib/reviewer.js';
 import { noteEngaged } from '#lib/install.js';
 import { tx } from '#lib/i18n/index.js';
 import { MODE_NAMES, fmtDistance, fmtDuration, fmtTime, streetRoute, trafficEstimate } from '#lib/routing.js';
@@ -96,6 +98,7 @@ export function createNav(app) {
     app.meMarker?.setRotationAlignment('map');      // la flèche suit la carte (qui tourne avec vous)
     app.meMarker?.setPitchAlignment('viewport');    // … mais le disque reste rond quand la carte est inclinée
     app.meMarker?.getElement().classList.add('navigating');
+    app.meMarker?.getElement().style.setProperty('--nav-disc', ARROWS[readArrow(loadReviewer().mine.length)]);   // couleur gagnée (contrib.js)
     // sur la carte : seul le reste du trajet reste en bleu, et le point de départ disparaît (la flèche suffit)
     if (app.nav.kind !== 'transit') {
       const color = app.nav.mode === 'bike' ? app.BIKE_COLOR : app.WALK_COLOR;
@@ -157,6 +160,9 @@ export function createNav(app) {
   }
   function endNav() {
     noteEngaged();                                   // un guidage mené : l'app a servi (install.js)
+    // arrivé (ou presque) à un lieu : « Comment était X ? » plus tard (contrib.js)
+    if (app.nav && (app.nav.arrived || (app.nav.total && app.nav.total - app.nav.s < 250)) && app.to?.osmType)
+      saveAsks(withArrival(readAsks(), { ...app.to, name: app.to.label }));
     if (app.navWatch != null) navigator.geolocation.clearWatch(app.navWatch);
     app.navWatch = null;
     clearInterval(app.navTick);

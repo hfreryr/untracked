@@ -176,6 +176,40 @@ const tests = {
     assert(!errors.length, errors.join(' | '));
     await ctx.close();
   },
+  async '« Comment était X ? » au retour, puis Mes contributions (niveau, flèches) — 30/10'() {
+    const ask = JSON.stringify([{ id: 'node/3194013327', name: 'Deux Fois Plus de Piment', lat: 48.861574, lon: 2.370638, osmType: 'node', osmId: 3194013327, t: Date.now() - 2 * 3600e3, done: false }]);
+    let ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, locale: 'fr-FR' });
+    await ctx.addInitScript((a) => { localStorage.setItem('promesse-vue', '1'); if (!sessionStorage.getItem('vu')) { localStorage.setItem('avis-a-demander', a); sessionStorage.setItem('vu', '1'); } }, ask);
+    let p = await ctx.newPage(); const errors = []; p.on('pageerror', (e) => errors.push(e.message));
+    await p.goto(`http://localhost:${PORT}/`); await p.waitForSelector('.ask', { timeout: 10000 });
+    assert(/Comment était Deux Fois Plus de Piment/.test(await p.textContent('.ask')), 'question absente');
+    assert(!(await p.$('div.install')), 'deux cartes à la fois');
+    await p.click('.ask .star >> nth=3');
+    await p.waitForSelector('.dlg #rev-text', { timeout: 15000 });
+    assert((await p.locator('.dlg .star.on').count()) === 4, 'la note touchée n’est pas reprise dans la fenêtre');
+    await p.keyboard.press('Escape'); await p.waitForTimeout(300);
+    await p.reload(); await p.waitForTimeout(2500);
+    assert(!(await p.$('.ask')), 'la question revient');
+    await ctx.close();
+    // Mes contributions : 6 avis → Passeur, encore 14 pour Vigie ; flèche Passeur choisie, Vigie verrouillée
+    const mine = JSON.stringify({ jwk: null, nick: '', mine: Array.from({ length: 6 }, (_, i) => ({ id: `node/${i + 1}`, name: `Lieu ${i}`, stars: 4, text: '', nick: '', t: 1, sig: `s${i}` })) });
+    ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, locale: 'fr-FR', bypassCSP: true });
+    await ctx.addInitScript((m) => { localStorage.setItem('promesse-vue', '1'); localStorage.setItem('installer-plus-tard', JSON.stringify({ n: 2, at: Date.now() })); localStorage.setItem('avis-auteur', m); }, mine);
+    p = await ctx.newPage(); await p.goto(`http://localhost:${PORT}/`); await p.waitForTimeout(2500);
+    await p.click('.chip:has-text("Mes lieux")'); await p.waitForTimeout(1000);
+    assert(/Passeur · 6 avis/.test(await p.textContent('section.sheet')), 'résumé du niveau absent de Mes lieux');
+    await p.click('button.row-btn:has-text("Mes contributions")'); await p.waitForSelector('.lv');
+    const txt = await p.textContent('section.sheet');
+    assert(/Passeur/.test(txt) && /Encore 14 avis pour devenir Vigie/.test(txt), `niveau mal calculé : ${txt.slice(0, 200)}`);
+    assert(await p.$('.un[disabled]:has-text("Vigie")'), 'flèche Vigie non verrouillée');
+    await p.click('.un:has-text("Passeur")');
+    assert(await p.evaluate(() => localStorage.getItem('fleche-guidage') === '"passeur"'), 'flèche non gardée');
+    await p.addScriptTag({ content: AXE });
+    const v = await p.evaluate(async () => (await window.axe.run('section.sheet', { runOnly: ['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'] })).violations.map((x) => `${x.id} ${x.nodes.map((n) => n.target.join(' ')).join(' ; ')}`));
+    assert(!v.length, `accessibilité : ${v.join(', ')}`);
+    assert(!errors.length, errors.join(' | '));
+    await ctx.close();
+  },
   async 'Lyon : catégories, fiches avec horaires et recherche par type, depuis ses propres tuiles'() {
     // données locales : python app/scripts/build_places.py data/villes/rhone.osm.pbf --out app/static/data/zones/lyon/places
     //                   --bbox 4.68,45.62,5.08,45.88   (en ligne : places-zones.yml, chaque semaine)
