@@ -148,10 +148,11 @@ def match_rows(items, rows, radius, keep):
     return found
 
 
-def match_overture(items, rows):
+def match_overture(items, rows, address=None):
     """Lieux Overture (nom, lat, lon, sites, téléphones, confiance, rue, code postal) : même nom à 40 m au plus."""
     found = match_rows(items, rows, 40, completable)
-    return {i: [(d, r[3] or [], r[4] or [], street_address(*(r[6:8] if len(r) > 7 else (None, None)))) for d, r in c]
+    address = address or street_address
+    return {i: [(d, r[3] or [], r[4] or [], address(*(r[6:8] if len(r) > 7 else (None, None)))) for d, r in c]
             for i, c in found.items()}
 
 
@@ -160,6 +161,37 @@ def match_overture(items, rows):
 ABBR = {"av": "Avenue", "bd": "Boulevard", "blvd": "Boulevard", "pl": "Place", "prom": "Promenade", "fg": "Faubourg",
         "fbg": "Faubourg", "r": "Rue", "sq": "Square", "imp": "Impasse", "pass": "Passage", "qu": "Quai", "all": "Allée", "crs": "Cours"}
 ADDR = re.compile(r"^(\d+(?:\s?(?:bis|ter|[a-d]))?)[,\s]+(.{3,50})$", re.I)
+
+
+def phone_nl(p):
+    """Numéro néerlandais au format affiché (+31 20 123 4567, +31 6 1234 5678), ou None."""
+    d = re.sub(r"[^\d+]", "", p or "")
+    if d.startswith("0031"):
+        d = "+31" + d[4:]
+    if d.startswith("0") and len(d) == 10:
+        d = "+31" + d[1:]
+    if not re.fullmatch(r"\+31[1-9]\d{8}", d):
+        return None
+    n = d[3:]
+    if n[0] == "6":
+        return f"+31 6 {n[1:5]} {n[5:]}"
+    if n[:2] in NL_TWO:
+        return f"+31 {n[:2]} {n[2:5]} {n[5:]}"
+    return f"+31 {n[:3]} {n[3:6]} {n[6:]}"
+
+
+NL_TWO = {"10", "13", "15", "20", "23", "24", "26", "30", "33", "35", "36", "38", "40", "43", "45", "46", "50", "53", "55", "58",
+          "70", "71", "72", "73", "74", "75", "76", "77", "78", "79"}   # indicatifs à deux chiffres (Amsterdam 20, Rotterdam 10…)
+STREET_FIRST = re.compile(r"^(.{3,50}?)\s+(\d+\s?[a-zA-Z]?(?:[-/]\d+[a-zA-Z]?)?)$")
+
+
+def street_address_nl(freeform, postcode):
+    """(numéro, rue, code postal) pour une adresse « rue numéro » (« Amstelzijde 4 », Pays-Bas), sinon None."""
+    m = STREET_FIRST.match((freeform or "").strip())
+    if not m or re.search(r"\d{4}", m[1]):
+        return None
+    pc = (postcode or "").strip().upper()
+    return m[2].replace(" ", "").lower(), m[1], pc if re.fullmatch(r"\d{4}\s?[A-Z]{2}", pc) else None
 
 
 def street_address(freeform, postcode):
@@ -421,8 +453,10 @@ def main():
     ap.add_argument("--overture-release", help="version d'Overture (par défaut : la plus récente)")
     ap.add_argument("--qrank", help="qrank.csv.gz déjà téléchargé (sinon : le plus récent)")
     ap.add_argument("--atp", help="archive output.zip d'All The Places déjà téléchargée (sinon : la plus récente)")
+    ap.add_argument("--pays", default="FR", choices=["FR", "NL"], help="formats des téléphones et adresses ; l'annuaire de l'administration seulement en France")
     ap.add_argument("--no-paris", action="store_true", help="sans les horaires de la Ville de Paris (autres villes : places-zones.yml)")
     args = ap.parse_args()
+    phone_of = phone_nl if args.pays == "NL" else phone_fr
     t0 = time.time()
 
     h = Places(14)
@@ -463,7 +497,7 @@ def main():
                 put(oid, "opening_hours", p["opening_hours"], "atp", has="opening_hours" in tags)
             if p.get("website") and not NOT_A_SITE.search(p["website"]):
                 put(oid, "website", p["website"], "atp", has=bool(tags.get("website") or tags.get("contact:website")))
-            tel = phone_fr(p.get("phone", "").split(";")[0])
+            tel = phone_of(p.get("phone", "").split(";")[0])
             if tel:
                 put(oid, "phone", tel, "atp", has=bool(tags.get("phone") or tags.get("contact:phone")))
     except Exception as e:  # une source en panne ne bloque pas les autres
@@ -471,7 +505,7 @@ def main():
     release = args.overture_release or latest_release()
     rows = overture_places(release, bbox)
     print(f"Overture {release} : {len(rows)} lieux dans la zone", file=sys.stderr)
-    found = match_overture(items, rows)
+    found = match_overture(items, rows, street_address_nl if args.pays == "NL" else street_address)
     # un même site attribué à plusieurs lieux sans rapport : site d'un réseau ou d'un centre commercial, on l'écarte
     site_use = Counter(w for cands in found.values() for _, ws, _, _ in cands for w in ws[:1])
     for i, cands in found.items():
@@ -485,7 +519,7 @@ def main():
         site = next((w for w in websites if not NOT_A_SITE.search(w) and site_use[w] <= 3 and site_of(tags["name"], w)), None)
         if site:
             put(oid, "website", site, "overture", has=bool(has_site))
-        tel = next((p for p in map(phone_fr, phones) if p), None)
+        tel = next((p for p in map(phone_of, phones) if p), None)
         if tel:
             put(oid, "phone", tel, "overture", has=bool(has_phone))
 
@@ -501,7 +535,7 @@ def main():
         put(oid, "opening_hours", hours, "paris", until or None, has="opening_hours" in tags)
 
     try:
-        arows = annuaire_rows(json.load(urllib.request.urlopen(ANNUAIRE, timeout=120)))
+        arows = annuaire_rows(json.load(urllib.request.urlopen(ANNUAIRE, timeout=120))) if args.pays == "FR" else []
     except Exception as e:
         print("Annuaire ignoré :", e, file=sys.stderr)
         arows = []

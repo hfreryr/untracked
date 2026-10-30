@@ -1,5 +1,6 @@
 // Recherche de secours dans nos propres données de lieux (tuiles préparées chaque nuit), quand Photon
 // ne répond pas ou trop lentement. Rien n'est envoyé : la recherche se fait sur le téléphone.
+import { streetLine } from '#lib/searchscope.js';
 import { placesInBounds } from './placestore.js';
 import { typeOfTags } from './places.js';
 
@@ -28,7 +29,7 @@ export function matchPlaces(places, query, at, limit = 7) {
     const [osmType, letter] = TYPES[p.id % 10] || TYPES[1];
     const osmId = Math.floor(p.id / 10);
     const t = p.tags;
-    const street = [t['addr:housenumber'], t['addr:street']].filter(Boolean).join(' ');
+    const street = streetLine(t, p);
     return { id: `${letter}${osmId}`, osmType, osmId, name: t.name, type: typeOfTags(t) || '', subclass: t.amenity || t.shop || t.tourism || null,
       address: [street, t['addr:postcode']].filter(Boolean).join(', '), lat: p.lat, lon: p.lon };
   });

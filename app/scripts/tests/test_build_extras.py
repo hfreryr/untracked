@@ -209,3 +209,14 @@ def test_adresse_overture():
     osm = {"name": "X", "addr:street": "Rue Y"}
     add_extras(osm, {"addr": [["1", "Rue Z", None], "overture"]})
     assert osm["addr:street"] == "Rue Y"
+
+
+def test_formats_neerlandais():
+    """Pays-Bas (zones.json) : téléphones +31 et adresses « rue numéro » (Amsterdam, 30/10/2026)."""
+    from build_extras import phone_nl, street_address_nl
+    assert phone_nl("020 123 4567") == "+31 20 123 4567"
+    assert phone_nl("+31612345678") == "+31 6 1234 5678"
+    assert phone_nl("0031 299 123 456") == "+31 299 123 456"
+    assert phone_nl("+33 1 23 45 67 89") is None
+    assert street_address_nl("Amstelzijde 4", "1184 VA") == ("4", "Amstelzijde", "1184 VA")
+    assert street_address_nl("Prinsengracht 263-267", "1016GV") == ("263-267", "Prinsengracht", "1016GV")

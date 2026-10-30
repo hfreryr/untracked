@@ -1,3 +1,4 @@
 [
-  {"id": "lyon", "name": "Lyon", "extract": "rhone_alpes/rhone", "bbox": [4.68, 45.62, 5.08, 45.88], "day": 3}
+  {"id": "lyon", "name": "Lyon", "country": "FR", "extract": "europe/france/rhone_alpes/rhone", "bbox": [4.68, 45.62, 5.08, 45.88], "day": 3},
+  {"id": "amsterdam", "name": "Amsterdam", "country": "NL", "extract": "europe/netherlands/noord_holland", "bbox": [4.73, 52.27, 5.07, 52.43], "day": 4}
 ]

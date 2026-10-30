@@ -6,7 +6,7 @@
 //    à remplacer par notre propre instance avant tout lancement public.
 //
 // Ce qui est envoyé : le texte tapé et un point de référence (centre de la carte ou position), rien d'autre.
-import { covered, hasPlaces, inFrance } from '#lib/searchscope.js';
+import { covered, hasPlaces, inFrance, streetLine } from '#lib/searchscope.js';
 import { mergeAddresses, townAt, withTown } from '#lib/addressnear.js';
 import { tx } from '#lib/i18n/index.js';
 import { city } from './cities/index.js';
@@ -141,7 +141,7 @@ const LETTERS = { 1: ['node', 'N'], 2: ['way', 'W'], 3: ['relation', 'R'] };
 function fromTile(p) {
   const [osmType, letter] = LETTERS[p.id % 10] || LETTERS[1];
   const osmId = Math.floor(p.id / 10), t = p.tags;
-  const street = [t['addr:housenumber'], t['addr:street']].filter(Boolean).join(' ');
+  const street = streetLine(t, p);
   return { id: `${letter}${osmId}`, osmType, osmId, name: t.name || typeOfTags(t) || '', type: typeOfTags(t) || '',
     subclass: t.amenity || t.shop || t.tourism || t.leisure || null, address: [street, t['addr:postcode']].filter(Boolean).join(', '), lat: p.lat, lon: p.lon };
 }
