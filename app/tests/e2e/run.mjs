@@ -112,6 +112,28 @@ const tests = {
     assert(!/Source :/.test(await p.$eval('.sheet', (e) => e.innerText)), 'source affichée pour une info OSM');
     await ctx.close();
   },
+  async 'bandeau « nouvelle version » : entier à l’écran, ne cache ni la recherche ni les catégories'() {
+    // capture du porteur (30/10/2026) : bouton hors de l'écran et catégories cachées ; petit écran pour le pire cas
+    for (const width of [320, 390]) {
+      const ctx = await browser.newContext({ viewport: { width, height: 700 }, isMobile: true, hasTouch: true, locale: 'fr-FR' });
+      await ctx.addInitScript(() => { localStorage.setItem('promesse-vue', '1'); localStorage.setItem('installer-plus-tard', JSON.stringify({ n: 2, at: Date.now() })); });
+      await ctx.route('**/_app/version.json*', (r) => r.fulfill({ contentType: 'application/json', body: '{"version":"autre"}' }));
+      const p = await ctx.newPage();
+      await p.goto(`http://localhost:${PORT}/`, { waitUntil: 'networkidle' });
+      await p.waitForSelector('.update', { timeout: 15000 });
+      const r = await p.evaluate(() => {
+        const box = (s) => document.querySelector(s)?.getBoundingClientRect();
+        const u = box('.update'), b = box('.update button');
+        const hit = [...document.querySelectorAll('#search, .chip, .pin-btn, .round-btn')].some((e) => {
+          const o = e.getBoundingClientRect(); return o.width && !(o.right <= u.left || o.left >= u.right || o.bottom <= u.top || o.top >= u.bottom);
+        });
+        return { inside: u.left >= 0 && b.right <= innerWidth && u.bottom <= innerHeight, hit };
+      });
+      assert(r.inside, `bandeau hors de l'écran (${width} px)`);
+      assert(!r.hit, `bandeau posé sur la recherche, une catégorie ou un bouton (${width} px)`);
+      await ctx.close();
+    }
+  },
   async 'recherche hors Île-de-France : les lieux autour de la carte, pas ceux de Paris'() {
     // retour du porteur (30/10/2026) : « Starbucks » vu d'Amsterdam proposait un Starbucks d'Île-de-France
     const { p, ctx, errors } = await page({ geolocation: { latitude: 52.37, longitude: 4.89 } }, '#carte=14/52.3700/4.8930');
