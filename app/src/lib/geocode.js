@@ -6,6 +6,7 @@
 //    à remplacer par notre propre instance avant tout lancement public.
 //
 // Ce qui est envoyé : le texte tapé et un point de référence (centre de la carte ou position), rien d'autre.
+import { covered, inFrance } from '#lib/searchscope.js';
 import { tx } from '#lib/i18n/index.js';
 import { city } from './cities/index.js';
 import { typeLabel, typeOfTags } from './places.js';
@@ -64,18 +65,20 @@ function fromGeopf(f) {
 // Photon est un service public gratuit : il peut être en panne ou très lent (constaté le 14/10/2026).
 // Au-delà de ce délai, on cherche dans nos propres données.
 const PHOTON_TIMEOUT = 4000;
+const PHOTON_TIMEOUT_ALONE = 10000;
 
 /** Photon, ou à défaut nos données de lieux (même forme de résultats). */
 async function byName(query, near, signal, limit = 7, anywhere = false) {
   const ctl = new AbortController();
-  const timer = setTimeout(() => ctl.abort(), PHOTON_TIMEOUT);
+  // hors zone couverte, pas de repli possible sur nos données : on laisse à Photon le temps de répondre
+  const timer = setTimeout(() => ctl.abort(), covered(near) ? PHOTON_TIMEOUT : PHOTON_TIMEOUT_ALONE);
   signal?.addEventListener('abort', () => ctl.abort());
   try {
     const r = await photon(query, near, ctl.signal, limit, anywhere);
-    return r.length ? r : (await searchLocal(query, near)).slice(0, limit);
+    return r.length || !covered(near) ? r : (await searchLocal(query, near)).slice(0, limit);
   } catch (e) {
     if (signal?.aborted) throw e;                       // recherche remplacée par une plus récente
-    return (await searchLocal(query, near)).slice(0, limit);
+    return covered(near) ? (await searchLocal(query, near)).slice(0, limit) : [];   // nos données : zone couverte seulement
   } finally {
     clearTimeout(timer);
   }
@@ -101,8 +104,8 @@ async function geopf(query, near, signal, limit = 5) {
   if (!res.ok) throw new Error(`Géoplateforme ${res.status}`);
   const all = (await res.json()).features.map(fromGeopf).filter((r) => r.score == null || r.score > 0.4);
   // la zone de la ville d'abord (le géocodeur est national) ; ailleurs seulement si rien ici
-  const [w, s, e, n] = city.searchBbox;
-  const here = all.filter((r) => r.lon > w && r.lon < e && r.lat > s && r.lat < n);
+  if (!covered(near)) return all;                     // ailleurs en France : le géocodeur trie déjà autour du point
+  const here = all.filter(covered);
   return here.length ? here : all;
 }
 
@@ -140,6 +143,8 @@ const sameAs = (a, b) => a.id === b.id || (Math.hypot((a.lon - b.lon) * 0.66, a.
  * onEarly(résultats) : appelé tout de suite avec les résultats du téléphone quand ils sont nets, sans attendre Photon.
  */
 async function findByName(query, at, signal, limit = 7, onEarly = null) {
+  // hors de la zone couverte : nos données n'ont rien d'ici, Photon cherche autour du point, sans cadre
+  if (!covered(at)) return byName(query, at, signal, limit, true);
   const intent = intentOf(query);
   if (intent) {
     const r = await byIntent(intent, at, limit);
@@ -167,7 +172,7 @@ async function findByName(query, at, signal, limit = 7, onEarly = null) {
 export async function search(query, at = city.center, signal, onEarly = null) {
   const q = query.trim();
   if (!q) return [];
-  if (city.country === 'FR' && looksLikeAddress(q)) {
+  if (inFrance(at) && looksLikeAddress(q)) {
     // l'adresse d'abord (rapide) ; Photon n'est consulté que si l'adresse n'est pas nette (un nom de commerce avec un chiffre…)
     const a = await geopf(q, at, signal).catch(() => []);
     if (a[0]?.type === 'Adresse' && a[0].score > 0.8) return a.slice(0, 5);
@@ -189,6 +194,7 @@ export const isPlaceResult = (r) => !!r && !r.area && !String(r.id).startsWith('
  * réunis avec ceux déjà affichés (Photon compris), les plus proches d'abord.
  */
 export async function searchAllPlaces(query, at, shown = [], limit = 40) {
+  if (!covered(at)) return shown.filter(isPlaceResult).slice(0, limit);   // rien de plus dans nos données
   const idx = await index(at);
   // l'index classe par pertinence sur toute la zone : on en prend large, puis on garde les plus proches
   const mine = searchMany(idx, query.trim(), at, limit * 10);
@@ -204,6 +210,7 @@ export async function searchAllPlaces(query, at, shown = [], limit = 40) {
 
 /** Premier résultat de l'index du téléphone (instantané), pour décider vite ce que fait la touche Entrée. */
 export async function localFirst(query, at) {
+  if (!covered(at)) return null;
   const idx = await index(at);
   return searchMany(idx, query.trim(), at, 1)[0] || null;
 }
