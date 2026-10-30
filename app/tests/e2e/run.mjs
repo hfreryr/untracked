@@ -421,12 +421,12 @@ const tests = {
       userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1' });
     await ctx.addInitScript((f) => { localStorage.setItem('promesse-vue', '1'); if (!sessionStorage.getItem('vide')) localStorage.setItem('lieux-favoris', f); }, fav);
     let p = await ctx.newPage(); const errors = []; p.on('pageerror', (e) => errors.push(e.message));
-    await p.goto(`http://localhost:${PORT}/`); await p.waitForSelector('.install', { timeout: 8000 });
+    await p.goto(`http://localhost:${PORT}/`); await p.waitForSelector('div.install', { timeout: 8000 });
     await p.click('.install .go'); await p.waitForSelector('.dlg .steps');
     assert(/Partager/.test(await p.textContent('.dlg')) && /Sur l.écran d.accueil/.test(await p.textContent('.dlg')), 'étapes iPhone absentes');
-    assert(/sans vos lieux de Safari/.test(await p.textContent('.dlg')), 'avertissement sur les lieux de Safari absent');
+    assert(/sans les lieux enregistrés dans votre navigateur/.test(await p.textContent('.dlg')), 'avertissement sur les lieux de Safari absent');
     await p.keyboard.press('Escape'); await p.waitForTimeout(300);
-    assert(!(await p.$('.install')), 'la carte reste après « Installer »');
+    assert(!(await p.$('div.install')), 'la carte reste après « Installer »');
     // ⓘ propose aussi l'installation
     await p.click('.about-btn'); await p.waitForSelector('.dlg');
     assert(/Installer l.app sur l.écran d.accueil/.test(await p.textContent('.dlg')), 'entrée « Installer » absente de ⓘ');
@@ -435,17 +435,17 @@ const tests = {
     ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, locale: 'fr-FR',
       userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1' });
     await ctx.addInitScript((f) => { localStorage.setItem('promesse-vue', '1'); localStorage.setItem('lieux-favoris', f); }, fav);
-    p = await ctx.newPage(); await p.goto(`http://localhost:${PORT}/`); await p.waitForSelector('.install', { timeout: 8000 });
+    p = await ctx.newPage(); await p.goto(`http://localhost:${PORT}/`); await p.waitForSelector('div.install', { timeout: 8000 });
     await p.click('.install .later'); await p.reload(); await p.waitForTimeout(2500);
-    assert(!(await p.$('.install')), 'la carte revient malgré « Plus tard »');
+    assert(!(await p.$('div.install')), 'la carte revient malgré « Plus tard »');
     await ctx.close();
     // Android : le navigateur propose l'installation (événement simulé) ; « Installer » ouvre sa fenêtre
     ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, locale: 'fr-FR' });
     await ctx.addInitScript((f) => { localStorage.setItem('promesse-vue', '1'); localStorage.setItem('lieux-favoris', f); }, fav);
     p = await ctx.newPage(); await p.goto(`http://localhost:${PORT}/`); await p.waitForTimeout(2500);
-    assert(!(await p.$('.install')), 'carte affichée alors que le navigateur ne sait pas installer');
+    assert(!(await p.$('div.install')), 'carte affichée alors que le navigateur ne sait pas installer');
     await p.evaluate(() => { const e = new Event('beforeinstallprompt'); e.prompt = () => { window.__prompted = true; }; e.userChoice = Promise.resolve({ outcome: 'accepted' }); window.dispatchEvent(e); });
-    await p.waitForSelector('.install', { timeout: 5000 }); await p.click('.install .go'); await p.waitForTimeout(500);
+    await p.waitForSelector('div.install', { timeout: 5000 }); await p.click('.install .go'); await p.waitForTimeout(500);
     assert(await p.evaluate(() => window.__prompted === true), 'la fenêtre d’installation du téléphone ne s’ouvre pas');
     assert(!errors.length, errors.join(' | '));
     await ctx.close();
@@ -471,11 +471,11 @@ const tests = {
     await ctx.addInitScript(() => localStorage.setItem('promesse-vue', '1'));
     p = await ctx.newPage(); p.on('pageerror', (e) => errors.push(e.message));
     await p.goto(`http://localhost:${PORT}/`); await p.waitForTimeout(2500);
-    assert(!(await p.$('.install')), 'carte de rappel sans aucun signe d’usage');
+    assert(!(await p.$('div.install')), 'carte de rappel sans aucun signe d’usage');
     await p.click('#search'); await p.click('.pin-btn.add'); await p.waitForSelector('.dlg #sc-name');
     await p.fill('#sc-name', 'Foot'); await p.click('.dlg button.ok'); await p.waitForTimeout(300);
     await p.keyboard.press('Escape'); await p.evaluate(() => document.activeElement?.blur()); await p.mouse.click(200, 500); await p.waitForTimeout(800);
-    assert(await p.$('.install'), 'pas de rappel après un raccourci');
+    assert(await p.$('div.install'), 'pas de rappel après un raccourci');
     // ordinateur sans installation possible : aucun bouton
     await ctx.close();
     ctx = await browser.newContext({ viewport: { width: 1280, height: 800 }, locale: 'fr-FR' });

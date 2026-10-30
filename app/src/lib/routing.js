@@ -1,4 +1,5 @@
 import { legTrafic } from '#lib/trafic.js';
+import { covered } from '#lib/searchscope.js';
 import { rankTransit } from '#lib/transitrank.js';
 import { tx } from '#lib/i18n/index.js';
 import { city, inBox } from './cities/index.js';
@@ -186,9 +187,13 @@ export const ALL_KINDS = Object.keys(TRANSIT_KINDS);
 export const transitModesFor = (kept) => (!kept || kept.length >= ALL_KINDS.length ? null : kept.flatMap((k) => TRANSIT_KINDS[k] || []));
 
 /** Une étape de Transitous (api/v5/plan) dans notre forme. */
+// « RER » n'existe qu'en Île-de-France : ailleurs, les trains de banlieue s'appellent « Train » (P8 à Amsterdam, 30/10/2026)
+const RER_MODES = ['REGIONAL_RAIL', 'SUBURBAN'];
+export const modeHere = (mode, pos) => (RER_MODES.includes(mode) && pos && !covered(pos) ? 'RAIL' : mode);
+
 export function mapLeg(l) {
   return {
-    mode: l.mode,
+    mode: modeHere(l.mode, l.from?.lat != null ? { lat: l.from.lat, lon: l.from.lon } : null),
     line: l.routeShortName || '',
     color: l.routeColor ? `#${l.routeColor}` : '#5B6573',
     textColor: l.routeTextColor ? `#${l.routeTextColor}` : '#FFFFFF',
