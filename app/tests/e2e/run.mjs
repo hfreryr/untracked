@@ -112,6 +112,16 @@ const tests = {
     assert(!/Source :/.test(await p.$eval('.sheet', (e) => e.innerText)), 'source affichée pour une info OSM');
     await ctx.close();
   },
+  async 'recherche hors Île-de-France : les lieux autour de la carte, pas ceux de Paris'() {
+    // retour du porteur (30/10/2026) : « Starbucks » vu d'Amsterdam proposait un Starbucks d'Île-de-France
+    const { p, ctx, errors } = await page({ geolocation: { latitude: 52.37, longitude: 4.89 } }, '#carte=14/52.3700/4.8930');
+    await p.fill('#search', 'Starbucks'); await p.waitForSelector('.results li.opt', { timeout: 20000 }); await p.waitForTimeout(2500);
+    const txt = await p.$$eval('.results li.opt', (l) => l.map((e) => e.innerText.replace(/\s+/g, ' ')).join(' | '));
+    assert(!/Paris|\b75\d{3}|\b9[1-5]\d{3}|\b7[7-8]\d{3}/.test(txt), `résultats d'Île-de-France vus d'Amsterdam : ${txt}`);
+    assert(/Amsterdam|Nederland|Pays-Bas/i.test(txt), `aucun résultat à Amsterdam : ${txt}`);
+    assert(!errors.length, errors.join(' | '));
+    await ctx.close();
+  },
   async 'hors Île-de-France : musées et monuments visibles dès le zoom 14 ; rien de doublé à Paris'() {
     // nos lieux détaillés ne couvrent que l'Île-de-France : ailleurs, les lieux des tuiles OpenFreeMap prennent le relais
     const names = (p) => p.evaluate(() => window.__map.queryRenderedFeatures({ layers: ['poi-outside'] }).map((f) => f.properties.name));
