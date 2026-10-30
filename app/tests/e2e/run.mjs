@@ -121,6 +121,12 @@ const tests = {
     assert(/Amsterdam|Nederland|Pays-Bas/i.test(txt), `aucun résultat à Amsterdam : ${txt}`);
     assert(!errors.length, errors.join(' | '));
     await ctx.close();
+    // adresse vue de Lyon : la rue de Lyon d'abord, pas celle de Décines ou de Genas (30/10/2026)
+    const l = await page({}, '#carte=14/45.7600/4.8350');
+    await l.p.fill('#search', '10 rue de la République'); await l.p.waitForSelector('.results li.opt', { timeout: 20000 }); await l.p.waitForTimeout(1500);
+    const first = await l.p.$eval('.results li.opt', (e) => e.innerText.replace(/\s+/g, ' '));
+    assert(/6900\d Lyon/.test(first), `premier résultat hors de Lyon : ${first}`);
+    await l.ctx.close();
   },
   async 'hors Île-de-France : musées et monuments visibles dès le zoom 14 ; rien de doublé à Paris'() {
     // nos lieux détaillés ne couvrent que l'Île-de-France : ailleurs, les lieux des tuiles OpenFreeMap prennent le relais
