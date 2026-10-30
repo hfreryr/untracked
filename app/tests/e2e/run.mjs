@@ -134,6 +134,21 @@ const tests = {
       await ctx.close();
     }
   },
+  async 'avis libres (Mangrove) dans la fiche : section seulement s’il y en a, source et licence'() {
+    // données locales : build_places.py … --reviews (fetch_reviews.py) ; Deux Fois Plus de Piment a un avis Mangrove
+    let { p, ctx, errors } = await page({}, '#carte=18/48.861574/2.370638&lieu=node/3194013327');
+    await p.waitForSelector('.sheet h1', { timeout: 15000 }); await p.waitForTimeout(2000);
+    const rev = await p.$eval('.rev', (e) => e.innerText).catch(() => '');
+    assert(/\d+ avis/.test(rev) && /★/.test(rev), `section Avis absente : ${rev}`);
+    assert(/Mangrove/.test(rev) && /CC BY 4\.0/.test(rev), 'source ou licence des avis absente');
+    await ctx.close();
+    // Panthéon : pas d'avis, pas de section vide
+    ({ p, ctx, errors } = await page({}, '#carte=18/48.846219/2.346008&lieu=way/16407465'));
+    await p.waitForSelector('.sheet h1', { timeout: 15000 }); await p.waitForTimeout(2000);
+    assert(!(await p.$('.rev')), 'section Avis vide affichée');
+    assert(!errors.length, errors.join(' | '));
+    await ctx.close();
+  },
   async 'Lyon : catégories, fiches avec horaires et recherche par type, depuis ses propres tuiles'() {
     // données locales : python app/scripts/build_places.py data/villes/rhone.osm.pbf --out app/static/data/zones/lyon/places
     //                   --bbox 4.68,45.62,5.08,45.88   (en ligne : places-zones.yml, chaque semaine)

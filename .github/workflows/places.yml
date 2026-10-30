@@ -41,7 +41,10 @@ jobs:
           curl -sSfL -o facades.json https://untrackedmaps.app/data/facades.json || echo '{}' > facades.json
           curl -sSfL -o extras.json https://untrackedmaps.app/data/extras.json || echo '{}' > extras.json
       - if: steps.fresh.outputs.skip != 'true'
-        run: python app/scripts/build_places.py idf.osm.pbf --out out/places --facades facades.json --extras extras.json
+        name: Avis libres Mangrove (une seule demande pour toute la région ; sans avis si Mangrove ne répond pas)
+        run: python app/scripts/fetch_reviews.py --bbox 1.44,48.12,3.56,49.24 --out reviews.json || echo '[]' > reviews.json
+      - if: steps.fresh.outputs.skip != 'true'
+        run: python app/scripts/build_places.py idf.osm.pbf --out out/places --facades facades.json --extras extras.json --reviews reviews.json
       - if: steps.fresh.outputs.skip != 'true'
         name: Réseau cyclable (carte vélo) — bandes, voies bus, double-sens, pistes
         run: python app/scripts/build_bikes.py idf.osm.pbf --out out

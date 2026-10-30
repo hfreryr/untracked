@@ -1,5 +1,6 @@
 // Lieux : détails d'un lieu et lieux d'une catégorie, lus dans les tuiles préparées à l'avance (placestore.js).
 // Aucun service tiers n'est interrogé lieu par lieu. La recherche par texte est dans geocode.js.
+import { reviewsOf } from '#lib/reviews.js';
 import { tx } from '#lib/i18n/index.js';
 import { kindOf, expectsHours, practical, goodToKnow } from './placeinfo.js';
 import { placeById, placesInBounds, covers } from './placestore.js';
@@ -89,7 +90,8 @@ export function fromTags(t) {
     fee: t.fee,
     wikidata: t.wikidata,
     wikipedia: t.wikipedia,
-    access: Array.isArray(t._acc) ? t._acc : null     // accès d'un grand lieu (build_places.py), pour l'itinéraire
+    access: Array.isArray(t._acc) ? t._acc : null,    // accès d'un grand lieu (build_places.py), pour l'itinéraire
+    reviews: reviewsOf(t)                              // avis libres Mangrove (reviews.js)
   };
 }
 

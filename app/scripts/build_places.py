@@ -235,6 +235,43 @@ def add_extras(tags, extra, today=None):
     return added
 
 
+REV_KIND = {"node": 1, "way": 2, "relation": 3}
+
+
+def _plain(s):
+    import unicodedata
+    s = unicodedata.normalize("NFKD", s or "").encode("ascii", "ignore").decode().lower()
+    return " ".join("".join(c if c.isalnum() else " " for c in s).split())
+
+
+def attach_reviews(tiles, reviews, zoom, max_m=40):
+    """Avis Mangrove (fetch_reviews.py) rangés dans les lieux : par identifiant OSM, sinon le lieu du même nom le plus
+    proche (moins de 40 m). Étiquette « _rev » : {"n": nombre, "a": note moyenne sur 100, "l": 3 plus récents
+    [note, texte, pseudo, date, signature, photos]}. Renvoie le nombre d'avis placés."""
+    by_id = {it[0]: it for items in tiles.values() for it in items}
+    found = {}
+    for rv in reviews:
+        it = None
+        if rv.get("osm"):
+            kind, num = rv["osm"].split("/")
+            it = by_id.get(int(num) * 10 + REV_KIND[kind])
+        if it is None and _plain(rv.get("name")) not in ("", "unknown location"):
+            want, best = _plain(rv["name"]), None
+            for item in tiles.get(tuple(tile_xy(rv["lon"], rv["lat"], zoom)), []):
+                d = ((item[1] - rv["lon"]) * 111320 * math.cos(math.radians(rv["lat"]))) ** 2 + ((item[2] - rv["lat"]) * 111320) ** 2
+                name = _plain(item[3].get("name"))
+                if d <= max_m ** 2 and name and (name == want or name in want or want in name) and (best is None or d < best[0]):
+                    best = (d, item)
+            it = best and best[1]
+        if it is not None:
+            found.setdefault(it[0], (it, []))[1].append(rv)
+    for it, rvs in found.values():
+        rvs.sort(key=lambda r: -r["t"])
+        it[3]["_rev"] = {"n": len(rvs), "a": round(sum(r["r"] for r in rvs) / len(rvs)),
+                         "l": [[r["r"], r["o"][:600], r["n"][:40], r["t"], r["s"], r.get("img", 0)] for r in rvs[:3]]}
+    return sum(len(v[1]) for v in found.values())
+
+
 def keep_in_bbox(tiles, bbox):
     """Tuiles réduites aux lieux du cadre (ouest, sud, est, nord) ; les tuiles vidées disparaissent."""
     w, s, e, n = bbox
@@ -253,6 +290,7 @@ def main():
     ap.add_argument("--zoom", type=int, default=14)
     ap.add_argument("--facades", help="facades.json (build_facades.py) : photo de devanture ajoutée en 5e position de chaque lieu")
     ap.add_argument("--extras", help="extras.json (build_extras.py) : compléments hors OSM, avec leur source")
+    ap.add_argument("--reviews", help="reviews.json (fetch_reviews.py) : avis libres Mangrove, rangés dans les lieux")
     ap.add_argument("--bbox", help="ne garder que les lieux de ce cadre : ouest,sud,est,nord (une agglomération dans "
                     "l'extrait de son département, voir app/src/lib/cities/zones.json)")
     args = ap.parse_args()
@@ -286,6 +324,11 @@ def main():
             na += 1
     # durées de chaque phase dans le journal de la tâche de nuit, pour suivre ce qui ralentit
     print(f"durées : lecture {t1 - t0:.0f} s, second passage {t2 - t1:.0f} s, choix des accès {time.time() - t2:.0f} s", flush=True)
+    if args.reviews:
+        try:
+            print(attach_reviews(h.tiles, json.load(open(args.reviews)), args.zoom), "avis Mangrove placés", flush=True)
+        except Exception as e:
+            print("avis ignorés :", e, file=sys.stderr)
     if args.bbox:
         h.tiles = keep_in_bbox(h.tiles, tuple(map(float, args.bbox.split(","))))
         h.count = sum(len(v) for v in h.tiles.values())

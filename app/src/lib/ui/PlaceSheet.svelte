@@ -10,6 +10,7 @@
   import { fmtWait } from '#lib/routing.js';
   import { host, href } from '#lib/links.js';
   import { dataDate } from '#lib/placestore.js';
+  import Reviews from './Reviews.svelte';
 
   // État et actions de la page (voir le bloc « app » de +page.svelte)
   const app = getContext('app');
@@ -156,6 +157,8 @@
           </dl>
         </section>
       {/if}
+
+      {#if app.info?.reviews}<Reviews reviews={app.info.reviews} />{/if}
 
       {#if app.placeShortcut}
         <p class="sc-note">{tx('fiche.votre', { raccourci: app.SHORT_NAMES[app.placeShortcut].toLowerCase() })} <button class="link" onclick={() => { const k = app.placeShortcut, old = app.shortcuts[k]; app.setShortcut(k, null); app.say(tx('fiche.retire', { nom: app.SHORT_NAMES[k] }), { label: tx('resultats.annuler'), run: () => app.setShortcut(k, old) }); }}>{tx('fiche.retirer')}</button></p>
