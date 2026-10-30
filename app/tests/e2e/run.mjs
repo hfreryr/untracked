@@ -766,6 +766,10 @@ z.close()`, zip]);
     const trains = await p.evaluate(async () => [...new Set((await window.__map.getSource('transit').getData()).features
       .filter((f) => f.properties.mode === 'train').map((f) => f.properties.ref))].sort().join(''));
     assert(trains.includes('HJKLNPRU'), `Transilien manquant (${trains})`);
+    // les grandes villes françaises aussi (build_transit_cities.py) : métro de Lyon, tram de Bordeaux
+    const cities = await p.evaluate(async () => (await window.__map.getSource('transit').getData()).features
+      .filter((f) => f.properties.city).map((f) => `${f.properties.city}:${f.properties.mode}:${f.properties.ref}`));
+    assert(cities.includes('lyon:metro:A') && cities.includes('bordeaux:tram:B'), `lignes des métropoles absentes (${cities.length})`);
     assert(!errors.length, errors.join(' | '));
     await ctx.close();
   },

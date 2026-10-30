@@ -5,7 +5,7 @@ Pour celles et ceux qui ont déjà choisi Signal, Proton ou Brave.
 
 👉 **[untrackedmaps.app](https://untrackedmaps.app)** (à ouvrir sur un téléphone)
 
-Untracked Maps est une app web de cartographie grand public, construite sur [OpenStreetMap](https://www.openstreetmap.org) et des moteurs libres. Ce n'est ni un fork ni une extension d'une autre app : c'est notre propre app, qui vise le niveau de finition de Google Maps et de Plans d'Apple. Zone couverte : **Île-de-France** (lieux et leurs compléments, recherche, carte vélo, transports) ; horaires de la Ville et devantures : Paris.
+Untracked Maps est une app web de cartographie grand public, construite sur [OpenStreetMap](https://www.openstreetmap.org) et des moteurs libres. Ce n'est ni un fork ni une extension d'une autre app : c'est notre propre app, qui vise le niveau de finition de Google Maps et de Plans d'Apple. Zone couverte : **Île-de-France** (lieux et leurs compléments, recherche, carte vélo, transports) ; horaires de la Ville et devantures : Paris. Ailleurs : fond de carte et lieux d'OpenFreeMap (musées et monuments dès le zoom 14), plan des métros et trams des 11 grandes villes françaises (`app/scripts/build_transit_cities.py`).
 
 - **Aucune donnée personnelle collectée**, pas de mesure d'audience, pas de compte.
 - **Aucune dépendance à Google.**
