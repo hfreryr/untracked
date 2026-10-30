@@ -36,7 +36,7 @@ jobs:
           w = os.environ.get("WANTED") or ""
           today = datetime.datetime.utcnow().isoweekday()
           due = zones if w == "toutes" else [z for z in zones if z["id"] == w] if w else [z for z in zones if z["day"] == today]
-          print("zones=" + " ".join(f'{z["id"]}:{z["extract"]}:{",".join(map(str, z["bbox"]))}' for z in due))
+          print("zones=" + " ".join(f'{z["id"]}:{z["extract"]}:{",".join(map(str, z["bbox"]))}:{z["country"]}' for z in due))
           PY
           cat "$GITHUB_OUTPUT"
       - if: steps.due.outputs.zones != ''
@@ -53,13 +53,13 @@ jobs:
           git fetch --depth=1 origin gh-pages
           git worktree add pages origin/gh-pages
           for spec in $ZONES; do
-            IFS=: read -r id extract bbox <<< "$spec"
+            IFS=: read -r id extract bbox country <<< "$spec"
             echo "::group::$id"
-            IDF_SOURCES="https://download.openstreetmap.fr/extracts/europe/france/$extract.osm.pbf" bash app/scripts/fetch_idf.sh "$id.osm.pbf"
+            IDF_SOURCES="https://download.openstreetmap.fr/extracts/$extract.osm.pbf" bash app/scripts/fetch_idf.sh "$id.osm.pbf"
             python app/scripts/fetch_reviews.py --bbox "$bbox" --out "$id-reviews.json" || echo '[]' > "$id-reviews.json"
             # compléments hors OSM (sites, téléphones, adresses, horaires d'enseignes) : Overture, All The Places, annuaire de
             # l'administration, comme à Paris (build_extras.py) ; All The Places téléchargé une seule fois par passage
-            python app/scripts/build_extras.py "$id.osm.pbf" --out "$id-extras.json" --no-paris $([ -f atp.zip ] && echo --atp atp.zip) \
+            python app/scripts/build_extras.py "$id.osm.pbf" --out "$id-extras.json" --no-paris --pays "$country" $([ -f atp.zip ] && echo --atp atp.zip) \
               || echo '{"places":{}}' > "$id-extras.json"
             python app/scripts/build_places.py "$id.osm.pbf" --out "out/$id" --bbox "$bbox" --reviews "$id-reviews.json" --extras "$id-extras.json"
             if python app/scripts/check_publish.py "out/$id/index.json" "https://untrackedmaps.app/data/zones/$id/places/index.json"; then

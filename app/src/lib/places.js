@@ -1,5 +1,6 @@
 // Lieux : détails d'un lieu et lieux d'une catégorie, lus dans les tuiles préparées à l'avance (placestore.js).
 // Aucun service tiers n'est interrogé lieu par lieu. La recherche par texte est dans geocode.js.
+import { streetLine } from '#lib/searchscope.js';
 import { reviewsOf } from '#lib/reviews.js';
 import { tx } from '#lib/i18n/index.js';
 import { kindOf, expectsHours, practical, goodToKnow } from './placeinfo.js';
@@ -64,11 +65,11 @@ export async function details(place) {
   const hit = await placeById(place.osmType, place.osmId, place.lat, place.lon).catch(() => null);
   // absent : soit la zone n'est pas couverte par nos données, soit le lieu n'y est pas (supprimé, lien erroné)
   if (!hit) return (await covers(place.lat, place.lon).catch(() => false)) ? { covered: true, missing: true } : { covered: false };
-  return { ...fromTags(hit.tags), facade: hit.facade || null };
+  return { ...fromTags(hit.tags, hit), facade: hit.facade || null };
 }
 
-export function fromTags(t) {
-  const street = [t['addr:housenumber'], t['addr:street']].filter(Boolean).join(' ');
+export function fromTags(t, at = null) {
+  const street = streetLine(t, at);   // ordre du pays (searchscope.js)
   return {
     covered: true,
     name: t.name,

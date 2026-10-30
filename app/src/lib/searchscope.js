@@ -15,3 +15,10 @@ export const inFrance = (at) => city.country === 'FR' && inBox(FRANCE, at);
 /** Avons-nous des fiches de lieux ici (Île-de-France, ou une ville de zones.json) ? Sans index de recherche ailleurs
  *  qu'en Île-de-France : « boulangerie », « pharmacie ouverte » y passent par les tuiles, les noms par Photon. */
 export const hasPlaces = (at) => covered(at) || ZONES.some((z) => inBox(z.bbox, at));
+
+/** Ligne d'adresse (numéro et rue) dans l'ordre du pays : « 4 rue X » en France, « Amstelzijde 4 » aux Pays-Bas. */
+export function streetLine(t, at) {
+  const z = at && ZONES.find((zz) => inBox(zz.bbox, at));
+  const parts = [t['addr:housenumber'], t['addr:street']];
+  return (z && z.country !== 'FR' ? parts.reverse() : parts).filter(Boolean).join(' ');
+}
