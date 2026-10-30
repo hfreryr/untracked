@@ -1,4 +1,5 @@
 import { legTrafic } from '#lib/trafic.js';
+import { bikeOptions, readBikeKind } from '#lib/bikekind.js';
 import { covered } from '#lib/searchscope.js';
 import { rankTransit } from '#lib/transitrank.js';
 import { tx } from '#lib/i18n/index.js';
@@ -90,7 +91,7 @@ export async function streetRoute(from, to, mode, signal, via = null, priority =
   const body = {
     locations: pts.map((p) => ({ lat: p.lat, lon: p.lon, type: 'break' })),
     costing,
-    costing_options: mode === 'bike' ? { bicycle: { bicycle_type: 'City', use_roads: 0.25 } } : {},
+    costing_options: mode === 'bike' ? { bicycle: bikeOptions(readBikeKind()) } : {},     // vélo classique ou électrique (bikekind.js)
     language: 'fr-FR',
     units: 'km',
     ...(via ? {} : { alternates: 2 })      // itinéraires de rechange (pas possible avec un arrêt)

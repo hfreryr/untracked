@@ -523,6 +523,8 @@ export default {
   'itin.a_quai': 'à quai',
   'itin.metro': 'Métro',
   'itin.rer_et_train': 'RER et train',
+  'itin.type_de_velo': 'Type de vélo',
+  'itin.velo_electrique': 'Vélo électrique',
   'itin.autres_departs': 'Autres départs',
   'itin.masquer': 'Masquer',
   'itin.tram': 'Tram',
