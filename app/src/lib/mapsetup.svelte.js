@@ -87,7 +87,7 @@ export function createMapSetup(app) {
     app.map.on('pitch', orient);
     // Appui long (ou clic droit) : adresse du point, même si une fiche est ouverte.
     app.map.on('contextmenu', (e) => { if (!app.directions) app.openPoint(e.lngLat); });
-    for (const id of ['poi', 'poi-other', 'poi-hit', 'landmark', 'metro', 'fav']) {
+    for (const id of ['poi', 'poi-outside', 'poi-other', 'poi-hit', 'landmark', 'metro', 'fav']) {
       app.map.on('mouseenter', id, () => (app.map.getCanvas().style.cursor = 'pointer'));
       app.map.on('mouseleave', id, () => (app.map.getCanvas().style.cursor = ''));
     }

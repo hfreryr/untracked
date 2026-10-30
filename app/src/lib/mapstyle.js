@@ -3,6 +3,7 @@
 // voies rapides ambrées, parcs et eau doux, bâtiments en léger relief, et des lieux
 // signalés par une pastille colorée à pictogramme blanc. Police : Inter (SIL OFL), hébergée avec l'app.
 import { isDark } from '#lib/theme.js';
+import { city } from '#lib/cities/index.js';
 
 export const C = {
   land: '#F4EFDF',
@@ -82,6 +83,20 @@ const POI_PRI = (() => {
   return m;
 })();
 const POI_SORT = ['+', POI_PRI, ['/', ['min', ['get', 'rank'], 999], 1000]];
+// Hors de la zone de nos données (Île-de-France) : les lieux du fond de carte (OpenFreeMap, présents dans les tuiles à
+// partir du zoom 14) apparaissent dès le zoom 14 au lieu de 17, sinon on ne voit que les stations (Amsterdam, porteur,
+// 30/10/2026). Culture et monuments d'abord, puis manger et dormir (15), puis le reste (16). « rank » est un rang par
+// case de la tuile (OpenMapTiles) : il répartit les lieux à l'écran, il ne dit pas leur notoriété.
+const [W, S, E, N] = city.searchBbox;
+const COVERED = { type: 'Polygon', coordinates: [[[W, S], [E, S], [E, N], [W, N], [W, S]]] };
+const FAMILY_OF = (keys) => keys.flatMap((k) => FAMILIES[k].classes);
+// palier de chaque lieu (0 : culture, monuments ; 1 : manger, boire, dormir, parcs ; 2 : le reste), combiné au rang en
+// une seule note, comparée à un seuil qui monte avec le zoom (MapLibre n'accepte qu'un palier de zoom par filtre)
+const OUTSIDE_TIER = ['match', ['get', 'subclass'], FAMILY_OF(['culture', 'sight']).concat(['zoo']), 0,
+  [...new Set(FAMILY_OF(['food', 'cafe', 'bar', 'stay']).concat(['park']))], 1, 2];
+export const OUTSIDE_FILTER = ['all', ['has', 'name'], ['!', ['within', COVERED]],
+  ['match', ['get', 'subclass'], ALL_CLASSES, true, false],
+  ['<=', OUTSIDE_TIER, ['step', ['zoom'], 0, 16, 1]]]; // rang = rang dans la maille, pas importance (Rijksmuseum : 18)
 
 export function darken(hex, k = 0.78) {
   const n = parseInt(hex.slice(1), 16);
@@ -322,6 +337,14 @@ function lightStyle(base) {
                   'text-field': NAME, 'text-font': FONT.semibold, 'text-size': 12, 'text-anchor': 'left',
                   'text-offset': [1.0, 0], 'text-max-width': 8, 'text-line-height': 1.15,
                   'text-optional': false, 'symbol-sort-key': POI_SORT },
+        paint: { 'text-color': POI_TEXT, 'text-halo-color': C.halo, 'text-halo-width': 1.6 } },
+      // Hors de la zone de nos données : les lieux du fond de carte, plus tôt (voir OUTSIDE_FILTER).
+      { id: 'poi-outside', type: 'symbol', source: 'omt', 'source-layer': 'poi', minzoom: 14, maxzoom: 17,
+        filter: OUTSIDE_FILTER,
+        layout: { 'icon-image': POI_ICON, 'icon-size': zoom([14, 0.85, 16, 1]),
+                  'text-field': NAME, 'text-font': FONT.semibold, 'text-size': zoom([14, 11, 16, 12]), 'text-anchor': 'left',
+                  'text-offset': [1.0, 0], 'text-max-width': 8, 'text-line-height': 1.15,
+                  'text-optional': false, 'symbol-sort-key': ['+', ['*', OUTSIDE_TIER, 1000], ['min', ['get', 'rank'], 999]] },
         paint: { 'text-color': POI_TEXT, 'text-halo-color': C.halo, 'text-halo-width': 1.6 } },
       // Lieux choisis à l'avance (monuments et bonnes adresses), chacun avec son zoom
       // d'apparition « z » calculé pour garder un écart régulier à l'écran (voir scripts/build_overlays.py).
