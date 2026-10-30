@@ -201,7 +201,7 @@ button { font: inherit; color: inherit; }
 .me .me-nav { display: none; }
 .me.navigating .me-nav {
   display: grid; place-items: center; position: absolute; left: 50%; top: 50%; width: 42px; height: 42px; margin: -21px 0 0 -21px;
-  border-radius: 50%; background: rgb(122 150 212 / 0.78); border: 3px solid rgb(236 239 243 / 0.95);
+  border-radius: 50%; background: var(--nav-disc, rgb(122 150 212 / 0.78)); border: 3px solid rgb(236 239 243 / 0.95);
   -webkit-backdrop-filter: blur(6px) saturate(1.4); backdrop-filter: blur(6px) saturate(1.4);
   box-shadow: 0 2px 8px rgb(0 0 0 / 0.28), inset 0 1px 2px rgb(255 255 255 / 0.35);
 }

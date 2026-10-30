@@ -9,6 +9,7 @@
   import { newKeyJwk, payloadOf, signReview, submit } from '#lib/mangrove.js';
   import { loadReviewer, saveReviewer, withMine, mineFor, placeId } from '#lib/reviewer.js';
   import { makePseudo } from '#lib/pseudo.js';
+  import { takeIntent } from '#lib/contrib.js';
   import Dialog from './Dialog.svelte';
   /** @type {{ place: any, reviews: any }} */
   let { place, reviews } = $props();
@@ -25,6 +26,9 @@
   function start(n) {
     stars = n; text = mine?.text || ''; nick = mine?.nick ?? me.nick; failed = false; open = true;
   }
+  // note touchée sur la carte « Comment était X ? » (ReviewAsk.svelte) : la fenêtre s'ouvre avec elle
+  // (seulement une fois la fiche chargée : avant, la section peut être recréée et la fenêtre se perdrait)
+  $effect(() => { if (app.info === null) return; const i = takeIntent(placeId(place)); if (i) start(i.stars); });
   async function publish() {
     if (!stars || sending) return;
     sending = true; failed = false;
