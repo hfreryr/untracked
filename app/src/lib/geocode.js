@@ -7,6 +7,7 @@
 //
 // Ce qui est envoyé : le texte tapé et un point de référence (centre de la carte ou position), rien d'autre.
 import { covered, inFrance } from '#lib/searchscope.js';
+import { mergeAddresses, townAt, withTown } from '#lib/addressnear.js';
 import { tx } from '#lib/i18n/index.js';
 import { city } from './cities/index.js';
 import { typeLabel, typeOfTags } from './places.js';
@@ -57,6 +58,7 @@ function fromGeopf(f) {
     type: street ? tx('resultats.rue') : tx('fiche.adresse'),
     subclass: null,
     address: `${p.postcode} ${p.city}`,
+    city: p.city,
     lat, lon,
     score: p.score
   };
@@ -97,14 +99,30 @@ async function photon(query, near, signal, limit = 7, anywhere = false) {
     .map(fromPhoton);
 }
 
-async function geopf(query, near, signal, limit = 5) {
+async function geopfRaw(query, near, signal, limit) {
   const url = new URL(`${GEOPF}/search`);
   url.search = new URLSearchParams({ q: query, index: 'address', limit: String(limit), lat: String(near.lat), lon: String(near.lon) });
   const res = await fetch(url, { signal });
   if (!res.ok) throw new Error(`Géoplateforme ${res.status}`);
-  const all = (await res.json()).features.map(fromGeopf).filter((r) => r.score == null || r.score > 0.4);
+  return (await res.json()).features.map(fromGeopf).filter((r) => r.score == null || r.score > 0.4);
+}
+
+/** Commune d'un point, selon le géocodeur de l'État. */
+async function townOf(lat, lon) {
+  const r = await fetch(`${GEOPF}/reverse?lon=${lon}&lat=${lat}&index=address&limit=1`);
+  return r.ok ? (await r.json()).features[0]?.properties?.city || null : null;
+}
+
+async function geopf(query, near, signal, limit = 5) {
+  if (!covered(near)) {
+    // ailleurs en France : aussi « texte + commune de la carte », car le géocodeur tient peu compte du point (addressnear.js)
+    const town = await townAt(near, townOf);
+    const q2 = withTown(query, town);
+    const [plain, inTown] = await Promise.all([geopfRaw(query, near, signal, limit), q2 ? geopfRaw(q2, near, signal, limit).catch(() => []) : []]);
+    return mergeAddresses(inTown, plain, town).slice(0, limit);
+  }
+  const all = await geopfRaw(query, near, signal, limit);
   // la zone de la ville d'abord (le géocodeur est national) ; ailleurs seulement si rien ici
-  if (!covered(near)) return all;                     // ailleurs en France : le géocodeur trie déjà autour du point
   const here = all.filter(covered);
   return here.length ? here : all;
 }
