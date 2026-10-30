@@ -112,6 +112,24 @@ const tests = {
     assert(!/Source :/.test(await p.$eval('.sheet', (e) => e.innerText)), 'source affichée pour une info OSM');
     await ctx.close();
   },
+  async 'Lyon : catégories, fiches avec horaires et recherche par type, depuis ses propres tuiles'() {
+    // données locales : python app/scripts/build_places.py data/villes/rhone.osm.pbf --out app/static/data/zones/lyon/places
+    //                   --bbox 4.68,45.62,5.08,45.88   (en ligne : places-zones.yml, chaque semaine)
+    let { p, ctx, errors } = await page({ geolocation: { latitude: 45.76, longitude: 4.835 } }, '#carte=15.5/45.7600/4.8350');
+    await p.click('.chip:has-text("Restaurants")'); await p.waitForSelector('.nearby li button', { timeout: 20000 });
+    const list = await p.$$eval('.nearby li', (l) => l.map((e) => e.innerText));
+    assert(list.length >= 5 && list.some((t) => /Ouvert|Fermé/.test(t)), `restaurants de Lyon sans horaires : ${list.slice(0, 3).join(' | ')}`);
+    await p.click('.nearby li button >> nth=0'); await p.waitForSelector('.sheet h1', { timeout: 15000 }); await p.waitForTimeout(1500);
+    const sheet = await p.$eval('.sheet', (e) => e.innerText);
+    assert(!/hors de la zone couverte/.test(sheet), 'fiche lyonnaise vue comme hors zone');
+    await ctx.close();
+    ({ p, ctx, errors } = await page({ geolocation: { latitude: 45.76, longitude: 4.835 } }, '#carte=15/45.7600/4.8350'));
+    await p.fill('#search', 'boulangerie'); await p.waitForSelector('.results li.opt', { timeout: 20000 }); await p.waitForTimeout(1000);
+    const txt = await p.$$eval('.results li.opt', (l) => l.map((e) => e.innerText).join(' | '));
+    assert(/Boulangeries près de vous/.test(txt), `pas de boulangeries lyonnaises : ${txt.slice(0, 200)}`);
+    assert(!errors.length, errors.join(' | '));
+    await ctx.close();
+  },
   async 'recherche hors Île-de-France : les lieux autour de la carte, pas ceux de Paris'() {
     // retour du porteur (30/10/2026) : « Starbucks » vu d'Amsterdam proposait un Starbucks d'Île-de-France
     const { p, ctx, errors } = await page({ geolocation: { latitude: 52.37, longitude: 4.89 } }, '#carte=14/52.3700/4.8930');
@@ -582,7 +600,7 @@ const tests = {
     await p.click('.close'); await p.waitForTimeout(500);
     await p.click('.chip.add'); await p.waitForTimeout(800);
     await p.click('.ce-toggle[aria-label="Afficher Cafés"]');
-    await p.fill('input[aria-label="Nom du raccourci Restaurants"]', 'Restos'); await p.press('input[aria-label="Nom du raccourci Restaurants"]', 'Tab');
+    await p.fill('input[aria-label="Nom de la catégorie Restaurants"]', 'Restos'); await p.press('input[aria-label="Nom de la catégorie Restaurants"]', 'Tab');
     await p.click('section[aria-label="Personnaliser les catégories"] .close'); await p.waitForTimeout(500);
     const chips = await p.$$eval('.chips .chip', (els) => els.map((e) => e.textContent.trim()));
     assert(chips.includes('Restos') && !chips.includes('Cafés'), `raccourcis non appliqués : ${chips.join(', ')}`);

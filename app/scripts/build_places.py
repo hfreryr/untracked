@@ -235,6 +235,17 @@ def add_extras(tags, extra, today=None):
     return added
 
 
+def keep_in_bbox(tiles, bbox):
+    """Tuiles réduites aux lieux du cadre (ouest, sud, est, nord) ; les tuiles vidées disparaissent."""
+    w, s, e, n = bbox
+    out = {}
+    for k, items in tiles.items():
+        kept = [it for it in items if w <= it[1] <= e and s <= it[2] <= n]
+        if kept:
+            out[k] = kept
+    return out
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("pbf")
@@ -242,6 +253,8 @@ def main():
     ap.add_argument("--zoom", type=int, default=14)
     ap.add_argument("--facades", help="facades.json (build_facades.py) : photo de devanture ajoutée en 5e position de chaque lieu")
     ap.add_argument("--extras", help="extras.json (build_extras.py) : compléments hors OSM, avec leur source")
+    ap.add_argument("--bbox", help="ne garder que les lieux de ce cadre : ouest,sud,est,nord (une agglomération dans "
+                    "l'extrait de son département, voir app/src/lib/cities/zones.json)")
     args = ap.parse_args()
     extras = {}
     if args.extras:
@@ -273,6 +286,9 @@ def main():
             na += 1
     # durées de chaque phase dans le journal de la tâche de nuit, pour suivre ce qui ralentit
     print(f"durées : lecture {t1 - t0:.0f} s, second passage {t2 - t1:.0f} s, choix des accès {time.time() - t2:.0f} s", flush=True)
+    if args.bbox:
+        h.tiles = keep_in_bbox(h.tiles, tuple(map(float, args.bbox.split(","))))
+        h.count = sum(len(v) for v in h.tiles.values())
     out = Path(args.out)
     # on repart de zéro : une tuile disparue ne doit pas rester
     if out.exists():

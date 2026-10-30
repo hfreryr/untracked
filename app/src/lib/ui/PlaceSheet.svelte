@@ -9,10 +9,19 @@
   import { popover } from '#lib/popover.js';
   import { fmtWait } from '#lib/routing.js';
   import { host, href } from '#lib/links.js';
+  import { dataDate } from '#lib/placestore.js';
 
   // État et actions de la page (voir le bloc « app » de +page.svelte)
   const app = getContext('app');
   let freshInfo = $state(false);
+  // date des données de ce lieu : chaque ville a la sienne (Île-de-France chaque nuit, autres villes chaque semaine)
+  let placeDate = $state('');
+  $effect(() => {
+    const p = app.place;
+    placeDate = '';
+    if (!p?.lat) return;
+    dataDate(p.lat, p.lon).then((d) => { if (d && app.place === p) placeDate = new Date(d).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }); }).catch(() => {});
+  });
   // sorties de la station ouverte, aussi sur la carte (P5) ; retirées quand la fiche se ferme
   $effect(() => {
     showExits(app.map, app.exits?.status === 'ok' ? app.exits.data : []);
@@ -171,7 +180,7 @@
         <p class="contrib">{tx('fiche.lieu_introuvable')}</p>
       {/if}
       <p class="contrib">
-        {#if app.osmDate}{tx('fiche.donnees_openstreetmap_du', { osmDate: app.osmDate })}{' '}{/if}{tx('fiche.une_info_manque_ou_est_fausse')}
+        {#if placeDate}{tx('fiche.donnees_openstreetmap_du', { osmDate: placeDate })}{' '}{/if}{tx('fiche.une_info_manque_ou_est_fausse')}
         {#if app.osmEditUrl}<a href={app.osmEditUrl} target="_blank" rel="noopener">{tx('fiche.completez_la_sur_openstreetmap')}</a>{:else}<a href={app.osmNoteUrl} target="_blank" rel="noopener">{tx('fiche.signalez_la_sur_openstreetmap')}</a>{/if}{tx('fiche.la_carte_libre_que_nous_utilisons')}
       </p>
 {/snippet}

@@ -4,19 +4,45 @@
 import { tx } from '#lib/i18n/index.js';
 import { dataBase } from './config.js';
 
-let index = null;          // { zoom, tiles: Set('x/y'), built }
-const tiles = new Map();   // 'x/y' → Promise<[{ id, lon, lat, tags }]>
+import ZONES from './cities/zones.json' with { type: 'json' };
 
-async function loadIndex() {
-  if (index) return index;
-  try {
-    const r = await fetch(`${dataBase()}places/index.json`);
-    const j = r.ok ? await r.json() : null;
-    index = j ? { zoom: j.zoom, built: j.built, tiles: new Set(j.tiles) } : { zoom: 14, built: null, tiles: new Set() };
-  } catch {
-    index = { zoom: 14, built: null, tiles: new Set() };
+// Plusieurs jeux de tuiles : l'Île-de-France (data/places/, refait chaque nuit) et les autres villes
+// (data/zones/<ville>/places/, refaites moins souvent, voir zones.json). L'index d'une ville n'est chargé que si
+// l'on regarde dans son cadre.
+const SOURCES = [{ id: 'idf', dir: 'places/', bbox: null }, ...ZONES.map((z) => ({ id: z.id, dir: ['zones', z.id, 'places', ''].join('/'), bbox: z.bbox }))];
+const indexes = new Map();  // id de la source → Promise<{ zoom, tiles: Set('x/y'), built }>
+const tiles = new Map();    // 'source:x/y' → Promise<[{ id, lon, lat, tags }]>
+const ZOOM = 14;
+
+function loadIndex(src = SOURCES[0]) {
+  if (!indexes.has(src.id)) {
+    indexes.set(src.id, (async () => {
+      try {
+        const r = await fetch(`${dataBase()}${src.dir}index.json`);
+        const j = r.ok ? await r.json() : null;
+        return j ? { zoom: j.zoom, built: j.built, tiles: new Set(j.tiles) } : { zoom: ZOOM, built: null, tiles: new Set() };
+      } catch {
+        return { zoom: ZOOM, built: null, tiles: new Set() };
+      }
+    })());
   }
-  return index;
+  return indexes.get(src.id);
+}
+
+/** Bords (ouest, sud, est, nord) d'une tuile. */
+function tileBox(x, y, z) {
+  const n = 2 ** z, lon = (v) => (v / n) * 360 - 180;
+  const lat = (v) => (Math.atan(Math.sinh(Math.PI * (1 - (2 * v) / n))) * 180) / Math.PI;
+  return [lon(x), lat(y + 1), lon(x + 1), lat(y)];
+}
+const meets = (a, b) => !b || (a[0] < b[2] && a[2] > b[0] && a[1] < b[3] && a[3] > b[1]);
+/** Sources dont le cadre touche cette tuile (l'Île-de-France est toujours consultée). */
+export const sourcesFor = (x, y, z = ZOOM) => SOURCES.filter((s) => meets(tileBox(x, y, z), s.bbox));
+
+/** La source qui a cette tuile, ou null. */
+async function sourceOf(x, y) {
+  for (const s of sourcesFor(x, y)) if ((await loadIndex(s)).tiles.has(`${x}/${y}`)) return s;
+  return null;
 }
 
 export function tileXY(lon, lat, z) {
@@ -31,9 +57,9 @@ function loadTile(x, y) {
   const key = `${x}/${y}`;
   if (!tiles.has(key)) {
     tiles.set(key, (async () => {
-      const idx = await loadIndex();
-      if (!idx.tiles.has(key)) return [];
-      const r = await fetch(`${dataBase()}places/${idx.zoom}/${x}/${y}.json`).catch(() => null);
+      const src = await sourceOf(x, y);
+      if (!src) return [];
+      const r = await fetch(`${dataBase()}${src.dir}${ZOOM}/${x}/${y}.json`).catch(() => null);
       const j = r?.ok ? await r.json() : null;
       return (j?.t || []).map(([id, lon, lat, tags, f]) => ({ id, lon, lat, tags, facade: f ? facadeOf(f) : null }));
     })());
@@ -43,12 +69,11 @@ function loadTile(x, y) {
 
 /** Les lieux d'une zone (au plus `maxTiles` tuiles, les plus proches du centre d'abord). */
 export async function placesInBounds({ west, south, east, north }, maxTiles = 6) {
-  const idx = await loadIndex();
-  const [x0, y0] = tileXY(west, north, idx.zoom);
-  const [x1, y1] = tileXY(east, south, idx.zoom);
+  const [x0, y0] = tileXY(west, north, ZOOM);
+  const [x1, y1] = tileXY(east, south, ZOOM);
   const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
   const keys = [];
-  for (let x = x0; x <= x1; x++) for (let y = y0; y <= y1; y++) if (idx.tiles.has(`${x}/${y}`)) keys.push([x, y]);
+  for (let x = x0; x <= x1; x++) for (let y = y0; y <= y1; y++) if (await sourceOf(x, y)) keys.push([x, y]);
   keys.sort((a, b) => Math.hypot(a[0] - cx, a[1] - cy) - Math.hypot(b[0] - cx, b[1] - cy));
   const lists = await Promise.all(keys.slice(0, maxTiles).map(([x, y]) => loadTile(x, y)));
   return lists.flat();
@@ -56,9 +81,8 @@ export async function placesInBounds({ west, south, east, north }, maxTiles = 6)
 
 /** Un lieu par son identifiant OSM, cherché dans la tuile de sa position (et les voisines si besoin). */
 export async function placeById(osmType, osmId, lat, lon) {
-  const idx = await loadIndex();
   const id = Number(osmId) * 10 + { node: 1, way: 2, relation: 3 }[osmType];
-  const [x, y] = tileXY(lon, lat, idx.zoom);
+  const [x, y] = tileXY(lon, lat, ZOOM);
   for (const [dx, dy] of [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]]) {
     const hit = (await loadTile(x + dx, y + dy)).find((p) => p.id === id);
     if (hit) return hit;
@@ -68,14 +92,16 @@ export async function placeById(osmType, osmId, lat, lon) {
 
 /** La zone couverte par les données ? */
 export async function covers(lat, lon) {
-  const idx = await loadIndex();
-  const [x, y] = tileXY(lon, lat, idx.zoom);
-  return idx.tiles.has(`${x}/${y}`);
+  const [x, y] = tileXY(lon, lat, ZOOM);
+  return !!(await sourceOf(x, y));
 }
 
-/** Date de l'extrait OSM dont viennent les lieux (affichée dans l'app). */
-export async function dataDate() {
-  return (await loadIndex()).built;
+/** Date de l'extrait OSM dont viennent les lieux : ceux d'Île-de-France, ou ceux du point donné (null si non couvert). */
+export async function dataDate(lat, lon) {
+  if (lat == null) return (await loadIndex()).built;
+  const [x, y] = tileXY(lon, lat, ZOOM);
+  const src = await sourceOf(x, y);
+  return src ? (await loadIndex(src)).built : null;
 }
 
 /**
