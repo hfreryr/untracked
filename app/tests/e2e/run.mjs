@@ -112,6 +112,20 @@ const tests = {
     assert(!/Source :/.test(await p.$eval('.sheet', (e) => e.innerText)), 'source affichée pour une info OSM');
     await ctx.close();
   },
+  async 'hors Île-de-France : musées et monuments visibles dès le zoom 14 ; rien de doublé à Paris'() {
+    // nos lieux détaillés ne couvrent que l'Île-de-France : ailleurs, les lieux des tuiles OpenFreeMap prennent le relais
+    const names = (p) => p.evaluate(() => window.__map.queryRenderedFeatures({ layers: ['poi-outside'] }).map((f) => f.properties.name));
+    let { p, ctx, errors } = await page({}, '#carte=15.4/52.3600/4.8852');
+    await p.waitForTimeout(3000);
+    const ams = await names(p);
+    assert(ams.includes('Rijksmuseum'), `Rijksmuseum absent à Amsterdam : ${ams.join(', ')}`);
+    assert(!errors.length, errors.join(' | '));
+    await ctx.close();
+    ({ p, ctx, errors } = await page({}, '#carte=15/48.8566/2.3470'));
+    await p.waitForTimeout(3000);
+    assert(!(await names(p)).length, 'lieux des tuiles affichés en Île-de-France (doublons)');
+    await ctx.close();
+  },
   async 'lien partagé vers un lieu : fiche complète ; lieu inexistant : message « introuvable »'() {
     // Panthéon : way 16407465 dans nos tuiles. Le lien porte le vrai numéro OSM (pas le numéro codé des tuiles).
     let { p, ctx, errors } = await page({}, '#carte=18/48.846219/2.346008&lieu=way/16407465');
@@ -1183,9 +1197,11 @@ z.close()`, zip]);
     await p.keyboard.press('Escape'); await p.waitForTimeout(200);
     assert(!(await p.$('.dlg')), 'Échap ne ferme pas la fenêtre À propos');
     // 2 bis. menu d'un raccourci (appui long ; ici clic droit), dans la recherche
-    await p.click('#search'); await p.waitForSelector('.pin-btn.add');
+    await p.fill('#search', ''); await p.click('#search'); await p.waitForSelector('.pin-btn.add'); // (« Panthéon » encore tapé plus haut)
     await p.click('.pin-btn.add'); await p.waitForSelector('.dlg #sc-name'); await p.fill('#sc-name', 'Salle'); await p.click('.dlg button.ok'); await p.waitForTimeout(300);
-    await p.click('#search'); await p.waitForSelector('.pin-btn:has-text("Salle")');
+    // (l'adresse est demandée ensuite : on la laisse pour plus tard)
+    await p.keyboard.press('Escape'); await p.evaluate(() => document.activeElement?.blur()); await p.waitForTimeout(300);
+    await p.fill('#search', ''); await p.click('#search'); await p.waitForSelector('.pin-btn:has-text("Salle")');
     await p.click('.pin-btn:has-text("Salle")', { button: 'right' }); await p.waitForSelector('.sc-menu');
     assert((await visibleWhole('.sc-menu')) === 'ok', `menu d'un raccourci : ${await visibleWhole('.sc-menu')}`);
     await p.keyboard.press('Escape'); await p.waitForTimeout(200);

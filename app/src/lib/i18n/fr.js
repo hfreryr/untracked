@@ -283,7 +283,7 @@ export default {
   'fiche.retirer': 'Retirer',
   'fiche.signaler_un_probleme_sur': 'Signaler un problème sur OpenStreetMap',
   'fiche.signaler': 'Signaler',
-  'fiche.ce_lieu_est_hors_de_la_zone_couverte': 'Ce lieu est hors de la zone couverte par nos données détaillées (Paris pour l\'instant) : seules les infos de la carte sont affichées.',
+  'fiche.ce_lieu_est_hors_de_la_zone_couverte': 'Ce lieu est hors de la zone couverte par nos données détaillées (l\'Île-de-France pour l\'instant) : seules les infos de la carte sont affichées.',
   'fiche.lieu_introuvable': 'Ce lieu est introuvable dans nos données : il a peut-être fermé, été supprimé d\'OpenStreetMap, ou le lien est incomplet.',
   'fiche.donnees_openstreetmap_du': 'Données OpenStreetMap du {osmDate}.',
   'fiche.une_info_manque_ou_est_fausse': 'Une info manque ou est fausse ?',

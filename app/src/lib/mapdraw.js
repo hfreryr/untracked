@@ -84,7 +84,7 @@ export function createMapDraw(app) {
     const op = ['case', ['boolean', ['feature-state', 'sel'], false], 0, v];
     // les résultats de la liste (restaurants…) disparaissent pendant l'itinéraire et reviennent après
     for (const id of ['cat-hit', 'cat-hit-label']) if (app.map.getLayer(id)) app.map.setLayoutProperty(id, 'visibility', on ? 'none' : 'visible');
-    for (const id of ['poi', 'poi-other', 'landmark', 'metro', 'fav', 'fav-label']) {
+    for (const id of ['poi', 'poi-outside', 'poi-other', 'landmark', 'metro', 'fav', 'fav-label']) {
       if (!app.map.getLayer(id)) continue;
       const keep = id === 'fav' || id === 'fav-label';   // nos propres repères ne s'estompent pas pendant un trajet
       if (id !== 'fav-label') app.map.setPaintProperty(id, 'icon-opacity', keep ? ['case', ['boolean', ['feature-state', 'sel'], false], 0, 1] : op);
@@ -186,7 +186,7 @@ export function createMapDraw(app) {
     if (hit && app.nearby[hit.properties.i]?.saved) return app.openPlace({ ...app.nearby[hit.properties.i].saved, pin: { glyph: app.listOf(app.nearby[hit.properties.i].saved.lists?.[0]).icon, color: app.listOf(app.nearby[hit.properties.i].saved.lists?.[0]).color } });
     if (hit && app.nearby[hit.properties.i]?.res) return app.openResult(app.nearby[hit.properties.i].res, hit.properties.i);
     if (hit && app.nearby[hit.properties.i]) return openFeature(app.nearby[hit.properties.i].f, 'cat-hit');
-    const f = app.map.queryRenderedFeatures(e.point, { layers: ['poi-hit', 'poi', 'poi-other', 'landmark', 'metro'] })[0];
+    const f = app.map.queryRenderedFeatures(e.point, { layers: ['poi-hit', 'poi', 'poi-outside', 'poi-other', 'landmark', 'metro'] })[0];
     if (f) return openFeature(f);
     // Toucher un endroit vide : fiche de l'adresse (si une fiche est ouverte, le toucher la ferme d'abord).
     if (app.place) return app.closePlace();
