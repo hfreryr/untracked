@@ -1,0 +1,69 @@
+# Lieux par tuile des villes hors Île-de-France (app/src/lib/cities/zones.json), une fois par semaine chacune :
+# chaque ville a son jour (« day » : 1 = lundi … 7 = dimanche), pour étaler les calculs et les publications
+# (porteur, 30/10/2026 : plus de villes, mises à jour moins fréquentes, sobriété).
+# Extrait du département (openstreetmap.fr, somme de contrôle vérifiée), réduit au cadre de l'agglomération,
+# publié dans data/zones/<ville>/places/ du site, sans toucher au reste. Même garde-fou que la nuit (-10 %).
+name: Lieux des autres villes (hebdomadaire)
+on:
+  schedule:
+    - cron: '35 3 * * *'
+  workflow_dispatch:
+    inputs:
+      zone:
+        description: "Ville à refaire tout de suite (ex. lyon), ou « toutes »"
+        required: true
+        default: toutes
+concurrency:
+  group: places          # jamais en même temps que la publication de nuit ni le ménage de l'historique
+  cancel-in-progress: false
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+        with: { ref: main }
+      - name: Villes du jour
+        id: due
+        env:
+          WANTED: ${{ inputs.zone }}
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json, os, datetime
+          zones = json.load(open("app/src/lib/cities/zones.json"))
+          w = os.environ.get("WANTED") or ""
+          today = datetime.datetime.utcnow().isoweekday()
+          due = zones if w == "toutes" else [z for z in zones if z["id"] == w] if w else [z for z in zones if z["day"] == today]
+          print("zones=" + " ".join(f'{z["id"]}:{z["extract"]}:{",".join(map(str, z["bbox"]))}' for z in due))
+          PY
+          cat "$GITHUB_OUTPUT"
+      - if: steps.due.outputs.zones != ''
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
+        with: { python-version: '3.12' }
+      - if: steps.due.outputs.zones != ''
+        run: pip install osmium==4.3.1
+      - if: steps.due.outputs.zones != ''
+        name: Construire, contrôler et publier
+        env:
+          ZONES: ${{ steps.due.outputs.zones }}
+        run: |
+          set -euo pipefail
+          git fetch --depth=1 origin gh-pages
+          git worktree add pages origin/gh-pages
+          for spec in $ZONES; do
+            IFS=: read -r id extract bbox <<< "$spec"
+            echo "::group::$id"
+            IDF_SOURCES="https://download.openstreetmap.fr/extracts/europe/france/$extract.osm.pbf" bash app/scripts/fetch_idf.sh "$id.osm.pbf"
+            python app/scripts/build_places.py "$id.osm.pbf" --out "out/$id" --bbox "$bbox"
+            if python app/scripts/check_publish.py "out/$id/index.json" "https://untrackedmaps.app/data/zones/$id/places/index.json"; then
+              rm -rf "pages/data/zones/$id/places" && mkdir -p "pages/data/zones/$id" && cp -r "out/$id" "pages/data/zones/$id/places"
+            else
+              echo "::warning::$id non publiée (baisse anormale)"; failed=1
+            fi
+            rm -f "$id.osm.pbf"
+            echo "::endgroup::"
+          done
+          cd pages && git add -A data/zones
+          git -c user.name=untracked-bot -c user.email=bot@untrackedmaps.app commit -qm "Lieux des villes ($ZONES) : extraits OSM du $(date -u +%F)" && git push origin HEAD:gh-pages || echo "rien de nouveau"
+          [ -z "${failed:-}" ]
