@@ -11,7 +11,6 @@
   import { host, href } from '#lib/links.js';
   import { dataDate } from '#lib/placestore.js';
   import Reviews from './Reviews.svelte';
-  import ZONES from '#lib/cities/zones.json' with { type: 'json' };
 
   // État et actions de la page (voir le bloc « app » de +page.svelte)
   const app = getContext('app');
@@ -180,7 +179,7 @@
         </div>
       {/if}
       {#if app.info?.covered === false}
-        <p class="contrib">{tx('fiche.ce_lieu_est_hors_de_la_zone_couverte', { villes: ZONES.map((z) => z.name).join(', ') })}</p>
+        <p class="contrib">{tx('fiche.ce_lieu_est_hors_de_la_zone_couverte')}</p>
       {:else if app.info?.missing && !app.place.name}
         <p class="contrib">{tx('fiche.lieu_introuvable')}</p>
       {/if}
