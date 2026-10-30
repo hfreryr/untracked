@@ -1,5 +1,6 @@
 // Mes lieux : listes, épingles, Maison et Travail, transfert et sauvegarde.
 // Code sorti de +page.svelte : il lit et modifie l'état de l'écran par l'objet « app » (bloc « app » de la page).
+import { loadReviewer, saveReviewer, mergeReviewer } from '#lib/reviewer.js';
 import { fromPins, mergeCustoms } from '#lib/customshortcuts.js';
 import { tx } from '#lib/i18n/index.js';
 import { LIST_COLORS, backupFile, mergeInto, newListId, pack, packList, readBackup, restore, sameSpot, snapshot } from '#lib/myplaces.js';
@@ -143,7 +144,10 @@ export function createMyPlaces(app) {
   async function makeTransfer() {
     app.hubPanel = 'transfer';
     app.transfer = null;
-    const data = await pack(snapshot({ lists: app.lists, places: app.favorites, shortcuts: app.shortcuts, pins: app.pins, chips: app.chipPrefs, customs: app.customs }));
+    // lien de transfert : la clé et le pseudo, et ses avis sans leur texte (le lien doit rester court)
+    const rv = loadReviewer();
+    const data = await pack(snapshot({ lists: app.lists, places: app.favorites, shortcuts: app.shortcuts, pins: app.pins, chips: app.chipPrefs, customs: app.customs,
+      reviewer: { ...rv, mine: rv.mine.map((m) => ({ ...m, text: '' })) } }));
     const u = new URL(location.href);
     u.hash = `transfert=${data}`;
     const url = u.toString();
@@ -174,11 +178,12 @@ export function createMyPlaces(app) {
     app.saveCustoms();
     for (const k of ['home', 'work']) if (r.shortcuts[k] && !app.shortcuts[k]) app.setShortcut(k, r.shortcuts[k]);
     if (r.chips?.length) { app.chipPrefs = r.chips; app.saveChips(); }
+    if (r.reviewer) saveReviewer(mergeReviewer(loadReviewer(), r.reviewer));
     saveAll();
     return m.added;
   }
   async function makeBackup() {
-    const file = await backupFile(snapshot({ lists: app.lists, places: app.favorites, shortcuts: app.shortcuts, pins: app.pins, chips: app.chipPrefs, customs: app.customs }), app.backupPassword.trim());
+    const file = await backupFile(snapshot({ lists: app.lists, places: app.favorites, shortcuts: app.shortcuts, pins: app.pins, chips: app.chipPrefs, customs: app.customs, reviewer: loadReviewer() }), app.backupPassword.trim());
     app.backupPassword = '';
     try {
       if (navigator.canShare?.({ files: [file] })) await navigator.share({ files: [file], title: tx('meslieux.sauvegarde_de_mes_lieux') });

@@ -158,7 +158,8 @@
         </section>
       {/if}
 
-      {#if app.info?.reviews}<Reviews reviews={app.info.reviews} />{/if}
+      <!-- avis : lire ceux de Mangrove et écrire le sien, pour tout lieu OSM nommé (pas une adresse ni une station) -->
+      {#if app.place?.osmType && app.place?.name && !app.isAddress && !app.isStation}<Reviews place={app.place} reviews={app.info?.reviews} />{/if}
 
       {#if app.placeShortcut}
         <p class="sc-note">{tx('fiche.votre', { raccourci: app.SHORT_NAMES[app.placeShortcut].toLowerCase() })} <button class="link" onclick={() => { const k = app.placeShortcut, old = app.shortcuts[k]; app.setShortcut(k, null); app.say(tx('fiche.retire', { nom: app.SHORT_NAMES[k] }), { label: tx('resultats.annuler'), run: () => app.setShortcut(k, old) }); }}>{tx('fiche.retirer')}</button></p>
@@ -233,7 +234,7 @@
         {/if}
       {/if}
 
-      <div class="actions" class:solo={!app.info?.phone && !app.info?.website}>
+      <div class="actions">
         <!-- le mode proposé par défaut (le dernier choisi, sinon selon la distance) et son temps estimé, comme Plans -->
         <button class="action primary" onclick={app.startDirections} aria-label={app.walkEta?.label}>
           {#if app.walkEta}
@@ -256,6 +257,15 @@
             <span>{tx('fiche.site_web')}</span>
           </a>
         {/if}
+        <!-- favori et « Plus » dans la rangée (porteur, 30/10/2026 : plus de barre flottante à cheval sur la fiche) -->
+        <button class="action fav" class:on={app.inFav} onclick={app.favTap} aria-pressed={app.inFav} aria-label={app.inFav ? tx('fiche.retirer_de', { name: app.listOf('fav').name }) : tx('fiche.ajouter_a', { name: app.listOf('fav').name })}>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.3l-1.3-1.2C6 14.9 3 12.2 3 8.9 3 6.2 5.1 4 7.8 4c1.5 0 3 .7 4.2 1.9C13.2 4.7 14.7 4 16.2 4 18.9 4 21 6.2 21 8.9c0 3.3-3 6-7.7 10.2z" /></svg>
+          <span>{tx('fiche.favori')}</span>
+        </button>
+        <button class="action more" bind:this={moreBtn} onclick={() => (app.placeMenu = !app.placeMenu)} aria-expanded={app.placeMenu} aria-haspopup="menu" aria-label={tx('fiche.plus_options')}>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="12" r="1.4" class="solid" /><circle cx="12" cy="12" r="1.4" class="solid" /><circle cx="18" cy="12" r="1.4" class="solid" /></svg>
+          <span>{tx('fiche.plus')}</span>
+        </button>
       </div>
 
       {#if app.infoStrip.length}
@@ -274,12 +284,9 @@
         {@render photoBlock()}{@render aboutBlock()}{@render rowsBlock()}
       {/if}
 
-      <!-- règle d'interface : la barre flottante ne cache jamais définitivement le contenu (place réservée en fin de fiche) -->
-      <div class="fab-space" aria-hidden="true"></div>
-      <!-- Barre flottante : favori, listes, plus -->
-      <div class="fab-bar">
+      <!-- menu « Plus » (règles communes des menus : popover.js) -->
         {#if app.placeMenu}
-          <div class="pmenu" role="menu" use:popover={{ trigger: () => moreBtn, close: () => (app.placeMenu = false), place: 'above', align: 'end' }}>
+          <div class="pmenu" role="menu" use:popover={{ trigger: () => moreBtn, close: () => (app.placeMenu = false), place: 'below', align: 'end' }}>
             {#if !app.isStation}
               {#each ['home', 'work'] as k}
                 <button role="menuitem" onclick={() => { app.placeMenu = false; if (app.placeShortcut === k) { const old = app.shortcuts[k]; app.setShortcut(k, null); app.say(tx('fiche.retire', { nom: app.SHORT_NAMES[k] }), { label: tx('resultats.annuler'), run: () => app.setShortcut(k, old) }); } else { app.setShortcut(k, app.place); app.say(tx('fiche.enregistre_garde_sur_cet_appareil', { nom: app.SHORT_NAMES[k] })); } }}>
@@ -287,6 +294,8 @@
                 </button>
               {/each}
             {/if}
+            <!-- listes : ici depuis que le signet a quitté la barre flottante (30/10/2026) -->
+            {#if !app.isFav}<button role="menuitem" onclick={() => { app.placeMenu = false; app.listPicker = true; }}>{tx('fiche.ajouter_a_une_liste')}</button>{/if}
             {#if app.isFav}
               <!-- là où l'on cherche spontanément (tests P3 et P4) : les listes du lieu, pour l'en retirer ou le déplacer -->
               <button role="menuitem" onclick={() => { app.placeMenu = false; app.listPicker = true; }}>
@@ -297,19 +306,6 @@
             <button role="menuitem" onclick={() => { app.placeMenu = false; app.sharePlace(); }}>{tx('liste.partager')}</button>
           </div>
         {/if}
-        <div class="fab">
-          <button class:on={app.inFav} onclick={app.favTap} aria-pressed={app.inFav} aria-label={app.inFav ? tx('fiche.retirer_de', { name: app.listOf('fav').name }) : tx('fiche.ajouter_a', { name: app.listOf('fav').name })}>
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.3l-1.3-1.2C6 14.9 3 12.2 3 8.9 3 6.2 5.1 4 7.8 4c1.5 0 3 .7 4.2 1.9C13.2 4.7 14.7 4 16.2 4 18.9 4 21 6.2 21 8.9c0 3.3-3 6-7.7 10.2z" /></svg>
-          </button>
-          <!-- listes : un signet (comme « Enregistrer » ailleurs) plutôt qu'un « + » qui changeait de couleur (P5) -->
-          <button class:saved={app.isFav && app.savedEntry.lists.some((x) => x !== 'fav')} onclick={() => (app.listPicker = true)} aria-label={tx('fiche.ajouter_a_une_liste')}>
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 4h9a1 1 0 0 1 1 1v15l-5.5-3.8L6.5 20V5a1 1 0 0 1 1-1z" /></svg>
-          </button>
-          <button bind:this={moreBtn} onclick={() => (app.placeMenu = !app.placeMenu)} aria-expanded={app.placeMenu} aria-haspopup="menu" aria-label={tx('fiche.plus_options')}>
-            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="12" r="1.4" class="solid" /><circle cx="12" cy="12" r="1.4" class="solid" /><circle cx="18" cy="12" r="1.4" class="solid" /></svg>
-          </button>
-        </div>
-      </div>
     </section>
 
 <style>
@@ -379,7 +375,6 @@
   .action span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
   .action:active { filter: brightness(0.94); }
   .action.primary { background: var(--accent-btn); color: #fff; }
-  .actions.solo .action { flex-direction: row; min-height: 48px; font-size: 15.5px; gap: 8px; }
   .action.primary .solid { fill: currentColor; }
   /* Bandeau : libellé discret au-dessus, valeur en gras, séparés par un trait */
   .strip { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); margin: 14px 0 0; }
@@ -413,19 +408,11 @@
   .contrib { margin: 14px 0 52px; font-size: 13px; line-height: 1.45; color: var(--muted); }
   .contrib a { color: var(--accent); text-decoration: none; font-weight: 600; }
   /* Barre flottante en bas à droite de la fiche */
-  .fab-space { height: 64px; }
-  .fab-bar { position: sticky; bottom: 0; height: 0; display: flex; justify-content: flex-end; z-index: 2; pointer-events: none; }
-  .fab, .pmenu { pointer-events: auto; }
-  .fab { position: absolute; bottom: 4px; right: -6px; display: flex; gap: 2px; padding: 4px; border-radius: 26px; background: var(--card);
-    box-shadow: 0 2px 12px rgb(0 0 0 / 0.18), 0 0 0 0.5px rgb(0 0 0 / 0.08); }
-  .fab button { width: 42px; height: 42px; border-radius: 50%; border: 0; background: var(--fill); color: var(--accent); display: grid; place-items: center; cursor: pointer; }
-  .fab svg { width: 21px; height: 21px; stroke-width: 2; }
-  .fab .solid { fill: currentColor; stroke: none; }
-  .fab button.on { color: var(--fav); }
-  .fab button.on path { fill: currentColor; }
-  .fab button.saved path { fill: currentColor; }
+  .pmenu { pointer-events: auto; }
+  .action.fav.on { color: var(--fav); }
+  .action.fav.on path { fill: currentColor; }
   .exit-go { display: inline-flex; align-items: baseline; border: 0; background: none; padding: 0; font: inherit; color: inherit; text-align: left; cursor: pointer; }
-  .pmenu { position: absolute; bottom: 62px; right: -6px; min-width: 220px; background: var(--card); border-radius: 14px; overflow: hidden;
+  .pmenu { min-width: 220px; background: var(--card); border-radius: 14px; overflow: hidden;
     box-shadow: 0 6px 24px rgb(0 0 0 / 0.2), 0 0 0 0.5px rgb(0 0 0 / 0.08); }
   .pmenu button { display: block; width: 100%; text-align: left; border: 0; background: none; font: inherit; font-size: 15.5px; color: var(--ink);
     padding: 13px 16px; border-top: 1px solid var(--line); cursor: pointer; }

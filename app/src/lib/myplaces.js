@@ -1,6 +1,7 @@
 // « Mes lieux » : listes de lieux, transfert vers un autre appareil et sauvegarde.
 // Tout reste sur l'appareil. Aucun serveur : le transfert passe par un lien dont les données sont
 // après le « # » (jamais envoyé au site), la sauvegarde par un fichier que l'on range où l'on veut.
+import { cleanReviewer } from '#lib/reviewer.js';
 import { cleanCustoms, NAME_MAX } from '#lib/customshortcuts.js';
 import { tx } from '#lib/i18n/index.js';
 
@@ -105,12 +106,14 @@ export async function unpackList(str) {
 }
 
 /** Tout « Mes lieux » (listes, lieux, Maison/Travail, épinglés, raccourcis). */
-export function snapshot({ lists, places, shortcuts, pins, chips, customs }) {
+export function snapshot({ lists, places, shortcuts, pins, chips, customs, reviewer }) {
   return { v: 1, app: tx('meslieux.untracked_maps'), date: new Date().toISOString(), lists,
     p: places.map(short), s: Object.fromEntries(Object.entries(shortcuts || {}).filter(([, v]) => v).map(([k, v]) => [k, short(v)])),
     pins: pins || [], chips: chips || [],
     // raccourcis personnels : nom, icône, adresse (absente tant qu'elle n'est pas choisie)
-    c: (customs || []).map((c) => ({ n: c.name, i: c.icon, p: c.place ? short({ ...c.place, lists: [] }) : null })) };
+    c: (customs || []).map((c) => ({ n: c.name, i: c.icon, p: c.place ? short({ ...c.place, lists: [] }) : null })),
+    // auteur des avis (reviewer.js) : sa clé, pour modifier ses avis depuis l'autre appareil, et ses avis
+    ...(reviewer?.jwk ? { r: reviewer } : {}) };
 }
 export function restore(o) {
   if (!o || typeof o !== 'object') throw new Error('format');
@@ -122,7 +125,8 @@ export function restore(o) {
     customs: cleanCustoms((Array.isArray(o.c) ? o.c : []).map((c) => ({ name: txt(c?.n, NAME_MAX), icon: c?.i,
       place: c?.p && cleanShort(c.p) ? long(cleanShort(c.p)) : null }))),
     chips: Array.isArray(o.chips) ? o.chips.filter((c) => c && typeof c.key === 'string' && /^[\w-]{1,30}$/.test(c.key))
-      .map((c) => ({ key: c.key, ...(c.hidden ? { hidden: true } : {}), ...(typeof c.label === 'string' ? { label: c.label.slice(0, 20) } : {}) })).slice(0, 60) : [] };
+      .map((c) => ({ key: c.key, ...(c.hidden ? { hidden: true } : {}), ...(typeof c.label === 'string' ? { label: c.label.slice(0, 20) } : {}) })).slice(0, 60) : [],
+    reviewer: o.r ? cleanReviewer(o.r) : null };
 }
 
 // ——— Sauvegarde dans un fichier, protégée par un mot de passe si on le souhaite ———
