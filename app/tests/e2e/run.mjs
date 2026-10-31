@@ -53,6 +53,28 @@ const tests = {
     assert(!errors.length, errors.join(' | '));
     await ctx.close();
   },
+  async 'fiche : boutons jamais tronqués, partage du lien seul, adresse copiée par appui prolongé (31/10)'() {
+    // texte agrandi sur iPhone ≈ écran de 312 px : « Appe… », « Enre… » ; partage qui copiait le nom ; adresse à sélectionner
+    const { p, ctx, errors } = await page({ viewport: { width: 312, height: 760 }, permissions: ['geolocation', 'clipboard-read', 'clipboard-write'] },
+      '#carte=17/48.849854/2.652353&lieu=relation/19598634');
+    await p.waitForSelector('.actions .action', { timeout: 20000 }); await p.waitForTimeout(1500);
+    const cut = await p.$$eval('.action span', (s) => s.filter((e) => e.scrollWidth > e.clientWidth + 1).map((e) => e.textContent));
+    assert(!cut.length, `texte tronqué : ${cut.join(', ')}`);
+    await p.evaluate(() => { window.__shared = null; navigator.share = async (d) => { window.__shared = d; }; });
+    await p.click('.sheet button.share');
+    await p.waitForTimeout(300);
+    const d = await p.evaluate(() => window.__shared);
+    assert(d && /lieu=relation\/19598634/.test(d.url) && !('text' in d), `partage : ${JSON.stringify(d)}`);
+    const dd = p.locator('dd.hold'); await dd.scrollIntoViewIfNeeded();
+    const box = await dd.boundingBox();
+    await p.mouse.move(box.x + 10, box.y + box.height / 2); await p.mouse.down(); await p.waitForTimeout(700); await p.mouse.up();
+    await p.waitForTimeout(300);
+    assert(/Adresse copiée/.test(await p.textContent('.toast')), 'pas de message « Adresse copiée »');
+    const clip = await p.evaluate(() => navigator.clipboard.readText());
+    assert(clip && clip === (await dd.evaluate((e) => e.firstChild.textContent.trim())), `presse-papiers : ${clip}`);
+    assert(!errors.length, errors.join(' | '));
+    await ctx.close();
+  },
   async 'vue de la rue : vignette puis visionneuse plein écran'() {
     // lieu des tuiles locales avec une photo de devanture (Panoramax)
     const { p, ctx, errors } = await page();

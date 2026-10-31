@@ -62,7 +62,9 @@ export function createPlace(app) {
   async function sharePlace() {
     const u = new URL(location.href);
     u.hash = `carte=17/${app.place.lat.toFixed(5)}/${app.place.lon.toFixed(5)}` + (app.place.osmType ? `&lieu=${app.place.osmType}/${app.place.osmId}` : '&point=1');
-    const data = { title: app.place.name, text: app.place.name, url: u.toString() };
+    // sans « text » : sur iPhone, « Copier » dans la feuille de partage copiait le texte (le nom) au lieu du lien
+    // (porteur, 31/10/2026) ; le titre suffit, les messageries affichent l'aperçu du lien
+    const data = { title: app.place.name, url: u.toString() };
     try {
       if (navigator.share) await navigator.share(data);
       else { await navigator.clipboard.writeText(data.url); app.say(tx('meslieux.lien_copie')); }
