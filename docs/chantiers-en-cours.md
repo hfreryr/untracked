@@ -38,6 +38,11 @@ Liste tenue à jour à chaque étape, pour ne rien perdre entre les sujets mené
   (fichiers statiques compressés) ; la recherche et l'import Google ne chargent que les morceaux utiles.
 - Ensuite : l'import Google cherche d'abord dans cet index (lieux de France et d'Amsterdam), Photon seulement pour
   l'étranger. Avant tout lancement public : notre propre Photon (règle « zéro pistage »).
+- **Mesuré sur la Bretagne (31/10)** : index régional actuel 4,5 Mo compressés, mais son « cœur » toujours chargé fait
+  5,7 Mo (103 000 lieux, dont 85 000 hameaux et maisons isolées) → à corriger (cœur sans hameaux). Annuaire par début de
+  nom, sans hameaux ni parkings, préfixes adaptatifs : 81 637 lieux, 891 fichiers, **2,1 Mo**, 40 Ko au plus.
+  Extrapolation France : annuaire ≈ 40 Mo, index régionaux compressés ≈ 90 Mo.
+- Prochaine action : validation du plan par le porteur.
 
 ### Récompenses (validées 1, 2, 3 le 31/10, maquette à confirmer)
 - Badges à collectionner, carte de mes avis, couleur du point « vous êtes ici ». Pictos à dessiner (pas d'émojis).
