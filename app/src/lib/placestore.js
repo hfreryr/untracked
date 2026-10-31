@@ -92,9 +92,23 @@ function loadFile({ src, file, ext }) {
   return files.get(key);
 }
 
+/** Toutes les sources qui ont ce carré (deux régions voisines peuvent se chevaucher sur leur bordure). */
+async function sourcesWith(x, y) {
+  const out = [];
+  for (const s of sourcesFor(x, y)) {
+    const index = await loadIndex(s);
+    const file = fileOf(index, x, y);
+    if (file) out.push({ src: s, file, ext: index.ext });
+  }
+  return out;
+}
+
+/** Lieux d'un carré, réunis depuis toutes les sources qui l'ont, sans doublon (même identifiant OSM). */
 async function loadTile(x, y) {
-  const where = await sourceOf(x, y);
-  return where ? ((await loadFile(where)).get(`${x}/${y}`) || []) : [];
+  const lists = await Promise.all((await sourcesWith(x, y)).map(async (w) => (await loadFile(w)).get(`${x}/${y}`) || []));
+  if (lists.length < 2) return lists[0] || [];
+  const seen = new Set();
+  return lists.flat().filter((p) => !seen.has(p.id) && seen.add(p.id));
 }
 
 /** Les lieux d'une zone (au plus `maxTiles` tuiles, les plus proches du centre d'abord). */
