@@ -154,11 +154,22 @@ def v4(r, q):
     return kind, s + (ov_bonus(r) if kind == "place" else 0)
 
 
-VARIANTS = {"v0 aujourd'hui": v0, "v1 +QRank": v1, "v2 +QRank +patrimoine +versions OSM": v2,
+def v6(r, q):
+    """v0 + QRank seulement pour les lieux très consultés (≥ 1 million de vues/an) : corrige le Rijksmuseum sans
+    bousculer le reste (v1 donnait QRank à tous et dégradait Paris)."""
+    kind, s = v0(r, q)
+    v = q.get(r["wikidata"] or "", 0)
+    return kind, s + (6 * math.log10(v / 1e5) if v >= 1e6 else 0)
+
+
+VARIANTS = {"v0 aujourd'hui": v0, "v6 QRank pour les très connus": v6, "v7 deux classements, signaux v6 (+15)": None, "v1 +QRank": v1, "v2 +QRank +patrimoine +versions OSM": v2,
             "v3a deux classements, signaux v0 (+15)": v3_factory(15, v0),
             "v3 deux classements, signaux v2 (+0)": v3_factory(0), "v3 deux classements, signaux v2 (+15)": v3_factory(15),
             "v3 deux classements, signaux v2 (+30)": v3_factory(30),
             "v4 = v2 + Overture (adresses)": v4, "v5 deux classements, signaux v4 (+15)": v3_factory(15, v4)}
+VARIANTS["v7 deux classements, signaux v6 (+15)"] = v3_factory(15, v6)
+WATCH = ["Rijksmuseum", "Van Gogh Museum", "Anne Frank Huis", "Begijnhof", "Église Saint-Sulpice", "Jardin du Luxembourg",
+         "Cathédrale Saint-Pierre", "Parlement de Bretagne", "Les Deux Magots", "Café de Flore", "Breizh Café"]
 
 
 def assign_zoom(items, lat0):
@@ -291,6 +302,8 @@ def evaluate(city, et, rows, q, ov=None):
         res["total z15"] = sum(vis.values())
         res["exemples manquants z16"] = [n for kind in ("voir", "manger") for n in et[kind]
                                           if found[(kind, n)] and min(z_of.get(o, 99) for o in found[(kind, n)]) > 16][:8]
+        res["zooms"] = {n: min((z_of.get(o, 99) for o in found[(k, n)]), default=99) for k in ("voir", "manger") for n in et[k]
+                        if n in WATCH and found[(k, n)]}
         out[vname] = res
     return out
 
@@ -298,7 +311,7 @@ def evaluate(city, et, rows, q, ov=None):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("etalon")
-    ap.add_argument("zones", nargs="+", help="ville=extrait.osm.pbf[:ouest,sud,est,nord]")
+    ap.add_argument("zones", nargs="*", help="ville=extrait.osm.pbf[:ouest,sud,est,nord]")
     ap.add_argument("--qrank", required=True)
     ap.add_argument("--out", default="data/eval/resultats.json")
     ap.add_argument("--overture", help="signaux Overture des quartiers (data/eval/overture.json)")
