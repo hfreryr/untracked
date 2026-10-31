@@ -211,6 +211,28 @@ export async function search(query, at = city.center, signal, onEarly = null) {
 /** Lieux portant ce nom, partout (proches de « at » d'abord) : pour retrouver un lieu importé dont on n'a que le nom. */
 export const searchAnywhere = (query, at = city.center, signal) => byName(query.trim(), at, signal, 7, true);
 
+/**
+ * Recherche pour l'import des listes Google (des dizaines de noms d'affilée) : Photon, sans limite de zone, avec
+ * plusieurs essais espacés. Photon public refuse une grande partie des demandes quand elles arrivent vite (mesuré le
+ * 31/10/2026 sur une liste de 137 lieux, 4 à la fois : 67 refus « 503 » et 7 délais dépassés) ; un import réel n'avait
+ * retrouvé que 5 lieux sur 137. Pas de repli sur nos données (il donnerait un homonyme parisien pour un lieu en Norvège).
+ * @returns {Promise<object[]>} les résultats ([] : vraiment introuvable) ; lève une erreur si Photon n'a jamais répondu
+ */
+export async function searchForImport(query, at = city.center, { tries = 4, wait = (ms) => new Promise((r) => setTimeout(r, ms)), call = photon } = {}) {
+  for (let k = 0; ; k++) {
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), PHOTON_TIMEOUT_ALONE);
+    try {
+      return await call(query.trim(), at, ctl.signal, 7, true);
+    } catch (e) {
+      if (k + 1 >= tries) throw e;
+      await wait(2000 * 2 ** k);   // 2 s, 4 s, 8 s
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+}
+
 /** Un lieu (pas une adresse, une rue ou une zone) : ceux-là seuls se montrent tous ensemble sur la carte. */
 export const isPlaceResult = (r) => !!r && !r.area && !String(r.id).startsWith('ban:') && r.type !== tx('fiche.adresse') && r.type !== tx('resultats.rue');
 

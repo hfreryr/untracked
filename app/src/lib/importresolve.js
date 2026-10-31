@@ -2,7 +2,7 @@
 // (les listes Google n'ont pas de coordonnées). On cherche d'abord dans nos propres données
 // (sur le téléphone, rien n'est envoyé), puis, à défaut, le nom seul part au moteur de recherche.
 import { searchLocal } from './localsearch.js';
-import { searchAnywhere } from './geocode.js';
+import { searchForImport } from './geocode.js';
 import { normName } from './myplaces.js';
 
 const norm = (s) => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
@@ -15,18 +15,34 @@ const norm = (s) => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCa
 export function pick(name, results) {
   if (!results?.length) return null;
   const exact = results.filter((r) => norm(r.name) === norm(name));
-  if (exact.length) return { place: exact[0], sure: exact.length === 1 };
+  // plusieurs résultats du même nom tout proches (le bâtiment et le musée, le point et la zone) : c'est le même lieu
+  // (import du 31/10/2026 : 99 lieux sur 129 marqués « à vérifier » pour cette raison)
+  const close = (a, b) => a.lat == null || b.lat == null || (Math.abs(a.lat - b.lat) < 0.003 && Math.abs(a.lon - b.lon) < 0.004);
+  if (exact.length) return { place: exact[0], sure: exact.every((r) => close(r, exact[0])) };
   return { place: results[0], sure: false };
 }
 
-/** @param {{name:string, address?:string}} p  @param {{lat:number, lon:number}} at */
-export async function resolvePlace(p, at, deps = { local: searchLocal, remote: searchAnywhere }) {
+/**
+ * @param {{name:string, address?:string}} p  @param {{lat:number, lon:number}} at
+ * @returns {Promise<{place, sure}|null>} null : introuvable ; lève une erreur si le moteur de recherche n'a pas répondu
+ * (le lieu est alors gardé pour « Réessayer », au lieu d'être compté introuvable)
+ */
+export async function resolvePlace(p, at, deps = { local: searchLocal, remote: searchForImport }) {
   if (!p.address) {
     const local = pick(p.name, await deps.local(p.name, at).catch(() => []));
     if (local?.sure) return local;
   }
-  const remote = pick(p.name, await deps.remote(p.address || p.name, at).catch(() => []));
-  return remote;
+  return pick(p.name, await deps.remote(p.address || p.name, at));
+}
+
+/** Comme eachLimited, un à la fois, avec au moins `gap` ms entre deux départs (service partagé : ≈ 1 demande/s). */
+export async function eachPaced(items, gap, fn, now = () => Date.now(), wait = (ms) => new Promise((r) => setTimeout(r, ms))) {
+  for (let i = 0; i < items.length; i++) {
+    const t0 = now();
+    await fn(items[i], i);
+    const left = gap - (now() - t0);
+    if (left > 0 && i < items.length - 1) await wait(left);
+  }
 }
 
 /** Applique fn à chaque élément, quelques-uns à la fois (le moteur de recherche est un service partagé). */

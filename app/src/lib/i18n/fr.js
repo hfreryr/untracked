@@ -657,7 +657,7 @@ export default {
   'import.le_fichier_est_lu_sur_votre': 'Le fichier est lu sur votre téléphone : il n\'est envoyé nulle part. Vos lieux restent sur cet appareil.',
 
   'import.lecture_du_fichier': 'Lecture du fichier…',
-  'import.recherche_des_lieux_sans_position': 'Recherche des lieux sans position… {i} / {n}',
+  'import.recherche_des_lieux_sans_position': ({ i, n, min }) => `Recherche des lieux sans position… ${i} / ${n}${min > 1 ? ` (encore ≈ ${min} min)` : ''}`,
   'import.importe_de_google_maps': 'Importé de Google Maps',
   'import.importe_a_verifier': 'Importé de Google Maps · position à vérifier',
   'import.defini': ' · {nom} défini',
@@ -667,7 +667,9 @@ export default {
   'import.ce_fichier_a_pas_pu_etre_lu': 'Ce fichier n\'a pas pu être lu. Choisissez l\'archive .zip envoyée par Google.',
   'import.lieux_suivis': 'Lieux suivis',
   'import.listes_absentes': ' · Vos listes ne sont pas dans ce fichier : refaites l\'export en cochant aussi « Enregistré »',
-  'import.a_verifier': ({ n }) => ` · ${n} ${pluriel(n, 'à vérifier (nom porté par plusieurs lieux)', 'à vérifier (noms portés par plusieurs lieux)')}`,
+  'import.a_verifier': ({ n }) => ` · ${n} à vérifier (position incertaine)`,
+  'import.non_cherches': ({ n }) => ` · ${n} non ${pluriel(n, 'cherché', 'cherchés')} (moteur de recherche saturé)`,
+  'import.reessayer': 'Réessayer',
   'import.introuvable': ({ n }) => ` · ${n} ${pluriel(n, 'introuvable', 'introuvables')}`,
   // ——— Raccourcis ———
   'raccourcis.raccourcis': 'Catégories',
