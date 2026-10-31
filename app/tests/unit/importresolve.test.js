@@ -10,7 +10,9 @@ test('un seul lieu porte exactement ce nom : retenu sans réserve', () => {
   assert.deepEqual(pick('cafe de flore', [{ name: 'Flore en l’Île' }, flore]), { place: flore, sure: true });
 });
 test('plusieurs homonymes ou aucun nom exact : le premier, à vérifier', () => {
-  assert.equal(pick('Franprix', [{ name: 'Franprix', lat: 1 }, { name: 'Franprix', lat: 2 }]).sure, false);
+  assert.equal(pick('Franprix', [{ name: 'Franprix', lat: 1, lon: 2 }, { name: 'Franprix', lat: 2, lon: 2 }]).sure, false);
+  // même nom, à quelques dizaines de mètres (bâtiment et musée) : même lieu, retenu sans réserve
+  assert.equal(pick('Es Baluard', [{ name: 'Es Baluard', lat: 39.5703, lon: 2.6409 }, { name: 'Es Baluard', lat: 39.5705, lon: 2.6412 }]).sure, true);
   assert.equal(pick('Chez Lulu', [{ name: 'Lulu bistrot' }]).sure, false);
   assert.equal(pick('X', []), null);
 });
@@ -42,4 +44,25 @@ test('lieu Google avec position : identifiant OSM retrouvé dans nos données (m
   ];
   assert.equal((await snapToOsm({ name: 'Café de Flore', lat: 48.8541, lon: 2.3326 }, { local }))?.osmId, 7);
   assert.equal(await snapToOsm({ name: 'Autre café', lat: 48.8541, lon: 2.3326 }, { local }), null);
+});
+
+// Bug du 31/10 : 5 lieux sur 137 importés — Photon refusait la moitié des demandes envoyées 4 par 4
+import { eachPaced } from '#lib/importresolve.js';
+import { searchForImport } from '#lib/geocode.js';
+test('moteur de recherche indisponible : erreur remontée (lieu gardé pour « Réessayer »), pas « introuvable »', async () => {
+  await assert.rejects(resolvePlace({ name: 'Es Baluard' }, at, { local: async () => [], remote: async () => { throw new Error('Photon 503'); } }));
+});
+test('import : un lieu par seconde au plus', async () => {
+  let t = 0; const starts = []; const waits = [];
+  await eachPaced([1, 2, 3], 1000, async () => { starts.push(t); t += 200; }, () => t, async (ms) => { waits.push(ms); t += ms; });
+  assert.deepEqual(starts, [0, 1000, 2000]);
+  assert.deepEqual(waits, [800, 800]);
+});
+test('import : Photon refuse puis répond — nouvel essai après 2 s, 4 s', async () => {
+  let n = 0; const waits = [];
+  const r = await searchForImport('Es Baluard', at, { call: async () => { if (++n < 3) throw new Error('Photon 503'); return [{ name: 'Es Baluard' }]; }, wait: async (ms) => waits.push(ms) });
+  assert.equal(r[0].name, 'Es Baluard');
+  assert.deepEqual(waits, [2000, 4000]);
+  n = 0;
+  await assert.rejects(searchForImport('X', at, { tries: 2, call: async () => { throw new Error('503'); }, wait: async () => {} }));
 });
