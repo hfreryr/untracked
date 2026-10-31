@@ -139,10 +139,26 @@ def v3_factory(lm_bonus, base=None):
     return run
 
 
+def ov_bonus(r):
+    """Signaux Overture (mesuré : presque tous les lieux ont 2 ou 3 sources, donc peu discriminant ; Foursquare, rare
+    (≈ 3 % des lieux), garde la trace des lieux où les gens « s'enregistraient »)."""
+    o = r.get("ov")
+    if not o:
+        return 0
+    return (4 if "Foursquare" in o["ds"] else 0) + (1.5 if o["socials"] else 0) + (1 if "meta" in o["ds"] else 0)
+
+
+def v4(r, q):
+    """v2 + signaux Overture pour les adresses."""
+    kind, s = v2(r, q)
+    return kind, s + (ov_bonus(r) if kind == "place" else 0)
+
+
 VARIANTS = {"v0 aujourd'hui": v0, "v1 +QRank": v1, "v2 +QRank +patrimoine +versions OSM": v2,
             "v3a deux classements, signaux v0 (+15)": v3_factory(15, v0),
             "v3 deux classements, signaux v2 (+0)": v3_factory(0), "v3 deux classements, signaux v2 (+15)": v3_factory(15),
-            "v3 deux classements, signaux v2 (+30)": v3_factory(30)}
+            "v3 deux classements, signaux v2 (+30)": v3_factory(30),
+            "v4 = v2 + Overture (adresses)": v4, "v5 deux classements, signaux v4 (+15)": v3_factory(15, v4)}
 
 
 def assign_zoom(items, lat0):
@@ -229,7 +245,30 @@ def match(name, rows, bbox):
     return part or None
 
 
-def evaluate(city, et, rows, q):
+def attach_overture(rows, ov, bbox):
+    """Associe à chaque lieu OSM du quartier élargi le lieu Overture de même nom (normalisé) à moins de 60 m."""
+    w, s, e, n = bbox
+    m = 0.02
+    grid = {}
+    for name, lat, lon, nsrc, socials, conf, webs, ds in ov:
+        grid.setdefault((round(lat, 3), round(lon, 3)), []).append((norm(name or ""), lat, lon, socials, set(ds)))
+    hit = 0
+    for r in rows:
+        if not (w - m <= r["lon"] <= e + m and s - m <= r["lat"] <= n + m):
+            continue
+        n0 = norm(r["name"])
+        for a in (-0.001, 0, 0.001):
+            for b in (-0.001, 0, 0.001):
+                for nm, lat, lon, socials, ds in grid.get((round(r["lat"] + a, 3), round(r["lon"] + b, 3)), ()):
+                    if nm == n0 and abs(lat - r["lat"]) < 0.0006 and abs(lon - r["lon"]) < 0.0009:
+                        r["ov"] = {"socials": socials, "ds": ds}
+        hit += "ov" in r
+    return hit
+
+
+def evaluate(city, et, rows, q, ov=None):
+    if ov:
+        print(f"{city} : {attach_overture(rows, ov, et['bbox'])} lieux OSM reliés à Overture", file=sys.stderr, flush=True)
     found = {}
     for kind in ("voir", "manger"):
         for name in et[kind]:
@@ -262,6 +301,7 @@ def main():
     ap.add_argument("zones", nargs="+", help="ville=extrait.osm.pbf[:ouest,sud,est,nord]")
     ap.add_argument("--qrank", required=True)
     ap.add_argument("--out", default="data/eval/resultats.json")
+    ap.add_argument("--overture", help="signaux Overture des quartiers (data/eval/overture.json)")
     ap.add_argument("--cache", help="fichier des candidats déjà lus (évite de relire les extraits)")
     a = ap.parse_args()
     et = json.load(open(a.etalon))
@@ -288,7 +328,8 @@ def main():
         print(f"QRank : {len(q)} lieux", file=sys.stderr, flush=True)
         if a.cache:
             pickle.dump((zones, q), open(a.cache, "wb"))
-    results = {city: evaluate(city, et[city], rows, q) for city, rows in zones}
+    ov = json.load(open(a.overture)) if a.overture else {}
+    results = {city: evaluate(city, et[city], rows, q, ov.get(city)) for city, rows in zones}
     json.dump(results, open(a.out, "w"), ensure_ascii=False, indent=1)
     for city, r in results.items():
         absent = ", ".join(r["absents d'OSM"]) or "aucun"
