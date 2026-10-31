@@ -29,6 +29,12 @@
   // note touchée sur la carte « Comment était X ? » (ReviewAsk.svelte) : la fenêtre s'ouvre avec elle
   // (seulement une fois la fiche chargée : avant, la section peut être recréée et la fenêtre se perdrait)
   $effect(() => { if (app.info === null) return; const i = takeIntent(placeId(place)); if (i) start(i.stars); });
+  // étoile touchée dans « Votre avis sur ce lieu » (NearbyRate.svelte, quand on est sur place)
+  $effect(() => {
+    const on = (e) => { if (e.detail?.id === placeId(place)) start(e.detail.stars); };
+    window.addEventListener('avis-noter', on);
+    return () => window.removeEventListener('avis-noter', on);
+  });
   async function publish() {
     if (!stars || sending) return;
     sending = true; failed = false;

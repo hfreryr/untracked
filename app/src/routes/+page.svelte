@@ -208,15 +208,6 @@
     return months <= 24 ? { ok: true, text: tx('ecran.infos_verifiees_en', { when }) } : { ok: false, text: tx('ecran.infos_non_verifiees_depuis', { getFullYear: d.getFullYear() }) };
   });
   // Bandeau d'infos (distance, accès, entrée) : seulement ce qui est connu.
-  const infoStrip = $derived.by(() => {
-    const out = [];
-    if (me && place) out.push({ label: tx('ecran.distance'), value: fmtDistance(dist(me.lat, me.lon, place.lat, place.lon)) });
-    const wc = { yes: tx('ecran.oui'), limited: tx('ecran.partiel'), no: tx('ecran.non') }[info?.wheelchair];
-    if (wc) out.push({ label: tx('ecran.acces_fauteuil'), value: wc, wc: true });
-    const fee = { no: tx('ecran.gratuite'), yes: tx('ecran.payante') }[info?.fee];
-    if (fee) out.push({ label: tx('ecran.entree'), value: fee });
-    return out;
-  });
   // Liens vers OpenStreetMap : c'est l'utilisateur qui modifie, sur le site d'OSM (nous n'écrivons rien).
   const osmEditUrl = $derived(place?.osmType ? `https://www.openstreetmap.org/edit?${place.osmType}=${place.osmId}` : null);
   const osmNoteUrl = $derived(place ? `https://www.openstreetmap.org/note/new#map=19/${(+place.lat).toFixed(6)}/${(+place.lon).toFixed(6)}` : '');
@@ -594,7 +585,7 @@
     get importFile() { return importFile; }, get importOpen() { return importOpen; }, set importOpen(v) { importOpen = v; },
     get importing() { return importing; }, set importing(v) { importing = v; },
     get incoming() { return incoming; }, set incoming(v) { incoming = v; }, get info() { return info; }, set info(v) { info = v; },
-    get infoStrip() { return infoStrip; }, get innerH() { return innerH; }, set innerH(v) { innerH = v; },
+    get innerH() { return innerH; }, set innerH(v) { innerH = v; },
     get isAddress() { return isAddress; }, get isFav() { return isFav; }, get isPinned() { return isPinned; },
     get isStation() { return isStation; }, get isolate() { return isolate; }, get keepIncomingList() { return keepIncomingList; },
     get labelColor() { return labelColor; }, get lastBackup() { return lastBackup; }, set lastBackup(v) { lastBackup = v; },
