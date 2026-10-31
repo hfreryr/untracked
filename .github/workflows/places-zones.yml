@@ -1,10 +1,10 @@
 # Lieux par tuile des villes hors Île-de-France (app/src/lib/cities/zones.json), une fois par semaine chacune :
 # chaque ville a son jour (« day » : 1 = lundi … 7 = dimanche), pour étaler les calculs et les publications
 # (porteur, 30/10/2026 : plus de villes, mises à jour moins fréquentes, sobriété).
-# Extrait du département (openstreetmap.fr, somme de contrôle vérifiée), réduit au cadre de l'agglomération,
+# Extrait de la région ou du département (openstreetmap.fr, somme de contrôle vérifiée), réduit au cadre de la zone,
 # publié dans data/zones/<ville>/places/ du site, sans toucher au reste. Même garde-fou que la nuit (-10 %).
 # Avec les avis Mangrove et les compléments hors OSM (Overture, All The Places, annuaire), source affichée dans la fiche.
-name: Lieux des autres villes (hebdomadaire)
+name: Lieux des régions et autres villes (hebdomadaire)
 on:
   schedule:
     - cron: '35 3 * * *'
@@ -69,6 +69,12 @@ jobs:
             fi
             rm -f "$id.osm.pbf"
             echo "::endgroup::"
+          done
+          # zones retirées de zones.json (ex. Lyon, remplacée par la région Rhône-Alpes) : leurs tuiles quittent le site
+          for d in pages/data/zones/*/; do
+            [ -d "$d" ] || continue; z=$(basename "$d")
+            python3 -c "import json,sys; sys.exit(0 if '$z' in [x['id'] for x in json.load(open('app/src/lib/cities/zones.json'))] else 1)" \
+              || { echo "zone retirée : $z"; rm -rf "$d"; }
           done
           bash app/scripts/site_budget.sh pages   # plafond de poids du site (700 Mo), voir docs/villes.md
           cd pages && git add -A data/zones

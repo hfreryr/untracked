@@ -5,20 +5,28 @@ import ZONES from '#lib/cities/zones.json' with { type: 'json' };
 
 const ids = (lon, lat) => sourcesFor(...tileXY(lon, lat, 14)).map((s) => s.id);
 
-test('chaque ville n’est consultée que dans son cadre', () => {
-  assert.deepEqual(ids(2.347, 48.857), ['idf']);             // Paris : l'Île-de-France seulement
-  assert.deepEqual(ids(4.835, 45.76), ['idf', 'lyon']);      // Lyon : son jeu de tuiles en plus
-  assert.deepEqual(ids(4.89, 52.37), ['idf', 'amsterdam']);  // Amsterdam : idem
-  assert.deepEqual(ids(5.37, 43.296), ['idf', 'marseille']); // Marseille (Vieux-Port)
-  assert.deepEqual(ids(5.447, 43.529), ['idf', 'marseille']); // Aix-en-Provence, dans le cadre de Marseille
-  assert.deepEqual(ids(7.017, 43.551), ['idf', 'nice']);      // Cannes, dans le cadre de Nice
-  assert.deepEqual(ids(-1.68, 48.11), ['idf', 'bretagne']);  // Rennes : dans la région Bretagne
-  assert.deepEqual(ids(-4.49, 48.39), ['idf', 'bretagne']);  // Brest
-  assert.deepEqual(ids(13.4, 52.52), ['idf']);               // Berlin : rien de plus
+test('chaque région n’est consultée que dans son cadre', () => {
+  assert.equal(ids(2.347, 48.857)[0], 'idf');                                        // Paris : l'Île-de-France d'abord (les cadres du Centre et de la Picardie l'englobent aussi)
+  assert.deepEqual(ids(4.835, 45.76), ['idf', 'rhone-alpes']);                       // Lyon
+  assert.deepEqual(ids(5.37, 43.296), ['idf', 'provence-alpes-cote-d-azur']);        // Marseille
+  assert.ok(ids(-1.68, 48.11).includes('bretagne'));                                  // Rennes (et le cadre, rectangulaire, des Pays de la Loire)
+  assert.deepEqual(ids(1.94, 47.9), ['idf', 'centre']);                              // Orléans
+  assert.deepEqual(ids(9.45, 42.70), ['idf', 'corse']);                              // Bastia
+  assert.deepEqual(ids(4.89, 52.37), ['idf', 'amsterdam']);                          // Amsterdam
+  assert.deepEqual(ids(13.4, 52.52), ['idf']);                                       // Berlin : rien
 });
 
-test('zones.json : pas plus de 2 villes par jour (une tâche par jour, ≈ 25 min par ville)', () => {
-  for (let d = 1; d <= 7; d++) assert.ok(ZONES.filter((z) => z.day === d).length <= 2, `jour ${d}`);
+test('toute la France métropolitaine : chaque préfecture de région est couverte', () => {
+  // (une bordure peut toucher deux régions : leurs lieux sont alors réunis, voir placestore.js)
+  for (const [lon, lat] of [[7.75, 48.58], [-0.58, 44.84], [3.08, 45.78], [-0.36, 49.18], [5.04, 47.32], [1.90, 47.90],
+    [4.03, 48.30], [8.74, 41.93], [6.02, 47.24], [1.10, 49.44], [3.88, 43.61], [1.26, 45.83], [6.18, 48.69], [1.44, 43.60],
+    [3.06, 50.63], [-1.55, 47.22], [2.30, 49.89], [0.34, 46.58], [5.37, 43.30], [4.84, 45.76], [-1.68, 48.11]]) {
+    assert.ok(ids(lon, lat).some((id) => id !== 'idf'), `${lon},${lat} non couvert`);
+  }
+});
+
+test('zones.json : pas plus de 4 zones par jour (une tâche par jour, ≈ 1 h ; réparties par taille d’extrait)', () => {
+  for (let d = 1; d <= 7; d++) assert.ok(ZONES.filter((z) => z.day === d).length <= 4, `jour ${d}`);
   assert.equal(new Set(ZONES.map((z) => z.id)).size, ZONES.length);
 });
 
