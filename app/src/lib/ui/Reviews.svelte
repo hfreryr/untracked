@@ -11,6 +11,7 @@
   import { makePseudo } from '#lib/pseudo.js';
   import { takeIntent } from '#lib/contrib.js';
   import Dialog from './Dialog.svelte';
+  import LevelUp from './LevelUp.svelte';
   /** @type {{ place: any, reviews: any, hideRate?: boolean }} */
   // hideRate : sur place, l'invitation à noter est déjà en haut de la fiche (NearbyRate) ; pas de doublon ici
   let { place, reviews, hideRate = false } = $props();
@@ -117,6 +118,9 @@
     <p class="src">{tx('avis.source')} <a href="https://mangrove.reviews" target="_blank" rel="noopener">{tx('avis.mangrove')}</a>{tx('avis.licence')}</p>
   {/if}
 </section>
+
+<!-- nouveau niveau : annoncé une fois (à l'ouverture d'une fiche, ou juste après l'avis qui le donne) -->
+{#if !open}<LevelUp count={me.mine.length} />{/if}
 
 {#if open}
   <Dialog title={place.name} sub={tx('avis.votre_avis')} onclose={() => (open = false)}>
