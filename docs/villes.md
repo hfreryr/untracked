@@ -88,3 +88,12 @@ contre ≈ 0,65 à 0,8 Go et 180 000 fichiers avec l'ancien format.
   calculés en 14 min. Rennes y est inclus : sa zone de ville est retirée.
 - **Extrapolation à la France**, à surface égale : la Bretagne fait ≈ 5 % du territoire, donc **≈ 160 Mo et
   ≈ 8 500 fichiers** pour toute la France. Calcul : ≈ 5 h par semaine pour les lieux, plus les compléments.
+
+## Lieux mis en avant sur la carte (31/10/2026) : mêmes règles partout
+- Avant, l'Île-de-France avait sa propre sélection (un fichier unique, commerces de Paris seulement) ; ailleurs, la carte
+  montrait les lieux du fond de carte, classés sans notoriété (à Amsterdam au zoom 15 : des monuments, pas de restaurants).
+- Désormais, chaque zone a ses **lieux mis en avant** (`build_landmarks.py`, même calcul qu'en Île-de-France :
+  notoriété puis espacement à l'écran), rangés en carrés d'≈ 40 km compressés ; l'app ne charge que les carrés à
+  l'écran (`landmarkstore.js`). Le fond de carte ne sert plus qu'hors de nos zones, ou dans une zone pas encore construite.
+- Mesuré : Amsterdam 3 243 lieux, 116 Ko, 2 min 20 de calcul ; Bretagne 17 759 lieux, 64 carrés, 4 min ; Paris (extrait
+  local) 7 480 lieux, 32 s. ≈ +1 h de calcul par semaine pour toute la France.

@@ -85,18 +85,21 @@ const POI_PRI = (() => {
   return m;
 })();
 const POI_SORT = ['+', POI_PRI, ['/', ['min', ['get', 'rank'], 999], 1000]];
-// Hors de la zone de nos données (Île-de-France) : les lieux du fond de carte (OpenFreeMap, présents dans les tuiles à
+// Hors des zones de nos données : les lieux du fond de carte (OpenFreeMap, présents dans les tuiles à
 // partir du zoom 14) apparaissent dès le zoom 14 au lieu de 17, sinon on ne voit que les stations (Amsterdam, porteur,
 // 30/10/2026). Culture et monuments d'abord, puis manger et dormir (15), puis le reste (16). « rank » est un rang par
 // case de la tuile (OpenMapTiles) : il répartit les lieux à l'écran, il ne dit pas leur notoriété.
-const [W, S, E, N] = city.searchBbox;
-const COVERED = { type: 'Polygon', coordinates: [[[W, S], [E, S], [E, N], [W, N], [W, S]]] };
+// Zones de nos données (Île-de-France, régions, villes) : leurs lieux mis en avant viennent de nos carrés
+// (landmarkstore.js), avec les mêmes règles partout (31/10/2026) ; le fond de carte ne sert qu'ailleurs, et dans une
+// zone dont les carrés ne sont pas encore construits (landmarkstore.js ajoute la zone dès que son index répond).
+const box = ([W, S, E, N]) => [[[W, S], [E, S], [E, N], [W, N], [W, S]]];
+export const coveredBy = (bboxes) => ({ type: 'MultiPolygon', coordinates: bboxes.map(box) });
 const FAMILY_OF = (keys) => keys.flatMap((k) => FAMILIES[k].classes);
 // palier de chaque lieu (0 : culture, monuments ; 1 : manger, boire, dormir, parcs ; 2 : le reste), combiné au rang en
 // une seule note, comparée à un seuil qui monte avec le zoom (MapLibre n'accepte qu'un palier de zoom par filtre)
 const OUTSIDE_TIER = ['match', ['get', 'subclass'], FAMILY_OF(['culture', 'sight']).concat(['zoo']), 0,
   [...new Set(FAMILY_OF(['food', 'cafe', 'bar', 'stay']).concat(['park']))], 1, 2];
-export const OUTSIDE_FILTER = ['all', ['has', 'name'], ['!', ['within', COVERED]],
+export const outsideFilter = (bboxes) => ['all', ['has', 'name'], ['!', ['within', coveredBy(bboxes)]],
   ['match', ['get', 'subclass'], ALL_CLASSES, true, false],
   ['<=', OUTSIDE_TIER, ['step', ['zoom'], 0, 16, 1]]]; // rang = rang dans la maille, pas importance (Rijksmuseum : 18)
 
@@ -186,7 +189,8 @@ function lightStyle(base) {
     version: 8,
     glyphs: `${base}fonts/{fontstack}/{range}.pbf`,
     sources: {
-      landmarks: { type: 'geojson', data: `${base}data/landmarks.geojson`, promoteId: 'rank' },
+      // lieux mis en avant : remplis au fil des déplacements par landmarkstore.js (carrés de chaque zone)
+      landmarks: { type: 'geojson', data: { type: 'FeatureCollection', features: [] } },
       // lignes de métro, RER et tram (Île-de-France, ≈ 800 Ko) : chargées seulement quand on choisit la carte Transports
       // (mapdraw.showTransitLines), pour ne pas ralentir l'ouverture de l'app
       transit: { type: 'geojson', data: { type: 'FeatureCollection', features: [] } },
@@ -351,9 +355,9 @@ function lightStyle(base) {
                   'text-offset': [1.0, 0], 'text-max-width': 8, 'text-line-height': 1.15,
                   'text-optional': false, 'symbol-sort-key': POI_SORT },
         paint: { 'text-color': POI_TEXT, 'text-halo-color': C.halo, 'text-halo-width': 1.6 } },
-      // Hors de la zone de nos données : les lieux du fond de carte, plus tôt (voir OUTSIDE_FILTER).
+      // Hors de la zone de nos données : les lieux du fond de carte, plus tôt (voir outsideFilter).
       { id: 'poi-outside', type: 'symbol', source: 'omt', 'source-layer': 'poi', minzoom: 14, maxzoom: 17,
-        filter: OUTSIDE_FILTER,
+        filter: outsideFilter([city.searchBbox]),
         layout: { 'icon-image': POI_ICON, 'icon-size': zoom([14, 0.85, 16, 1]),
                   'text-field': NAME, 'text-font': FONT.semibold, 'text-size': zoom([14, 11, 16, 12]), 'text-anchor': 'left',
                   'text-offset': [1.0, 0], 'text-max-width': 8, 'text-line-height': 1.15,
