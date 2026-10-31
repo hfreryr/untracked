@@ -13,14 +13,20 @@ ONLINE = "https://untrackedmaps.app/data/places/index.json"
 MAX_DROP = 0.10   # baisse tolérée d'une nuit à l'autre
 
 
+def cells(index):
+    """Nombre de carrés de 2,4 km couverts : depuis les fichiers adaptatifs (v2, 31/10/2026), un fichier en couvre
+    plusieurs, donc on compare les carrés, pas les fichiers (l'ancien index en avait un par fichier)."""
+    return index.get("cells", len(index.get("tiles") or []))
+
+
 def verdict(new, old, max_drop=MAX_DROP):
     """(publiable, explication). old peut manquer (première publication, site injoignable)."""
-    nt = len(new.get("tiles") or [])
+    nt = cells(new)
     if not nt or not new.get("count", 1):
         return False, "index vide"
     if not old:
         return True, f"{nt} tuiles ; pas de version en ligne pour comparer"
-    checks = [("tuiles", nt, len(old.get("tiles") or []))]
+    checks = [("tuiles", nt, cells(old))]
     if "count" in new and "count" in old:          # (le nombre de lieux n'est dans l'index que depuis le 30/10/2026)
         checks.append(("lieux", new["count"], old["count"]))
     msgs, ok = [], True
