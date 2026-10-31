@@ -121,7 +121,7 @@ export function createMyPlaces(app) {
     const places = app.favorites.filter((f) => f.lists.includes(l.id));
     const u = new URL(location.href);
     u.hash = `liste=${await packList(l, places)}`;
-    const data = { title: l.name, text: tx('meslieux.lieu', { nom: l.name, n: places.length }), url: u.toString() };
+    const data = { title: tx('meslieux.lieu', { nom: l.name, n: places.length }), url: u.toString() };   // sans « text » : voir sharePlace
     try {
       if (navigator.share) await navigator.share(data);
       else { await navigator.clipboard.writeText(data.url); app.say(tx('meslieux.lien_de_la_liste_copie')); }
