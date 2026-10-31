@@ -72,15 +72,15 @@ const PHOTON_TIMEOUT_ALONE = 10000;
 /** Photon, ou à défaut nos données de lieux (même forme de résultats). */
 async function byName(query, near, signal, limit = 7, anywhere = false) {
   const ctl = new AbortController();
-  // hors zone couverte, pas de repli possible sur nos données : on laisse à Photon le temps de répondre
-  const timer = setTimeout(() => ctl.abort(), covered(near) ? PHOTON_TIMEOUT : PHOTON_TIMEOUT_ALONE);
+  // là où nous n'avons pas de données, pas de repli possible : on laisse à Photon le temps de répondre
+  const timer = setTimeout(() => ctl.abort(), hasPlaces(near) ? PHOTON_TIMEOUT : PHOTON_TIMEOUT_ALONE);
   signal?.addEventListener('abort', () => ctl.abort());
   try {
     const r = await photon(query, near, ctl.signal, limit, anywhere);
-    return r.length || !covered(near) ? r : (await searchLocal(query, near)).slice(0, limit);
+    return r.length || !hasPlaces(near) ? r : (await searchLocal(query, near)).slice(0, limit);
   } catch (e) {
     if (signal?.aborted) throw e;                       // recherche remplacée par une plus récente
-    return covered(near) ? (await searchLocal(query, near)).slice(0, limit) : [];   // nos données : zone couverte seulement
+    return hasPlaces(near) ? (await searchLocal(query, near)).slice(0, limit) : [];   // nos données, là où il y en a
   } finally {
     clearTimeout(timer);
   }
@@ -162,15 +162,8 @@ const sameAs = (a, b) => a.id === b.id || (Math.hypot((a.lon - b.lon) * 0.66, a.
  */
 async function findByName(query, at, signal, limit = 7, onEarly = null) {
   const intent = intentOf(query);
-  // hors de la zone couverte : pas d'index de recherche ; les types de lieux (« boulangerie ouverte ») viennent des tuiles
-  // s'il y en a ici (autres villes), les noms de Photon, autour du point, sans cadre
-  if (!covered(at)) {
-    if (intent && hasPlaces(at)) {
-      const r = await byIntent(intent, at, limit);
-      if (r.length) return r;
-    }
-    return byName(query, at, signal, limit, true);
-  }
+  // là où nous n'avons pas de données (hors de France, sauf Amsterdam) : Photon seul, autour du point, sans cadre
+  if (!hasPlaces(at)) return byName(query, at, signal, limit, true);
   if (intent) {
     const r = await byIntent(intent, at, limit);
     if (r.length) return r;
@@ -181,7 +174,7 @@ async function findByName(query, at, signal, limit = 7, onEarly = null) {
   if (strong.length) onEarly?.(strong);
   let others = [];
   try {
-    others = await byName(query, at, signal, limit);
+    others = await byName(query, at, signal, limit, !covered(at));   // hors Île-de-France : sans le cadre de la ville
   } catch (e) {
     if (signal?.aborted) throw e;
   }
@@ -219,7 +212,7 @@ export const isPlaceResult = (r) => !!r && !r.area && !String(r.id).startsWith('
  * réunis avec ceux déjà affichés (Photon compris), les plus proches d'abord.
  */
 export async function searchAllPlaces(query, at, shown = [], limit = 40) {
-  if (!covered(at)) return shown.filter(isPlaceResult).slice(0, limit);   // rien de plus dans nos données
+  if (!hasPlaces(at)) return shown.filter(isPlaceResult).slice(0, limit);   // rien de plus dans nos données
   const idx = await index(at);
   // l'index classe par pertinence sur toute la zone : on en prend large, puis on garde les plus proches
   const mine = searchMany(idx, query.trim(), at, limit * 10);
@@ -235,7 +228,7 @@ export async function searchAllPlaces(query, at, shown = [], limit = 40) {
 
 /** Premier résultat de l'index du téléphone (instantané), pour décider vite ce que fait la touche Entrée. */
 export async function localFirst(query, at) {
-  if (!covered(at)) return null;
+  if (!hasPlaces(at)) return null;
   const idx = await index(at);
   return searchMany(idx, query.trim(), at, 1)[0] || null;
 }

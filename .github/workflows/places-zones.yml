@@ -63,6 +63,7 @@ jobs:
               || echo '{"places":{}}' > "$id-extras.json"
             python app/scripts/build_places.py "$id.osm.pbf" --out "out/$id" --bbox="$bbox" --reviews "$id-reviews.json" --extras "$id-extras.json"
             python app/scripts/build_landmarks.py "$id.osm.pbf" --out "out/$id" --bbox="$bbox"   # lieux mis en avant sur la carte
+            python app/scripts/build_search.py "out/$id" --extras "$id-extras.json"   # recherche sur le téléphone
             if python app/scripts/check_publish.py "out/$id/index.json" "https://untrackedmaps.app/data/zones/$id/places/index.json"; then
               rm -rf "pages/data/zones/$id/places" && mkdir -p "pages/data/zones/$id" && cp -r "out/$id" "pages/data/zones/$id/places"
             else
