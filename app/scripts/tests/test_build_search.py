@@ -49,26 +49,37 @@ def test_rue_proche_si_pas_d_adresse():
 
 
 def test_decoupage_coeur_et_zones(tmp_path):
-    """Gares, communes et lieux connus dans le cœur ; le reste dans sa zone ; chaque fichier a ses propres tables."""
+    """Gares, communes et lieux connus dans le cœur ; le reste (lieux-dits compris) dans sa zone ; fichiers compressés,
+    chacun avec ses propres tables."""
+    import gzip
     import json
     from build_search import write_split, tile_of
     items = [
         (11, 2.3550, 48.8800, {"name": "Gare du Nord", "railway": "station"}),
-        (21, 2.4400, 48.8600, {"name": "Montreuil", "place": "town"}),   # (dans le cadre de « Paris » approché)
+        (21, 2.4400, 48.8600, {"name": "Montreuil", "place": "town"}),
+        (51, 2.4300, 48.8700, {"name": "Le Moulin", "place": "hamlet"}),
         (31, 2.3400, 48.8500, {"name": "Café de Flore", "amenity": "cafe", "addr:street": "Boulevard Saint-Germain", "addr:housenumber": "172"}),
         (41, 2.2000, 48.8350, {"name": "Boulangerie Dupont", "shop": "bakery", "addr:street": "Rue de Paris", "addr:housenumber": "3"}),
     ]
+    (tmp_path / "search.json").write_text("{}")             # ancien index unique : retiré
+    (tmp_path / "search").mkdir()
+    (tmp_path / "search" / "core.json").write_text("{}")    # ancien format : retiré
     types, streets, rows = build(items, {})
     n_core, zones = write_split(str(tmp_path), types, streets, rows)
     assert n_core == 2
-    core = json.load(open(tmp_path / "search" / "core.json"))
-    assert {r[0] for r in core["items"]} == {"Gare du Nord", "Montreuil"}
+    read = lambda *p: json.loads(gzip.decompress((tmp_path.joinpath("search", *p)).read_bytes()))
+    assert {r[0] for r in read("core.json.gz")["items"]} == {"Gare du Nord", "Montreuil"}
     idx = json.load(open(tmp_path / "search" / "index.json"))
-    assert idx["v"] == 2 and len(idx["zones"]) == len(zones)
+    assert idx["v"] == 3 and idx["ext"] == ".json.gz" and len(idx["zones"]) == len(zones)
     x, y = tile_of(2.2000, 48.8350)
-    z = json.load(open(tmp_path / "search" / "12" / str(x) / f"{y}.json"))
+    z = read("12", str(x), f"{y}.json.gz")
     row = next(r for r in z["items"] if r[0] == "Boulangerie Dupont")
     assert z["types"][row[4]] == "shop=bakery"
     assert z["streets"][int(row[8].split("|")[1])] == "Rue de Paris"
-    # l'ancien fichier unique reste servi (Paris seulement), pour les versions de l'app pas encore à jour
-    assert {r[0] for r in json.load(open(tmp_path / "search.json"))["items"]} == {"Gare du Nord", "Montreuil", "Café de Flore"}
+    x, y = tile_of(2.4300, 48.8700)
+    assert "Le Moulin" in {r[0] for r in read("12", str(x), f"{y}.json.gz")["items"]}
+    assert not (tmp_path / "search.json").exists() and not (tmp_path / "search" / "core.json").exists()
+    # même contenu → mêmes octets (pas de nouvelle publication inutile)
+    before = (tmp_path / "search" / "core.json.gz").read_bytes()
+    write_split(str(tmp_path), types, streets, rows)
+    assert (tmp_path / "search" / "core.json.gz").read_bytes() == before

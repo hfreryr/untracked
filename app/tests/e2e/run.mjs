@@ -318,7 +318,8 @@ const tests = {
     await p.fill('#search', 'Starbucks'); await p.waitForSelector('.results li.opt', { timeout: 20000 }); await p.waitForTimeout(2500);
     const txt = await p.$$eval('.results li.opt', (l) => l.map((e) => e.innerText.replace(/\s+/g, ' ')).join(' | '));
     assert(!/Paris|\b75\d{3}|\b9[1-5]\d{3}|\b7[7-8]\d{3}/.test(txt), `résultats d'Île-de-France vus d'Amsterdam : ${txt}`);
-    assert(/Amsterdam|Nederland|Pays-Bas/i.test(txt), `aucun résultat à Amsterdam : ${txt}`);
+    // (depuis le 31/10, nos propres données d'Amsterdam répondent d'abord : code postal néerlandais, sans le nom de la ville)
+    assert(/Amsterdam|Nederland|Pays-Bas|\b10\d\d ?[A-Z]{2}\b/i.test(txt), `aucun résultat à Amsterdam : ${txt}`);
     assert(!errors.length, errors.join(' | '));
     await ctx.close();
     // adresse vue de Lyon : la rue de Lyon d'abord, pas celle de Décines ou de Genas (30/10/2026)
@@ -380,6 +381,20 @@ const tests = {
     assert(!errors.length, errors.join(' | '));
     await ctx.close();
   },
+  async 'recherche sur le téléphone en région : Rennes, sans attendre Photon (31/10)'() {
+    // données locales : python app/scripts/build_search.py app/static/data/zones/bretagne/places
+    const { p, ctx, errors } = await page({}, '#carte=15/48.1120/-1.6790');
+    await p.route('**/photon.komoot.io/**', async (r) => { await new Promise((ok) => setTimeout(ok, 10000)); r.abort().catch(() => {}); });
+    await p.click('#search'); await p.waitForTimeout(1500);
+    const t0 = Date.now();
+    await p.fill('#search', 'parlement de bretagne'); await p.waitForSelector('.results li.opt button', { timeout: 5000 });
+    const ms = Date.now() - t0;
+    const first = await p.$eval('.results li.opt', (e) => e.innerText.replace(/\s+/g, ' '));
+    assert(/Parlement de Bretagne/.test(first), `premier résultat : ${first}`);
+    assert(ms < 3000, `résultats en ${ms} ms`);
+    assert(!errors.length, errors.join(' | '));
+    await ctx.close();
+  },
   async 'Photon en panne : la recherche par nom passe par nos données'() {
     const { p, ctx, errors } = await page();
     await p.route('**/photon.komoot.io/**', (r) => r.abort());
@@ -403,7 +418,7 @@ const tests = {
     assert(/^Grand Palais\b/.test(first) && /Musée/.test(first), `premier résultat : ${first}`);
     assert(ms < 2500, `résultats en ${ms} ms`);
     await p.fill('#search', 'élysée'); await p.waitForTimeout(1200);
-    assert(/Palais de l'Élysée/.test(await p.$eval('.results li.opt', (e) => e.innerText)), 'élysée : pas le palais en premier');
+    assert(/Palais de l'Élysée/.test(await p.$eval('.results li.opt', (e) => e.innerText)), `élysée : pas le palais en premier : ${(await p.$$eval('.results li.opt', (es) => es.map((e) => e.innerText.replace(/\s+/g, ' ')))).join(' | ')}`);
     await p.fill('#search', 'pharmacie'); await p.waitForTimeout(1500);
     // (la première ligne est le raccourci « Pharmacies, les plus proches », déjà présent avant)
     const metas = (await p.$$eval('.results li.opt .r-meta', (els) => els.map((e) => e.textContent))).filter((m) => !/plus proches/.test(m));

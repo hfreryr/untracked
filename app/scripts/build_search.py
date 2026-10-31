@@ -23,10 +23,12 @@ Doublons (même nom à moins de 200 m, ou même Wikidata) : on garde le plus con
 import argparse
 import datetime
 import glob
+import gzip
 import json
 import math
 import os
 import re
+import shutil
 import unicodedata
 
 import tileio
@@ -119,11 +121,15 @@ ZONE = 12
 CORE_KV = {"railway=station", "public_transport=station", "tourism=museum", "tourism=attraction", "tourism=zoo",
            "tourism=theme_park", "leisure=stadium", "amenity=university", "amenity=hospital", "historic=castle", "historic=monument"}
 CORE_RANK = 25
-PARIS = (2.224, 48.815, 2.47, 48.902)          # ouest, sud, est, nord : l'ancien index unique (versions pas à jour)
+# lieux-dits trop nombreux pour le cœur (Bretagne, 31/10/2026 : 85 000 des 103 000 lieux du cœur, 5,7 Mo) :
+# ils restent dans leur zone, trouvés quand on est à côté
+NOT_CORE = {"place=hamlet", "place=isolated_dwelling", "place=farm", "place=locality", "place=plot", "place=square"}
 
 
 def is_core(row, types):
     kv = types[row[4]]
+    if kv in NOT_CORE:
+        return False
     return kv.startswith("place=") or kv in CORE_KV or (len(row) > 5 and row[5] >= CORE_RANK)
 
 
@@ -146,27 +152,36 @@ def pack(rows, types, streets):
             num, s_, pc = r[8].split("|")
             r[8] = f"{num}|{si[streets[int(s_)]]}|{pc}"
         out.append(r)
-    return {"v": 1, "built": datetime.date.today().isoformat(), "types": ts, "streets": ss, "items": out}
+    return {"v": 1, "types": ts, "streets": ss, "items": out}
+
+
+def dump(path, obj):
+    """JSON compressé (gzip, date nulle : fichier identique d'une semaine à l'autre si rien n'a changé)."""
+    raw = json.dumps(obj, ensure_ascii=False, separators=(",", ":")).encode()
+    with open(path, "wb") as f:
+        f.write(gzip.compress(raw, 9, mtime=0))
 
 
 def write_split(base, types, streets, rows):
-    """Écrit core + zones ; renvoie (nombre de lieux du cœur, {zone: nombre})."""
+    """Écrit core + zones (compressés, index v3) ; renvoie (nombre de lieux du cœur, {zone: nombre})."""
     core = [r for r in rows if is_core(r, types)]
     zones = {}
     for r in rows:
         if not is_core(r, types):
             zones.setdefault(tile_of(r[1], r[2]), []).append(r)
     d = os.path.join(base, "search")
+    shutil.rmtree(d, ignore_errors=True)            # pas de fichiers d'une ancienne version qui traînent
     os.makedirs(d, exist_ok=True)
-    dump = lambda path, obj: json.dump(obj, open(path, "w"), ensure_ascii=False, separators=(",", ":"))
-    dump(os.path.join(d, "core.json"), pack(core, types, streets))
-    w, s_, e, n = PARIS
-    dump(os.path.join(base, "search.json"), pack([r for r in rows if w <= r[1] <= e and s_ <= r[2] <= n], types, streets))
+    dump(os.path.join(d, "core.json.gz"), pack(core, types, streets))
+    legacy = os.path.join(base, "search.json")      # l'ancien index unique (avant le 23/10/2026) : plus servi
+    if os.path.exists(legacy):
+        os.remove(legacy)
     for (x, y), rs in zones.items():
         os.makedirs(os.path.join(d, str(ZONE), str(x)), exist_ok=True)
-        dump(os.path.join(d, str(ZONE), str(x), f"{y}.json"), pack(rs, types, streets))
-    dump(os.path.join(d, "index.json"), {"v": 2, "zoom": ZONE, "built": datetime.date.today().isoformat(),
-                                          "zones": sorted(f"{x}/{y}" for x, y in zones)})
+        dump(os.path.join(d, str(ZONE), str(x), f"{y}.json.gz"), pack(rs, types, streets))
+    json.dump({"v": 3, "zoom": ZONE, "ext": ".json.gz", "built": datetime.date.today().isoformat(),
+               "zones": sorted(f"{x}/{y}" for x, y in zones)},
+              open(os.path.join(d, "index.json"), "w"), separators=(",", ":"))
     return len(core), {f"{x}/{y}": len(rs) for (x, y), rs in zones.items()}
 
 
@@ -189,7 +204,7 @@ def main():
     zdir = os.path.join(args.places, "search", str(ZONE))
     biggest = max((size(os.path.join(r, f)) for r, _, fs in os.walk(zdir) for f in fs), default=0)
     print(f"{len(rows)} lieux dans l'index ({sum(1 for r in rows if r[5])} avec notoriété) : cœur {n_core} lieux "
-          f"({size(os.path.join(args.places, 'search', 'core.json'))} Ko), {len(zones)} zones (la plus lourde : {biggest} Ko)")
+          f"({size(os.path.join(args.places, 'search', 'core.json.gz'))} Ko), {len(zones)} zones (la plus lourde : {biggest} Ko)")
 
 
 if __name__ == "__main__":

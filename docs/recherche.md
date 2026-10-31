@@ -24,6 +24,20 @@ Un **index des 71 000 lieux nommés de Paris**, préparé chaque nuit et téléc
 - **Recherches par type** : « pharmacie », « restaurant italien », « vegan », « toilettes »… donnent les lieux de ce type les plus proches, lus dans nos tuiles.
 - **Photon reste consulté** pour ce que l'index n'a pas (rues sans numéro, quartiers, lieux absents de nos données). Ses réponses s'ajoutent sous les nôtres quand elles arrivent, sans faire attendre les premières.
 
+### Partout où nous avons des lieux (31/10/2026)
+
+Même index, préparé chaque semaine avec les lieux de chaque région française et d'Amsterdam (`places-zones.yml`).
+
+- **Découpé** : le téléphone charge l'essentiel de la région où il se trouve (communes, gares, musées, lieux connus) et
+  les lieux à moins de 4 km. Près d'une limite de région, les deux régions ; une région voisine sans lieu autour n'est pas
+  chargée.
+- **Compressé** comme les tuiles de lieux (`search/core.json.gz`, `search/12/x/y.json.gz`, index v3).
+- **Hameaux, lieux-dits et maisons isolées** restent dans leur zone : en Bretagne, ils faisaient 85 000 des 103 000 lieux
+  de l'essentiel (5,7 Mo). Essentiel breton désormais : 5 757 lieux, 146 Ko ; index breton complet : 4,4 Mo.
+- **Mesuré à Rennes** (index breton, sans notoriété) : 440 Ko chargés, « parlement de bretagne », « champs libres »,
+  « saint-malo » trouvés en moins de 20 ms. À améliorer : « gare de rennes » (la gare s'appelle « Rennes » dans OSM).
+- Loin de sa région (chercher « Rennes » depuis Paris) : Photon, en attendant l'annuaire national par nom (étape suivante).
+
 ## Mesure
 
 Le jeu de référence compte 144 recherches (`app/tests/search/reference.json`) ; la mesure se lance avec `npm run search-eval`.

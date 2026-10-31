@@ -1,6 +1,6 @@
 // Où chercher selon l'endroit regardé (retour du porteur, 30/10/2026 : « Starbucks » à Amsterdam proposait un
-// Starbucks d'Île-de-France). Nos données (index du téléphone, tuiles de lieux) ne couvrent que la zone de la ville ;
-// le géocodeur d'adresses de l'État ne couvre que la France. Ailleurs, seul Photon (monde entier) a du sens.
+// Starbucks d'Île-de-France). Nos données (index du téléphone, tuiles de lieux) couvrent l'Île-de-France et les zones de
+// zones.json ; le géocodeur d'adresses de l'État ne couvre que la France. Ailleurs, seul Photon (monde entier) a du sens.
 import { city } from '#lib/cities/index.js';
 import ZONES from '#lib/cities/zones.json' with { type: 'json' };
 
@@ -12,8 +12,8 @@ const FRANCE = [-5.3, 41.3, 9.7, 51.2];
 export const covered = (at) => inBox(city.searchBbox, at);
 /** Le géocodeur d'adresses français a-t-il du sens ici ? */
 export const inFrance = (at) => city.country === 'FR' && inBox(FRANCE, at);
-/** Avons-nous des fiches de lieux ici (Île-de-France, ou une ville de zones.json) ? Sans index de recherche ailleurs
- *  qu'en Île-de-France : « boulangerie », « pharmacie ouverte » y passent par les tuiles, les noms par Photon. */
+/** Avons-nous des lieux ici (Île-de-France, ou une zone de zones.json : régions françaises, Amsterdam) ?
+ *  Là, la recherche se fait d'abord sur le téléphone (tuiles et index de recherche), Photon complète. */
 export const hasPlaces = (at) => covered(at) || ZONES.some((z) => inBox(z.bbox, at));
 
 /** Ligne d'adresse (numéro et rue) dans l'ordre du pays : « 4 rue X » en France, « Amstelzijde 4 » aux Pays-Bas. */
