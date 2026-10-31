@@ -75,6 +75,26 @@ const tests = {
     assert(!errors.length, errors.join(' | '));
     await ctx.close();
   },
+  async 'fiche façon Plans : 4 boutons, infos clés en colonnes, Raccourci · Avis · Plus, avis proposé sur place (31/10)'() {
+    // à 60 m de l'Espace Lino-Ventura (Torcy) ; ouvert par la recherche pour que la position soit connue
+    const { p, ctx, errors } = await page({ viewport: { width: 312, height: 760 }, geolocation: { latitude: 48.8504, longitude: 2.6526 } });
+    await p.evaluate(() => localStorage.setItem('position-expliquee', '1'));
+    await p.fill('#search', 'Espace Lino-Ventura'); await p.waitForSelector('.results li.opt button', { timeout: 20000 }); await p.waitForTimeout(1200); await pick(p);
+    await p.waitForSelector('.strip', { timeout: 20000 }); await p.waitForTimeout(1500);
+    const acts = await p.$$eval('.actions .action span', (s) => s.map((e) => e.textContent.trim()));
+    assert(acts.length <= 4 && acts.includes('Enregistrer') && !acts.includes('Plus'), `rangée principale : ${acts}`);
+    const cut = await p.$$eval('.action span, .sec-btn span', (s) => s.filter((e) => e.scrollWidth > e.clientWidth + 1).map((e) => e.textContent));
+    assert(!cut.length, `texte tronqué : ${cut}`);
+    const strip = await p.textContent('.strip');
+    assert(/Horaires/.test(strip) && /(Ouvert|Fermé)/.test(strip) && /Distance\s*\d+ m/.test(strip), `infos clés : ${strip}`);
+    const sec = await p.$$eval('.sec-row .sec-btn span', (s) => s.map((e) => e.textContent.trim()));
+    assert(sec.join('|') === 'Raccourci|Avis|Plus', `rangée secondaire : ${sec}`);
+    assert(/Vous êtes à proximité/.test(await p.textContent('.near')), 'avis sur place non proposé');
+    await p.click('.near button[aria-label="4 étoiles sur 5"]'); await p.waitForSelector('.dlg');
+    assert((await p.$$('.dlg .star[aria-checked="true"]')).length === 1 && await p.$('.dlg .star:nth-child(4)[aria-checked="true"]'), 'la fenêtre d’avis ne s’ouvre pas avec 4 étoiles');
+    assert(!errors.length, errors.join(' | '));
+    await ctx.close();
+  },
   async 'vue de la rue : vignette puis visionneuse plein écran'() {
     // lieu des tuiles locales avec une photo de devanture (Panoramax)
     const { p, ctx, errors } = await page();
@@ -718,7 +738,7 @@ const tests = {
   async 'Maison et raccourcis personnalisés'() {
     const { p, ctx, errors } = await page();
     await p.fill('#search', "Ed's rue Muller"); await p.waitForSelector('.results li.opt button', { timeout: 20000 }); await pick(p); await p.waitForTimeout(3000);
-    await p.click('.action.more');
+    await p.click('.sec-btn[aria-haspopup="menu"]');
     await p.click('.pmenu button:has-text("Définir comme Maison")'); await p.waitForTimeout(500);
     assert(/Maison enregistré/.test(await p.textContent('.toast')), 'Maison non enregistrée');
     await p.click('.close'); await p.waitForTimeout(500);
@@ -1171,13 +1191,13 @@ z.close()`, zip]);
     ({ p, ctx } = await page());
     await p.fill('#search', 'Panthéon'); await p.waitForSelector('.results li.opt button', { timeout: 15000 }); await pick(p);
     // favori et « Plus » dans la rangée d'actions, plus de barre flottante (30/10/2026) ; les listes dans « Plus »
-    await p.waitForSelector('.actions .action.more', { timeout: 10000 });
+    await p.waitForSelector('.sec-btn[aria-haspopup="menu"]', { timeout: 10000 });
     assert(!(await p.$('.fab')), 'barre flottante encore présente');
     // « Enregistrer » ouvre le choix de la liste, Favoris en tête (P8, 30/10/2026)
     await p.click('.action.save'); await p.waitForSelector('.pick-lists');
     assert(/Favoris/.test(await p.textContent('.pick-lists li >> nth=0')), 'Favoris pas en tête du choix de liste');
     await p.click('.done'); await p.waitForTimeout(400);
-    await p.click('.action.more'); await p.waitForSelector('.pmenu');
+    await p.click('.sec-btn[aria-haspopup="menu"]'); await p.waitForSelector('.pmenu');
     await p.mouse.click(195, 200); await p.waitForTimeout(400);
     assert(!(await p.$('.pmenu')), 'le menu ⋯ reste ouvert après un toucher ailleurs');
     await ctx.close();
@@ -1295,7 +1315,7 @@ z.close()`, zip]);
     const foot = saved.find((c) => c.name === 'Foot');
     assert(foot?.icon === 'sport' && /Panth/.test(foot.place?.name || ''), `raccourci mal enregistré : ${JSON.stringify(foot)}`);
     // la fiche du Panthéon : « Raccourci » allumé (le lieu en est un)
-    assert(await p.$('.end-btn.on:has-text("Raccourci")'), 'le bouton Raccourci de la fiche n’est pas allumé');
+    assert(await p.$('.sec-btn.on:has-text("Raccourci")'), 'le bouton Raccourci de la fiche n’est pas allumé');
     await p.click('.sheet .close'); await p.waitForTimeout(500);
     // appui long (ici clic droit) : modifier le nom
     await p.click('#search'); await p.waitForSelector('.pin-btn:has-text("Foot")');
@@ -1312,11 +1332,11 @@ z.close()`, zip]);
     assert(await p.$('.pin-btn:has-text("Foot du mardi")'), 'Annuler ne rétablit pas le raccourci');
     // depuis la fiche d'un lieu : adresse déjà remplie, icône proposée
     await p.fill('#search', 'Stade Charléty'); await p.waitForSelector('.results li.opt button', { timeout: 15000 }); await pick(p);
-    await p.waitForSelector('.end-btn:has-text("Raccourci")', { timeout: 10000 });
-    await p.click('.end-btn:has-text("Raccourci")'); await p.waitForSelector('.dlg .addr');
+    await p.waitForSelector('.sec-btn:has-text("Raccourci")', { timeout: 10000 });
+    await p.click('.sec-btn:has-text("Raccourci")'); await p.waitForSelector('.dlg .addr');
     assert(/Ajouter aux raccourcis/.test(await p.textContent('.dlg h2')), 'titre de la fenêtre');
     await p.click('.dlg button.ok'); await p.waitForTimeout(300);
-    assert(await p.$('.end-btn.on:has-text("Raccourci")'), 'lieu non ajouté aux raccourcis');
+    assert(await p.$('.sec-btn.on:has-text("Raccourci")'), 'lieu non ajouté aux raccourcis');
     // le raccourci part dans la sauvegarde (fichier ou transfert)
     assert(!errors.length, errors.join(' | '));
     await ctx.close();
@@ -1336,7 +1356,7 @@ z.close()`, zip]);
     });
     // 1. menu « ⋯ » d'une fiche, fiche à mi-hauteur (bug du 16/10 : première ligne rognée par la fiche)
     await p.fill('#search', 'Panthéon'); await p.waitForSelector('.results li.opt button', { timeout: 15000 }); await pick(p);
-    await p.waitForSelector('.action.more', { timeout: 10000 }); await p.waitForTimeout(800);
+    await p.waitForSelector('.sec-btn[aria-haspopup="menu"]', { timeout: 10000 }); await p.waitForTimeout(800);
     const more = 'button[aria-label="Plus d\'options"]';
     await p.click(more); await p.waitForSelector('.pmenu');
     assert((await visibleWhole('.pmenu')) === 'ok', `menu ⋯ : ${await visibleWhole('.pmenu')}`);

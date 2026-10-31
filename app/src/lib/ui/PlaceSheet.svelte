@@ -12,6 +12,9 @@
   import { dataDate } from '#lib/placestore.js';
   import Reviews from './Reviews.svelte';
   import { longpress } from '#lib/longpress.js';
+  import { glanceItems, isNear } from '#lib/glance.js';
+  import { loadReviewer, mineFor } from '#lib/reviewer.js';
+  import NearbyRate from './NearbyRate.svelte';
 
   // État et actions de la page (voir le bloc « app » de +page.svelte)
   const app = getContext('app');
@@ -31,6 +34,11 @@
   });
   // menu « ⋯ » : règles communes des menus (popover.js) — un seul ouvert, fermé en touchant ailleurs, toujours entier à l'écran
   let moreBtn = $state();
+  const glance = $derived(glanceItems({ status: app.status, reviews: app.info?.reviews, me: app.me, place: app.place, info: app.info }));
+  const reviewable = $derived(!!(app.place?.osmType && app.place?.name && !app.isAddress && !app.isStation));
+  // sur place (moins de 100 m) et pas encore d'avis de ma part : « Votre avis sur ce lieu » en haut de la fiche
+  const nearAsk = $derived(reviewable && isNear(app.me, app.place) && !mineFor(loadReviewer(), app.place));
+  const toReviews = () => document.getElementById('rev-title')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   async function copyAddressOnly() {
     try { await navigator.clipboard.writeText(app.address); app.say(tx('ecran.adresse_copiee')); } catch { /* refusé */ }
   }
@@ -172,11 +180,6 @@
 
       {#if !app.isAddress}
         <div class="end-btns">
-          <!-- ajoute le lieu aux raccourcis de la rangée (nom et icône au choix) ; remplace « Épingler » (27/10/2026) -->
-          <button class="end-btn" class:on={!!app.placeCustom} onclick={() => app.openShortcutDlg(app.placeCustom ? { id: app.placeCustom.id } : { place: app.place })}>
-            {#if app.placeCustom}<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5" /></svg>{:else}<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6v12M6 12h12" /></svg>{/if}
-            <span>{tx('raccourcis.raccourci')}</span>
-          </button>
           <a class="end-btn" aria-label={tx('fiche.signaler_un_probleme_sur')} href={app.osmNoteUrl} target="_blank" rel="noopener">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4 21 19.5H3z" /><path d="M12 10v4.5M12 17v.3" /></svg>
             <span>{tx('fiche.signaler')}</span>
@@ -218,10 +221,7 @@
       {/if}
 
       <!-- En un coup d'œil : ouvert ? loin ? encore à jour ? -->
-      <p class="glance">
-        {#if app.info === null}<span class="muted">{tx('fiche.chargement')}</span>
-        {:else if app.status}<span class="st" class:is-open={app.status.open === true} class:is-closed={app.status.open === false}>{app.status.label}</span>{/if}
-      </p>
+      {#if app.info === null}<p class="glance"><span class="muted">{tx('fiche.chargement')}</span></p>{/if}
       {#if app.freshness}
         <p class="fresh" class:old={!app.freshness.ok}>
           {#if app.freshness.ok}<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5" /></svg>{/if}<span>{app.freshness.text}</span>
@@ -262,24 +262,49 @@
             <span>{tx('fiche.site_web')}</span>
           </a>
         {/if}
-        <!-- favori et « Plus » dans la rangée (porteur, 30/10/2026 : plus de barre flottante à cheval sur la fiche) -->
+        <!-- 4 boutons au plus, jamais tronqués ; « Plus », « Raccourci » et « Avis » dans la rangée du dessous
+             (maquette B, 31/10/2026 : rien de flottant sur la fiche) -->
         <!-- « Enregistrer » ouvre le choix de la liste, Favoris en tête, comme Google Maps (P8, 30/10/2026 : 5 min pour
              ranger un lieu dans une liste) -->
         <button class="action save" class:on={app.isFav} onclick={() => (app.listPicker = true)} aria-label={app.isFav ? tx('fiche.enregistre_modifier') : tx('fiche.enregistrer_dans_liste')}>
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 4h9a1 1 0 0 1 1 1v15l-5.5-3.8L6.5 20V5a1 1 0 0 1 1-1z" /></svg>
           <span>{app.isFav ? tx('fiche.enregistre') : tx('fiche.enregistrer')}</span>
         </button>
-        <button class="action more" bind:this={moreBtn} onclick={() => (app.placeMenu = !app.placeMenu)} aria-expanded={app.placeMenu} aria-haspopup="menu" aria-label={tx('fiche.plus_options')}>
-          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="12" r="1.4" class="solid" /><circle cx="12" cy="12" r="1.4" class="solid" /><circle cx="18" cy="12" r="1.4" class="solid" /></svg>
-          <span>{tx('fiche.plus')}</span>
-        </button>
       </div>
 
-      {#if app.infoStrip.length}
+      {#if glance.length}
         <dl class="strip">
-          {#each app.infoStrip as it}<div><dt>{it.label}</dt><dd>{it.value}</dd></div>{/each}
+          {#each glance as it (it.key)}
+            <div>
+              <dt>{it.label}</dt>
+              <dd class:is-open={it.tone === 'open'} class:is-closed={it.tone === 'closed'}>{it.value}</dd>
+              {#if it.sub}<dd class="sub">{it.sub}</dd>{/if}
+            </div>
+          {/each}
         </dl>
       {/if}
+
+      <div class="sec-row">
+          {#if !app.isAddress}
+            <!-- ajoute le lieu aux raccourcis de la rangée (nom et icône au choix) ; remplace « Épingler » (27/10/2026) -->
+            <button class="sec-btn" class:on={!!app.placeCustom} onclick={() => app.openShortcutDlg(app.placeCustom ? { id: app.placeCustom.id } : { place: app.place })}>
+              {#if app.placeCustom}<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5" /></svg>{:else}<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-6-5.6-6-10.5a6 6 0 0 1 12 0C18 15.4 12 21 12 21z" /><circle cx="12" cy="10.5" r="2.2" /></svg>{/if}
+              <span>{tx('raccourcis.raccourci')}</span>
+            </button>
+          {/if}
+          {#if reviewable}
+            <button class="sec-btn" onclick={toReviews}>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6.5h14v9H10l-4 3v-3H5z" /></svg>
+              <span>{tx('fiche.avis')}</span>
+            </button>
+          {/if}
+          <button class="sec-btn" bind:this={moreBtn} onclick={() => (app.placeMenu = !app.placeMenu)} aria-expanded={app.placeMenu} aria-haspopup="menu" aria-label={tx('fiche.plus_options')}>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="12" r="1.4" class="solid" /><circle cx="12" cy="12" r="1.4" class="solid" /><circle cx="18" cy="12" r="1.4" class="solid" /></svg>
+            <span>{tx('fiche.plus')}</span>
+          </button>
+        </div>
+
+      {#if nearAsk}<NearbyRate place={app.place} />{/if}
 
       <!-- Ordre selon ce qui sert le plus : une station → prochains passages et sorties d'abord ;
            un commerce → horaires, téléphone, site avant le texte Wikipédia ; un monument → photo et histoire. -->
@@ -365,30 +390,35 @@
   .info-btn::after { content: ''; position: absolute; inset: -11px; }   /* zone tactile de 44 px */
   .fresh.old { color: var(--muted); }
   /* Boutons d'action : même largeur, pictogramme au-dessus du texte ; un seul bouton prend toute la largeur */
-  /* Texte jamais tronqué (porteur, 31/10/2026 : « Appe… », « Enre… » avec le texte agrandi) : chaque bouton prend au
-     moins sa part de la largeur, et la rangée défile quand ils ne tiennent pas, comme dans Plans et Google Maps
-     (le bouton coupé au bord montre qu'il y a une suite). */
-  .actions {
-    display: flex; gap: 5px; margin: 14px calc(-1 * var(--gutter)) 0; padding: 0 var(--gutter); overflow-x: auto; scrollbar-width: none;
-    overscroll-behavior-x: contain; scroll-padding: 0 var(--gutter);
-  }
-  .actions::-webkit-scrollbar { display: none; }
-  .actions > * { flex: 1 0 0; min-width: max-content; }
+  /* Boutons d'action (maquette B, 31/10/2026, inspirée de Plans) : 4 au plus, même largeur, plus larges que hauts,
+     texte entier même agrandi (« Appe… » sur l'iPhone du porteur avant) ; fond teinté, l'itinéraire en plein. */
+  .actions { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 6px; margin: 14px 0 0; }
   .action {
-    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 56px; padding: 6px 4px;
-    border-radius: 14px; border: 0; cursor: pointer; text-decoration: none; font-size: 13.5px; font-weight: 600; line-height: 1.1;
-    background: var(--fill); color: var(--accent); box-sizing: border-box; padding-inline: 5px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 50px; padding: 5px 2px;
+    border-radius: 14px; border: 0; cursor: pointer; text-decoration: none; font-size: clamp(11.5px, 3.4vw, 12.5px); font-weight: 600; line-height: 1.1;
+    background: var(--me-bg); color: var(--accent); box-sizing: border-box; min-width: 0;
   }
   .action span { white-space: nowrap; }
   .action:active { filter: brightness(0.94); }
   .action.primary { background: var(--accent-btn); color: #fff; }
   .action.primary .solid { fill: currentColor; }
   /* Bandeau : libellé discret au-dessus, valeur en gras, séparés par un trait */
+  /* Infos clés en colonnes (horaires, note, distance…), un filet entre chaque */
   .strip { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); margin: 14px 0 0; }
-  .strip div { padding: 0 10px; border-left: 1px solid var(--line); }
-  .strip div:first-child { border-left: 0; padding-left: 0; }
-  .strip dt { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.02em; }
-  .strip dd { margin: 2px 0 0; font-size: 15px; font-weight: 600; }
+  .strip div { padding: 0 6px; border-left: 1px solid var(--line); text-align: center; min-width: 0; }
+  .strip div:first-child { border-left: 0; }
+  .strip dt { font-size: 12.5px; color: var(--muted); }
+  .strip dd { margin: 1px 0 0; font-size: 16px; font-weight: 650; }
+  .strip dd.sub { margin: 0; font-size: 12px; font-weight: 500; color: var(--muted); line-height: 1.2; text-wrap: balance; }
+  .strip .is-open { color: var(--open); }
+  .strip .is-closed { color: var(--closed); }
+  /* Rangée secondaire : Raccourci, Avis, Plus (fixe, rien de flottant) */
+  .sec-row { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 6px; margin: 14px 0 0; }
+  .sec-btn { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 46px; padding: 4px 2px;
+    border: 0; border-radius: 14px; background: var(--fill); color: var(--ink); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; min-width: 0; }
+  .sec-btn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+  .sec-btn .solid { fill: currentColor; stroke: none; }
+  .sec-btn.on { color: var(--accent); }
   /* Sections du bas */
   .psec { margin-top: 22px; }
   .psec h2 { font-size: 17px; font-weight: 700; margin: 0 0 8px; }
@@ -407,7 +437,7 @@
   .details .src, .details-src .src { display: block; font-size: 12.5px; color: var(--muted); margin-top: 1px; }
   .details-src { margin: 6px 0 0; }
   .sc-note { margin: 14px 0 0; font-size: 14.5px; color: var(--muted); }
-  .end-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 22px; }
+  .end-btns { display: grid; grid-template-columns: 1fr; gap: 8px; margin-top: 22px; }
   .end-btn { display: flex; align-items: center; justify-content: center; gap: 7px; min-height: 46px; border: 0; border-radius: 14px; background: var(--fill);
     color: var(--accent); font: inherit; font-size: 14.5px; font-weight: 600; text-decoration: none; cursor: pointer; padding: 0 8px; text-align: center; }
   .end-btn svg { width: 19px; height: 19px; flex: none; }
@@ -451,7 +481,7 @@
   @media (prefers-reduced-motion: reduce) {
     .dep-times .live { animation: none; }
   }
-  .action :global(svg) { width: 21px; height: 21px; flex: none; }
+  .action :global(svg) { width: 19px; height: 19px; flex: none; }
   .in-lists { display: flex; width: fit-content; align-items: center; gap: 4px; max-width: 100%; min-height: 32px; margin: 2px auto 4px; padding: 0 12px 0 10px;
     border: 0; border-radius: 16px; background: var(--fill); color: var(--ink); font: inherit; font-size: 14px; font-weight: 500; cursor: pointer; }
   .in-lists span:last-child { margin-left: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
