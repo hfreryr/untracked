@@ -1,1 +1,1 @@
-{"type":"FeatureCollection","features":[{"type":"Feature","properties":{"k":"lane"},"geometry":{"type":"LineString","coordinates":[[1.58184,48.92178],[1.58157,48.922],[1.58083,48.92266]]}}]}
+{"type":"FeatureCollection","features":[{"type":"Feature","properties":{"k":"lane"},"geometry":{"type":"LineString","coordinates":[[1.58184,48.92178],[1.58157,48.922],[1.58083,48.92266]]}},{"type":"Feature","properties":{"k":"shared"},"geometry":{"type":"LineString","coordinates":[[1.5517,48.84416],[1.55172,48.84413],[1.55185,48.84384],[1.55201,48.84361],[1.55204,48.84357]]}}]}
