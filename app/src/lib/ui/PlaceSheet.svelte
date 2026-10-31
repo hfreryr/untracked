@@ -6,7 +6,6 @@
   import { exitLabel } from '#lib/exits.js';
   import { showExits } from '#lib/exitlayer.js';
   import Dialog from './Dialog.svelte';
-  import { popover } from '#lib/popover.js';
   import { fmtWait } from '#lib/routing.js';
   import { host, href } from '#lib/links.js';
   import { dataDate } from '#lib/placestore.js';
@@ -32,8 +31,13 @@
     showExits(app.map, app.exits?.status === 'ok' ? app.exits.data : []);
     return () => showExits(app.map, []);
   });
-  // menu « ⋯ » : règles communes des menus (popover.js) — un seul ouvert, fermé en touchant ailleurs, toujours entier à l'écran
-  let moreBtn = $state();
+  const savedWhere = $derived([
+    app.savedEntry?.lists.length ? tx('fiche.dans_listes', { listes: app.savedEntry.lists.map((id) => app.listOf(id).name).join(', ') }) : '',
+    app.placeShortcut ? tx('fiche.raccourci_nom', { nom: app.SHORT_NAMES[app.placeShortcut] }) : '',
+    app.placeCustom ? tx('fiche.raccourci_nom', { nom: app.placeCustom.name }) : ''
+  ].filter(Boolean).join(' · '));
+  const savedAny = $derived(!!(app.isFav || app.placeShortcut || app.placeCustom));
+  const reviewCount = $derived(app.info?.reviews?.count || 0);
   const glance = $derived(glanceItems({ status: app.status, reviews: app.info?.reviews, me: app.me, place: app.place, info: app.info }));
   const reviewable = $derived(!!(app.place?.osmType && app.place?.name && !app.isAddress && !app.isStation));
   // sur place (moins de 100 m) et pas encore d'avis de ma part : « Votre avis sur ce lieu » en haut de la fiche
@@ -172,20 +176,9 @@
       {/if}
 
       <!-- avis : lire ceux de Mangrove et écrire le sien, pour tout lieu OSM nommé (pas une adresse ni une station) -->
-      {#if app.place?.osmType && app.place?.name && !app.isAddress && !app.isStation}<Reviews place={app.place} reviews={app.info?.reviews} />{/if}
+      {#if app.place?.osmType && app.place?.name && !app.isAddress && !app.isStation}<Reviews place={app.place} reviews={app.info?.reviews} hideRate={nearAsk} />{/if}
 
-      {#if app.placeShortcut}
-        <p class="sc-note">{tx('fiche.votre', { raccourci: app.SHORT_NAMES[app.placeShortcut].toLowerCase() })} <button class="link" onclick={() => { const k = app.placeShortcut, old = app.shortcuts[k]; app.setShortcut(k, null); app.say(tx('fiche.retire', { nom: app.SHORT_NAMES[k] }), { label: tx('resultats.annuler'), run: () => app.setShortcut(k, old) }); }}>{tx('fiche.retirer')}</button></p>
-      {/if}
 
-      {#if !app.isAddress}
-        <div class="end-btns">
-          <a class="end-btn" aria-label={tx('fiche.signaler_un_probleme_sur')} href={app.osmNoteUrl} target="_blank" rel="noopener">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4 21 19.5H3z" /><path d="M12 10v4.5M12 17v.3" /></svg>
-            <span>{tx('fiche.signaler')}</span>
-          </a>
-        </div>
-      {/if}
       {#if app.info?.covered === false}
         <p class="contrib">{tx('fiche.ce_lieu_est_hors_de_la_zone_couverte')}</p>
       {:else if app.info?.missing && !app.place.name}
@@ -212,11 +205,12 @@
           ? (app.place.name.split(',').slice(1).join(',').trim() || app.place.address || tx('fiche.adresse'))
           : [app.stationKind || app.info?.kind || app.place.type, app.info?.cuisine && tx('fiche.cuisine', { v: app.info.cuisine.split(';')[0] })].filter(Boolean).join(' · ') || tx('fiche.lieu')}</p>
       </div>
-      {#if app.savedEntry}
-        <!-- les listes du lieu, visibles d'emblée (retour d'une testeuse Android, 20/10 : « la liste n'apparaît dans aucune fiche ») -->
+      {#if app.savedEntry || app.placeShortcut || app.placeCustom}
+        <!-- où le lieu est rangé : listes et raccourci (retour d'une testeuse Android, 20/10 : « la liste n'apparaît dans
+             aucune fiche ») ; un toucher rouvre « Enregistrer » -->
         <button class="in-lists" onclick={() => (app.listPicker = true)} aria-label={tx('fiche.modifier_les_listes')}>
-          {#each app.savedEntry.lists as id (id)}<span class="ldot" style:background={app.listOf(id).color} aria-hidden="true"></span>{/each}
-          <span>{tx('fiche.dans_listes', { listes: app.savedEntry.lists.map((id) => app.listOf(id).name).join(', ') })}</span>
+          {#each app.savedEntry?.lists || [] as id (id)}<span class="ldot" style:background={app.listOf(id).color} aria-hidden="true"></span>{/each}
+          <span>{savedWhere}</span>
         </button>
       {/if}
 
@@ -266,9 +260,9 @@
              (maquette B, 31/10/2026 : rien de flottant sur la fiche) -->
         <!-- « Enregistrer » ouvre le choix de la liste, Favoris en tête, comme Google Maps (P8, 30/10/2026 : 5 min pour
              ranger un lieu dans une liste) -->
-        <button class="action save" class:on={app.isFav} onclick={() => (app.listPicker = true)} aria-label={app.isFav ? tx('fiche.enregistre_modifier') : tx('fiche.enregistrer_dans_liste')}>
+        <button class="action save" class:on={savedAny} onclick={() => (app.listPicker = true)} aria-label={savedAny ? tx('fiche.enregistre_modifier') : tx('fiche.enregistrer_dans_liste')}>
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 4h9a1 1 0 0 1 1 1v15l-5.5-3.8L6.5 20V5a1 1 0 0 1 1-1z" /></svg>
-          <span>{app.isFav ? tx('fiche.enregistre') : tx('fiche.enregistrer')}</span>
+          <span>{savedAny ? tx('fiche.enregistre') : tx('fiche.enregistrer')}</span>
         </button>
       </div>
 
@@ -284,25 +278,26 @@
         </dl>
       {/if}
 
+      <!-- Lire les avis (s'il y en a), signaler une erreur sur OpenStreetMap, copier l'adresse (31/10/2026 : « Raccourci » et
+           « Maison / Travail » rejoignent « Enregistrer » ; « Partager » reste en haut) -->
       <div class="sec-row">
-          {#if !app.isAddress}
-            <!-- ajoute le lieu aux raccourcis de la rangée (nom et icône au choix) ; remplace « Épingler » (27/10/2026) -->
-            <button class="sec-btn" class:on={!!app.placeCustom} onclick={() => app.openShortcutDlg(app.placeCustom ? { id: app.placeCustom.id } : { place: app.place })}>
-              {#if app.placeCustom}<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5" /></svg>{:else}<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-6-5.6-6-10.5a6 6 0 0 1 12 0C18 15.4 12 21 12 21z" /><circle cx="12" cy="10.5" r="2.2" /></svg>{/if}
-              <span>{tx('raccourcis.raccourci')}</span>
-            </button>
-          {/if}
-          {#if reviewable}
-            <button class="sec-btn" onclick={toReviews}>
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6.5h14v9H10l-4 3v-3H5z" /></svg>
-              <span>{tx('fiche.avis')}</span>
-            </button>
-          {/if}
-          <button class="sec-btn" bind:this={moreBtn} onclick={() => (app.placeMenu = !app.placeMenu)} aria-expanded={app.placeMenu} aria-haspopup="menu" aria-label={tx('fiche.plus_options')}>
-            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="12" r="1.4" class="solid" /><circle cx="12" cy="12" r="1.4" class="solid" /><circle cx="18" cy="12" r="1.4" class="solid" /></svg>
-            <span>{tx('fiche.plus')}</span>
+        {#if reviewable && reviewCount}
+          <button class="sec-btn" onclick={toReviews}>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6.5h14v9H10l-4 3v-3H5z" /></svg>
+            <span>{tx('fiche.avis_n', { n: reviewCount })}</span>
           </button>
-        </div>
+        {/if}
+        <a class="sec-btn" href={app.osmNoteUrl} target="_blank" rel="noopener" aria-label={tx('fiche.signaler_un_probleme_sur')}>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4 21 19.5H3z" /><path d="M12 10v4.5M12 17v.3" /></svg>
+          <span>{tx('fiche.signaler')}</span>
+        </a>
+        {#if app.address}
+          <button class="sec-btn" onclick={copyAddressOnly}>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="11" height="12" rx="2" /><path d="M5 15V6a2 2 0 0 1 2-2h8" /></svg>
+            <span>{tx('fiche.copier_adresse')}</span>
+          </button>
+        {/if}
+      </div>
 
       {#if nearAsk}<NearbyRate place={app.place} />{/if}
 
@@ -316,20 +311,6 @@
         {@render photoBlock()}{@render aboutBlock()}{@render rowsBlock()}
       {/if}
 
-      <!-- menu « Plus » (règles communes des menus : popover.js) -->
-        {#if app.placeMenu}
-          <div class="pmenu" role="menu" use:popover={{ trigger: () => moreBtn, close: () => (app.placeMenu = false), place: 'below', align: 'end' }}>
-            {#if !app.isStation}
-              {#each ['home', 'work'] as k}
-                <button role="menuitem" onclick={() => { app.placeMenu = false; if (app.placeShortcut === k) { const old = app.shortcuts[k]; app.setShortcut(k, null); app.say(tx('fiche.retire', { nom: app.SHORT_NAMES[k] }), { label: tx('resultats.annuler'), run: () => app.setShortcut(k, old) }); } else { app.setShortcut(k, app.place); app.say(tx('fiche.enregistre_garde_sur_cet_appareil', { nom: app.SHORT_NAMES[k] })); } }}>
-                  {app.placeShortcut === k ? tx('fiche.retirer_2', { nom: app.SHORT_NAMES[k] }) : tx('fiche.definir_comme', { raccourci: app.SHORT_NAMES[k] })}
-                </button>
-              {/each}
-            {/if}
-            <button role="menuitem" onclick={app.copyAddress}>{tx('fiche.copier_adresse')}</button>
-            <button role="menuitem" onclick={() => { app.placeMenu = false; app.sharePlace(); }}>{tx('liste.partager')}</button>
-          </div>
-        {/if}
     </section>
 
 <style>
@@ -395,7 +376,7 @@
   .actions { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 6px; margin: 14px 0 0; }
   .action {
     display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 50px; padding: 5px 2px;
-    border-radius: 14px; border: 0; cursor: pointer; text-decoration: none; font-size: clamp(11.5px, 3.4vw, 12.5px); font-weight: 600; line-height: 1.1;
+    border-radius: 14px; border: 0; cursor: pointer; text-decoration: none; font-size: clamp(10.5px, 3vw, 11.5px); font-weight: 600; line-height: 1.1;
     background: var(--me-bg); color: var(--accent); box-sizing: border-box; min-width: 0;
   }
   .action span { white-space: nowrap; }
@@ -415,7 +396,7 @@
   /* Rangée secondaire : Raccourci, Avis, Plus (fixe, rien de flottant) */
   .sec-row { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 6px; margin: 14px 0 0; }
   .sec-btn { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 46px; padding: 4px 2px;
-    border: 0; border-radius: 14px; background: var(--fill); color: var(--ink); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; min-width: 0; }
+    border: 0; border-radius: 14px; background: var(--fill); color: var(--ink); font: inherit; font-size: clamp(10.5px, 3vw, 11.5px); font-weight: 600; cursor: pointer; min-width: 0; text-decoration: none; }
   .sec-btn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
   .sec-btn .solid { fill: currentColor; stroke: none; }
   .sec-btn.on { color: var(--accent); }
@@ -436,23 +417,11 @@
   .details a { color: var(--accent); text-decoration: none; }
   .details .src, .details-src .src { display: block; font-size: 12.5px; color: var(--muted); margin-top: 1px; }
   .details-src { margin: 6px 0 0; }
-  .sc-note { margin: 14px 0 0; font-size: 14.5px; color: var(--muted); }
-  .end-btns { display: grid; grid-template-columns: 1fr; gap: 8px; margin-top: 22px; }
-  .end-btn { display: flex; align-items: center; justify-content: center; gap: 7px; min-height: 46px; border: 0; border-radius: 14px; background: var(--fill);
-    color: var(--accent); font: inherit; font-size: 14.5px; font-weight: 600; text-decoration: none; cursor: pointer; padding: 0 8px; text-align: center; }
-  .end-btn svg { width: 19px; height: 19px; flex: none; }
-  .end-btn.on svg path:first-child { fill: currentColor; }
   .contrib { margin: 14px 0 52px; font-size: 13px; line-height: 1.45; color: var(--muted); }
   .contrib a { color: var(--accent); text-decoration: none; font-weight: 600; }
   /* Barre flottante en bas à droite de la fiche */
-  .pmenu { pointer-events: auto; }
   .action.save.on path { fill: currentColor; }
   .exit-go { display: inline-flex; align-items: baseline; border: 0; background: none; padding: 0; font: inherit; color: inherit; text-align: left; cursor: pointer; }
-  .pmenu { min-width: 220px; background: var(--card); border-radius: 14px; overflow: hidden;
-    box-shadow: 0 6px 24px rgb(0 0 0 / 0.2), 0 0 0 0.5px rgb(0 0 0 / 0.08); }
-  .pmenu button { display: block; width: 100%; text-align: left; border: 0; background: none; font: inherit; font-size: 15.5px; color: var(--ink);
-    padding: 13px 16px; border-top: 1px solid var(--line); cursor: pointer; }
-  .pmenu button:first-child { border-top: 0; }
   .action.primary .on-solid { stroke: var(--accent-btn); stroke-width: 2; }
   /* appui prolongé = copie (pas la sélection ni la bulle du système, qui la masqueraient) */
   .hold { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; cursor: copy; }
