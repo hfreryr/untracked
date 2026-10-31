@@ -215,7 +215,7 @@ const tests = {
     await ctx.close();
   },
   async 'Lyon : catégories, fiches avec horaires et recherche par type, depuis ses propres tuiles'() {
-    // données locales : python app/scripts/build_places.py data/villes/rhone.osm.pbf --out app/static/data/zones/lyon/places
+    // données locales : python app/scripts/build_places.py data/villes/rhone_alpes.osm.pbf --out app/static/data/zones/rhone-alpes/places (Lyon seule suffit pour ce test)
     //                   --bbox 4.68,45.62,5.08,45.88   (en ligne : places-zones.yml, chaque semaine)
     let { p, ctx, errors } = await page({ geolocation: { latitude: 45.76, longitude: 4.835 } }, '#carte=15.5/45.7600/4.8350');
     await p.click('.chip:has-text("Restaurants")'); await p.waitForSelector('.nearby li button', { timeout: 20000 });

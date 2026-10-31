@@ -14,34 +14,51 @@ Ailleurs, l'app affiche seulement les lieux du fond de carte (OpenFreeMap).
 - Chaque ville se configure dans `app/src/lib/cities/zones.json` : extrait OSM, cadre, pays, jour de mise à jour.
   Les lieux sont refaits une fois par semaine par `places-zones.yml`.
 
-## Villes
-| Ville | Pays | Habitants couverts (≈) | Poids mesuré | Lieux | Complétés hors OSM | Mise à jour | Depuis |
-|---|---|---|---|---|---|---|---|
-| Île-de-France | FR | 12,3 M | 84,6 Mo | — | voir `sources-donnees.md` | chaque nuit | 10/2026 |
-| Lyon | FR | 1,4 M | 8,3 Mo | 49 521 | 7 387 | mercredi | 29/10/2026 |
-| Amsterdam | NL | 1 M | 6,8 Mo (essai local) | 33 948 | 3 988 | jeudi | 30/10/2026 |
-| Marseille (avec Aix) | FR | 1,9 M | 6,6 Mo* | 42 261 | — | lundi | lot 1 |
-| Nice (avec Cannes, Antibes) | FR | 0,7 M | 5,5 Mo* | 34 254 | — | lundi | lot 1 |
-| Lille | FR | 1,2 M | 5,7 Mo* | 36 124 | — | mardi | lot 1 |
-| Toulouse | FR | 1 M | 5,9 Mo* | 36 554 | — | mercredi | lot 1 |
-| Bordeaux | FR | 0,9 M | 5,5 Mo* | 30 223 | — | jeudi | lot 1 |
-| Nantes | FR | 0,7 M | 4,4 Mo* | 25 116 | — | vendredi | lot 1 |
-| Grenoble | FR | 0,5 M | 3,9 Mo* | 25 615 | — | vendredi | lot 1 |
-| Strasbourg | FR | 0,5 M | 3,5 Mo* | 19 988 | — | samedi | lot 1 |
-| Montpellier | FR | 0,5 M | 3,2 Mo* | 20 246 | — | dimanche | lot 1 |
-| **Bretagne** (région entière, essai) | FR | 3,4 M | **7,9 Mo** (compressé) | 254 978 | — | samedi | 31/10/2026 |
+## Zones couvertes (31/10/2026)
+**Toute la France métropolitaine** en 21 régions (les anciennes régions, comme les découpe OpenStreetMap France),
+plus l'Île-de-France chaque nuit et **Amsterdam**. Les zones de villes françaises (Lyon, Marseille, Rennes…) sont
+remplacées par leur région ; leurs tuiles quittent le site à la mise à jour suivante (`places-zones.yml`).
 
-\* Mesuré en local le 30/10/2026, sans les compléments hors OSM (≈ +10 à 15 %) : **47 Mo pour les 10 villes**, contre 75 Mo estimés. Habitants : ordres de grandeur, non vérifiés.
+| Zone | Poids mesuré en ligne | Mise à jour |
+|---|---|---|
+| Île-de-France | 36,2 Mo (84,6 Mo avant les tuiles compressées) | chaque nuit |
+| Amsterdam | 1,4 Mo (33 948 lieux, 3 988 complétés) | jeudi |
 
-**Total du site au 30/10/2026 : 140 Mo sur 700**, mesuré avec `site_budget.sh`.
-Le reste se répartit entre le réseau cyclable (18 Mo), la police Inter (7,5 Mo) et l'app (≈ 30 Mo).
+| Région | Extrait OSM | Poids | Mise à jour |
+|---|---|---|---|
+| Alsace | 162 Mo | ≈ 4 Mo (estimé) | lundi |
+| Rhône-Alpes | 619 Mo | ≈ 14 Mo (estimé) | lundi |
+| Franche-Comté | 147 Mo | ≈ 3 Mo (estimé) | mardi |
+| Lorraine | 204 Mo | ≈ 5 Mo (estimé) | mardi |
+| Provence-Alpes-Côte d'Azur | 447 Mo | ≈ 10 Mo (estimé) | mardi |
+| Bourgogne | 230 Mo | ≈ 5 Mo (estimé) | mercredi |
+| Corse | 38 Mo | ≈ 1 Mo (estimé) | mercredi |
+| Haute-Normandie | 122 Mo | ≈ 3 Mo (estimé) | mercredi |
+| Pays de la Loire | 424 Mo | ≈ 9 Mo (estimé) | mercredi |
+| Auvergne | 181 Mo | ≈ 4 Mo (estimé) | jeudi |
+| Languedoc-Roussillon | 311 Mo | ≈ 7 Mo (estimé) | jeudi |
+| Limousin | 115 Mo | ≈ 3 Mo (estimé) | jeudi |
+| Champagne-Ardenne | 121 Mo | ≈ 3 Mo (estimé) | vendredi |
+| Midi-Pyrénées | 414 Mo | ≈ 9 Mo (estimé) | vendredi |
+| Poitou-Charentes | 261 Mo | ≈ 6 Mo (estimé) | vendredi |
+| Bretagne | 368 Mo | **8,2 Mo** (en ligne, 254 978 lieux, 13 414 complétés) | samedi |
+| Nord-Pas-de-Calais | 271 Mo | ≈ 6 Mo (estimé) | samedi |
+| Picardie | 157 Mo | ≈ 4 Mo (estimé) | samedi |
+| Aquitaine | 336 Mo | ≈ 8 Mo (estimé) | dimanche |
+| Basse-Normandie | 164 Mo | ≈ 4 Mo (estimé) | dimanche |
+| Centre-Val de Loire | 282 Mo | ≈ 6 Mo (estimé) | dimanche |
+
+Les régions sont réparties sur la semaine par taille d'extrait : ≈ 800 Mo à télécharger et ≈ 1 h de calcul par jour.
+La Bretagne, mesurée en ligne, a pris **30 min pour 368 Mo** (lieux et compléments). L'estimation des autres
+régions suit la Bretagne : 8,2 Mo pour 368 Mo d'extrait.
+
+**Total du site au 31/10/2026 : 95,6 Mo sur 700**, mesuré avec `site_budget.sh`.
+**Avec toute la France : ≈ 210 Mo** (estimé). Le reste du site : réseau cyclable 18 Mo, police Inter 7,5 Mo, app ≈ 30 Mo.
 
 ## Prévu
-| Lot | Villes | Estimation |
+| Lot | Zones | Estimation |
 |---|---|---|
-| 2 | Londres, Madrid, Rome, Bruxelles (après les formats de téléphone et d'adresse de tous les pays) | ≈ +125 Mo |
-
-Total prévu après le lot 2 : ≈ 320 Mo.
+| Europe | Londres, Madrid, Rome, Bruxelles (après les formats de téléphone et d'adresse de tous les pays) | ≈ +30 Mo avec les tuiles compressées |
 
 ## Format des tuiles (31/10/2026) : adaptatif et compressé
 - **Taille adaptée à la densité** (`app/scripts/tileio.py`). On part de carrés d'≈ 40 km et on les coupe en 4 tant
@@ -59,8 +76,7 @@ Total prévu après le lot 2 : ≈ 320 Mo.
 | Lyon | 307 fichiers, 9,2 Mo | 73 fichiers, 2,1 Mo |
 
 **Toute la France** devient possible : ≈ 150 à 200 Mo et ≈ 10 000 à 15 000 fichiers (déduit de l'Ille-et-Vilaine),
-contre ≈ 0,65 à 0,8 Go et 180 000 fichiers avec l'ancien format. Prochaine étape : mise à jour région par région,
-d'abord la Bretagne.
+contre ≈ 0,65 à 0,8 Go et 180 000 fichiers avec l'ancien format.
 
 ## Régions (31/10/2026)
 - Une région entière se déclare comme une ville dans `zones.json`, avec `"region": true` et le cadre de la région
