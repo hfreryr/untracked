@@ -219,7 +219,7 @@ const tests = {
     assert(list.length >= 5 && list.some((t) => /Ouvert|Fermé/.test(t)), `restaurants de Lyon sans horaires : ${list.slice(0, 3).join(' | ')}`);
     await p.click('.nearby li button >> nth=0'); await p.waitForSelector('.sheet h1', { timeout: 15000 }); await p.waitForTimeout(1500);
     const sheet = await p.$eval('.sheet', (e) => e.innerText);
-    assert(!/hors de la zone couverte/.test(sheet), 'fiche lyonnaise vue comme hors zone');
+    assert(!/hors des villes couvertes/.test(sheet), 'fiche lyonnaise vue comme hors zone');
     await ctx.close();
     ({ p, ctx, errors } = await page({ geolocation: { latitude: 45.76, longitude: 4.835 } }, '#carte=15/45.7600/4.8350'));
     await p.fill('#search', 'boulangerie'); await p.waitForSelector('.results li.opt', { timeout: 20000 }); await p.waitForTimeout(1000);
@@ -264,13 +264,13 @@ const tests = {
     await p.waitForSelector('.sheet h1', { timeout: 15000 }); await p.waitForTimeout(2000);
     let txt = await p.$eval('.sheet', (e) => e.innerText);
     assert(/Panthéon/.test(txt), `nom absent : ${txt.slice(0, 120)}`);
-    assert(!/hors de la zone|introuvable/.test(txt), 'message d\'erreur affiché pour un lieu existant');
+    assert(!/hors des villes couvertes|introuvable/.test(txt), 'message d\'erreur affiché pour un lieu existant');
     assert(!errors.length, errors.join(' | '));
     await ctx.close();
     ({ p, ctx } = await page({}, '#carte=18/48.846219/2.346008&lieu=node/1'));
     await p.waitForSelector('.sheet', { timeout: 15000 }); await p.waitForTimeout(2500);
     txt = await p.$eval('.sheet', (e) => e.innerText);
-    assert(/introuvable/.test(txt) && !/hors de la zone/.test(txt), `message attendu « introuvable » : ${txt.slice(0, 200)}`);
+    assert(/introuvable/.test(txt) && !/hors des villes couvertes/.test(txt), `message attendu « introuvable » : ${txt.slice(0, 200)}`);
     await ctx.close();
   },
   async 'preuve affichée : 0 cookie, seuls les services de « Qui voit quoi » sont contactés'() {
