@@ -70,6 +70,7 @@ jobs:
             rm -f "$id.osm.pbf"
             echo "::endgroup::"
           done
+          bash app/scripts/site_budget.sh pages   # plafond de poids du site (700 Mo), voir docs/villes.md
           cd pages && git add -A data/zones
           git -c user.name=untracked-bot -c user.email=bot@untrackedmaps.app commit -qm "Lieux des villes ($ZONES) : extraits OSM du $(date -u +%F)" && git push origin HEAD:gh-pages || echo "rien de nouveau"
           [ -z "${failed:-}" ]
