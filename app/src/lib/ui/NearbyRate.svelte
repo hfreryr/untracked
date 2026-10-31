@@ -24,7 +24,7 @@
 <style>
   .near { margin: 14px 0 0; padding: 12px 14px 8px 16px; border-radius: 16px; background: var(--fill); }
   .t { margin: 0; font-size: 15.5px; font-weight: 650; }
-  .s { margin: 1px 0 0; font-size: 13.5px; color: var(--muted); }
+  .s { margin: 1px 0 0; font-size: 13.5px; color: var(--ink); }   /* gris sur fond gris : contraste insuffisant (axe) */
   .stars { display: flex; gap: 2px; margin: 4px 0 0 -8px; }
   .stars button { width: 44px; height: 44px; display: grid; place-items: center; border: 0; background: none; padding: 0; cursor: pointer; color: var(--muted); }
   .stars svg { width: 28px; height: 28px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linejoin: round; }
