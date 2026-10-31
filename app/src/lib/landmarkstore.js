@@ -4,6 +4,8 @@
 import { dataBase } from './config.js';
 import { readJson } from './gzjson.js';
 import { SOURCES, tileXY } from './placestore.js';
+import { outsideFilter } from './mapstyle.js';
+import { city } from './cities/index.js';
 
 export const MIN_ZOOM = 11.5;
 const indexes = new Map();   // source → Promise<{ zoom, tiles: Set }>
@@ -14,10 +16,16 @@ function index(src) {
     indexes.set(src.id, fetch(`${dataBase()}${src.dir}landmarks/index.json`)
       .then((r) => (r.ok ? r.json() : null))
       .then((j) => (j ? { zoom: j.zoom, tiles: new Set(j.tiles) } : { zoom: 10, tiles: new Set() }))
+      .then((ix) => { if (ix.tiles.size && src.bbox) covered(src.bbox); return ix; })
       .catch(() => ({ zoom: 10, tiles: new Set() })));
   }
   return indexes.get(src.id);
 }
+
+// zones dont les carrés existent : le fond de carte s'y efface (avant leur première construction, il reste en secours)
+const boxes = [city.searchBbox];
+let onCovered = () => {};
+function covered(bbox) { if (!boxes.includes(bbox)) { boxes.push(bbox); onCovered(); } }
 
 /** Une ligne d'un carré → entité GeoJSON (mêmes propriétés que l'ancien fichier : le calque et le clic ne changent pas). */
 // identifiant unique d'une zone à l'autre (identifiant OSM × 10 + type), pour masquer le lieu choisi sous son épingle
@@ -70,8 +78,10 @@ export function followLandmarks(map) {
     data = { type: 'FeatureCollection', features: feats };
     apply();
   };
+  const filter = () => { if (map.getLayer('poi-outside')) map.setFilter('poi-outside', outsideFilter(boxes)); };
+  onCovered = filter;
   map.on('moveend', refresh);
-  map.on('style.load', apply);
+  map.on('style.load', () => { apply(); filter(); });
   refresh();
   return refresh;
 }

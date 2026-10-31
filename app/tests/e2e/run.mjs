@@ -95,6 +95,22 @@ const tests = {
     assert(!errors.length, errors.join(' | '));
     await ctx.close();
   },
+  async 'lieux mis en avant : mêmes règles partout, restaurants et monuments à Amsterdam comme à Paris (31/10)'() {
+    // Amsterdam au zoom 15 : nos carrés de lieux mis en avant (pas seulement les monuments du fond de carte)
+    const { p, ctx, errors } = await page({}, '#carte=15/52.3655/4.8995');
+    await p.waitForTimeout(6000);
+    const got = await p.evaluate(() => window.__map.queryRenderedFeatures({ layers: ['landmark'] }).map((f) => f.properties.family));
+    assert(got.length >= 8, `trop peu de lieux à Amsterdam : ${got.length}`);
+    assert(got.some((f) => ['food', 'cafe', 'bar', 'bakery'].includes(f)), `aucun restaurant ni café : ${got}`);
+    assert(got.some((f) => ['culture', 'sight'].includes(f)), `aucun monument : ${got}`);
+    assert(!(await p.evaluate(() => window.__map.queryRenderedFeatures({ layers: ['poi-outside'] }).length)), 'lieux du fond de carte encore utilisés dans une zone couverte');
+    // toucher un lieu mis en avant ouvre sa fiche
+    const pt = await p.evaluate(() => { const f = window.__map.queryRenderedFeatures({ layers: ['landmark'] })[0]; const q = window.__map.project(f.geometry.coordinates); return { x: q.x, y: q.y, name: f.properties.name }; });
+    await p.mouse.click(pt.x, pt.y); await p.waitForSelector('section.sheet h1', { timeout: 15000 });
+    assert((await p.textContent('section.sheet h1')).includes(pt.name.split(' ')[0]), `fiche ouverte : ${await p.textContent('section.sheet h1')} au lieu de ${pt.name}`);
+    assert(!errors.length, errors.join(' | '));
+    await ctx.close();
+  },
   async 'vue de la rue : vignette puis visionneuse plein écran'() {
     // lieu des tuiles locales avec une photo de devanture (Panoramax)
     const { p, ctx, errors } = await page();
