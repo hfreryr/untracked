@@ -11,6 +11,7 @@
   import { host, href } from '#lib/links.js';
   import { dataDate } from '#lib/placestore.js';
   import Reviews from './Reviews.svelte';
+  import { longpress } from '#lib/longpress.js';
 
   // État et actions de la page (voir le bloc « app » de +page.svelte)
   const app = getContext('app');
@@ -30,6 +31,9 @@
   });
   // menu « ⋯ » : règles communes des menus (popover.js) — un seul ouvert, fermé en touchant ailleurs, toujours entier à l'écran
   let moreBtn = $state();
+  async function copyAddressOnly() {
+    try { await navigator.clipboard.writeText(app.address); app.say(tx('ecran.adresse_copiee')); } catch { /* refusé */ }
+  }
   // Sources des compléments hors OSM (app/scripts/build_extras.py) ; une source inconnue n'est pas affichée
   const SOURCES = { overture: () => tx('source.overture'), paris: () => tx('source.paris'), atp: () => tx('source.atp'), annuaire: () => tx('source.annuaire'), site: () => tx('source.site') };
 </script>
@@ -152,7 +156,8 @@
               <div><dt>{tx('fiche.menu')}</dt><dd><a href={href(app.info.menu)} target="_blank" rel="noopener">{tx('fiche.voir_le_menu')}</a></dd></div>
             {/if}
             {#if app.address}
-              <div><dt>{tx('fiche.adresse')}</dt><dd class="selectable">{app.address}{@render src(app.info?.sources?.['addr:street'])}</dd></div>
+              <!-- appui prolongé : l'adresse est copiée (porteur, 31/10/2026) ; aussi dans « Plus » pour le clavier -->
+              <div><dt>{tx('fiche.adresse')}</dt><dd class="hold" use:longpress={copyAddressOnly} title={tx('fiche.appui_prolonge_pour_copier')}>{app.address}{@render src(app.info?.sources?.['addr:street'])}</dd></div>
             {/if}
           </dl>
         </section>
@@ -360,13 +365,21 @@
   .info-btn::after { content: ''; position: absolute; inset: -11px; }   /* zone tactile de 44 px */
   .fresh.old { color: var(--muted); }
   /* Boutons d'action : même largeur, pictogramme au-dessus du texte ; un seul bouton prend toute la largeur */
-  .actions { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 8px; margin: 14px 0 0; }
+  /* Texte jamais tronqué (porteur, 31/10/2026 : « Appe… », « Enre… » avec le texte agrandi) : chaque bouton prend au
+     moins sa part de la largeur, et la rangée défile quand ils ne tiennent pas, comme dans Plans et Google Maps
+     (le bouton coupé au bord montre qu'il y a une suite). */
+  .actions {
+    display: flex; gap: 5px; margin: 14px calc(-1 * var(--gutter)) 0; padding: 0 var(--gutter); overflow-x: auto; scrollbar-width: none;
+    overscroll-behavior-x: contain; scroll-padding: 0 var(--gutter);
+  }
+  .actions::-webkit-scrollbar { display: none; }
+  .actions > * { flex: 1 0 0; min-width: max-content; }
   .action {
     display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 56px; padding: 6px 4px;
     border-radius: 14px; border: 0; cursor: pointer; text-decoration: none; font-size: 13.5px; font-weight: 600; line-height: 1.1;
-    background: var(--fill); color: var(--accent); box-sizing: border-box; min-width: 0;
+    background: var(--fill); color: var(--accent); box-sizing: border-box; padding-inline: 5px;
   }
-  .action span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+  .action span { white-space: nowrap; }
   .action:active { filter: brightness(0.94); }
   .action.primary { background: var(--accent-btn); color: #fff; }
   .action.primary .solid { fill: currentColor; }
@@ -411,7 +424,8 @@
     padding: 13px 16px; border-top: 1px solid var(--line); cursor: pointer; }
   .pmenu button:first-child { border-top: 0; }
   .action.primary .on-solid { stroke: var(--accent-btn); stroke-width: 2; }
-  .selectable { user-select: all; }
+  /* appui prolongé = copie (pas la sélection ni la bulle du système, qui la masqueraient) */
+  .hold { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; cursor: copy; }
   .week { border-collapse: collapse; font-size: 15px; font-variant-numeric: tabular-nums; }
   .week th { text-align: left; font-weight: 400; color: var(--muted); padding: 4px 20px 4px 0; text-transform: capitalize; }
   .week td { padding: 4px 0; }

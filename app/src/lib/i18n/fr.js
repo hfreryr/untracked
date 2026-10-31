@@ -348,6 +348,7 @@ export default {
   'fiche.dans_listes': 'Dans {listes}',
   'fiche.modifier_les_listes': 'Listes de ce lieu : modifier',
   'fiche.copier_adresse': 'Copier l\'adresse',
+  'fiche.appui_prolonge_pour_copier': 'Appui prolongé pour copier',
   'fiche.plus_options': 'Plus d\'options',
   'fiche.enregistrer': 'Enregistrer',
   'fiche.enregistre': 'Enregistré',
