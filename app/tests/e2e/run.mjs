@@ -5,8 +5,12 @@ import { chromium } from 'playwright';
 import { spawn, execFileSync } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
+import { gunzipSync } from 'node:zlib';
 const AXE = readFileSync(createRequire(import.meta.url).resolve('axe-core/axe.min.js'), 'utf8');
 import { packList, pack, snapshot, DEFAULT_LISTS } from '../../src/lib/myplaces.js';
+
+// tuile de lieux interceptée : compressée (z/x/y.json.gz, voir scripts/tileio.py) ou non ; renvoyée en clair après retouche
+const tileJson = async (r) => { try { const b = await r.body(); return JSON.parse((b[0] === 0x1f && b[1] === 0x8b ? gunzipSync(b) : b).toString()); } catch { return null; } };
 
 const PORT = 4199;
 // le site construit (build/), servi tel quel, comme sur GitHub Pages (vite preview dépend de fichiers que svelte-check efface)
@@ -1074,8 +1078,8 @@ z.close()`, zip]);
   async 'grand lieu : l’itinéraire vise l’accès le plus proche, marche jusqu’à 30 min (stade Maurice-Baquet)'() {
     const { p, ctx, errors } = await page({ geolocation: { latitude: 48.8826, longitude: 2.3497 } });
     // accès du stade tels que build_places.py les prépare (bord de la rue d'Arcueil), ajoutés à la tuile servie
-    await p.route('**/places/14/**', async (route) => {
-      const r = await route.fetch(); const j = await r.json().catch(() => null);
+    await p.route(/\/places\/\d+\/\d+\/\d+\.json/, async (route) => {
+      const r = await route.fetch(); const j = await tileJson(r);
       const it = j?.t?.find((x) => x[0] === 31361433);
       if (it) it[3]._acc = [[2.34314, 48.81167], [2.34435, 48.81246]];
       await route.fulfill({ response: r, json: j });
