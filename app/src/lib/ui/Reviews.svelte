@@ -11,8 +11,9 @@
   import { makePseudo } from '#lib/pseudo.js';
   import { takeIntent } from '#lib/contrib.js';
   import Dialog from './Dialog.svelte';
-  /** @type {{ place: any, reviews: any }} */
-  let { place, reviews } = $props();
+  /** @type {{ place: any, reviews: any, hideRate?: boolean }} */
+  // hideRate : sur place, l'invitation à noter est déjà en haut de la fiche (NearbyRate) ; pas de doublon ici
+  let { place, reviews, hideRate = false } = $props();
   const app = getContext('app');
 
   let me = $state(loadReviewer());
@@ -80,7 +81,7 @@
     </p>
   {/if}
 
-  {#if !mine}
+  {#if !mine && !hideRate}
     <div class="rate">
       <h3>{tx('avis.vous_y_etes_alle')}</h3>
       <p>{count ? tx('avis.touchez_une_note') : tx('avis.soyez_le_premier')}</p>
@@ -137,6 +138,8 @@
 {/if}
 
 <style>
+  /* même écart que les autres sections de la fiche (le titre était collé au cadre « Détails », 31/10/2026) */
+  .rev { margin-top: 22px; }
   h2 { font-size: 17px; font-weight: 700; margin: 0 0 8px; }
   .sum { display: flex; align-items: baseline; gap: 6px; margin: 0 0 8px; font-size: var(--fs-body); }
   .avg { font-size: 22px; font-weight: 700; }

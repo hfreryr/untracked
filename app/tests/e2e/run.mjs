@@ -75,7 +75,7 @@ const tests = {
     assert(!errors.length, errors.join(' | '));
     await ctx.close();
   },
-  async 'fiche façon Plans : 4 boutons, infos clés en colonnes, Raccourci · Avis · Plus, avis proposé sur place (31/10)'() {
+  async 'fiche façon Plans : 4 boutons, infos clés en colonnes, Signaler · Copier l’adresse, avis proposé une seule fois sur place (31/10)'() {
     // à 60 m de l'Espace Lino-Ventura (Torcy) ; ouvert par la recherche pour que la position soit connue
     const { p, ctx, errors } = await page({ viewport: { width: 312, height: 760 }, geolocation: { latitude: 48.8504, longitude: 2.6526 } });
     await p.evaluate(() => localStorage.setItem('position-expliquee', '1'));
@@ -88,7 +88,9 @@ const tests = {
     const strip = await p.textContent('.strip');
     assert(/Horaires/.test(strip) && /(Ouvert|Fermé)/.test(strip) && /Distance\s*\d+ m/.test(strip), `infos clés : ${strip}`);
     const sec = await p.$$eval('.sec-row .sec-btn span', (s) => s.map((e) => e.textContent.trim()));
-    assert(sec.join('|') === 'Raccourci|Avis|Plus', `rangée secondaire : ${sec}`);
+    assert(sec.join('|') === 'Signaler|Copier l’adresse' || sec.join('|') === 'Signaler|Copier l\'adresse', `rangée secondaire (lieu sans avis) : ${sec}`);
+    // une seule invitation à noter : en haut (sur place), pas aussi dans la section Avis
+    assert(!(await p.$('.rev .rate')), 'invitation à noter en double dans la section Avis');
     assert(/Vous êtes à proximité/.test(await p.textContent('.near')), 'avis sur place non proposé');
     await p.click('.near button[aria-label="4 étoiles sur 5"]'); await p.waitForSelector('.dlg');
     assert((await p.$$('.dlg .star[aria-checked="true"]')).length === 1 && await p.$('.dlg .star:nth-child(4)[aria-checked="true"]'), 'la fenêtre d’avis ne s’ouvre pas avec 4 étoiles');
@@ -306,13 +308,20 @@ const tests = {
     assert(/6900\d Lyon/.test(first), `premier résultat hors de Lyon : ${first}`);
     await l.ctx.close();
   },
-  async 'hors Île-de-France : musées et monuments visibles dès le zoom 14 ; rien de doublé à Paris'() {
-    // nos lieux détaillés ne couvrent que l'Île-de-France : ailleurs, les lieux des tuiles OpenFreeMap prennent le relais
-    const names = (p) => p.evaluate(() => window.__map.queryRenderedFeatures({ layers: ['poi-outside'] }).map((f) => f.properties.name));
-    let { p, ctx, errors } = await page({}, '#carte=15.4/52.3600/4.8852');
-    await p.waitForTimeout(3000);
-    const ams = await names(p);
+  async 'hors de nos zones : musées et monuments du fond de carte dès le zoom 14 ; rien de doublé dans nos zones'() {
+    // dans nos zones (Île-de-France, régions, Amsterdam) : nos lieux mis en avant (31/10/2026) ; ailleurs (Berlin), les
+    // lieux des tuiles OpenFreeMap prennent le relais
+    const names = (p, layer = 'poi-outside') => p.evaluate((l) => window.__map.queryRenderedFeatures({ layers: [l] }).map((f) => f.properties.name), layer);
+    // (zoom 16 : le Rijksmuseum n'apparaît qu'à 15,5 avec le classement actuel, trop tard ; à corriger par la notoriété QRank)
+    let { p, ctx, errors } = await page({}, '#carte=16/52.3600/4.8852');
+    await p.waitForTimeout(5000);
+    const ams = await names(p, 'landmark');
     assert(ams.includes('Rijksmuseum'), `Rijksmuseum absent à Amsterdam : ${ams.join(', ')}`);
+    assert(!(await names(p)).length, 'lieux du fond de carte doublés à Amsterdam');
+    await ctx.close();
+    ({ p, ctx, errors } = await page({}, '#carte=15.4/52.5186/13.3762'));   // Berlin, Reichstag : hors de nos zones
+    await p.waitForTimeout(4000);
+    assert((await names(p)).length > 0, 'aucun lieu du fond de carte à Berlin');
     assert(!errors.length, errors.join(' | '));
     await ctx.close();
     ({ p, ctx, errors } = await page({}, '#carte=15/48.8566/2.3470'));
@@ -754,10 +763,12 @@ const tests = {
   async 'Maison et raccourcis personnalisés'() {
     const { p, ctx, errors } = await page();
     await p.fill('#search', "Ed's rue Muller"); await p.waitForSelector('.results li.opt button', { timeout: 20000 }); await pick(p); await p.waitForTimeout(3000);
-    await p.click('.sec-btn[aria-haspopup="menu"]');
-    await p.click('.pmenu button:has-text("Définir comme Maison")'); await p.waitForTimeout(500);
-    assert(/Maison enregistré/.test(await p.textContent('.toast')), 'Maison non enregistrée');
-    await p.click('.close'); await p.waitForTimeout(500);
+    // Maison : dans « Enregistrer », avec les listes (31/10/2026 : un seul endroit pour garder un lieu)
+    await p.click('.action.save'); await p.waitForSelector('.pick-lists.shortcuts');
+    await p.check('.shortcuts label:has-text("Maison") input'); await p.click('.done'); await p.waitForTimeout(400);
+    assert(/Raccourci « Maison »/.test(await p.textContent('.in-lists')), 'Maison non enregistrée');
+    assert(/Enregistré/.test(await p.textContent('.action.save')), 'bouton Enregistrer non allumé');
+    await p.click('.sheet .close'); await p.waitForTimeout(500);
     await p.click('.chip.add'); await p.waitForTimeout(800);
     await p.click('.ce-toggle[aria-label="Afficher Cafés"]');
     await p.fill('input[aria-label="Nom de la catégorie Restaurants"]', 'Restos'); await p.press('input[aria-label="Nom de la catégorie Restaurants"]', 'Tab');
@@ -1206,16 +1217,13 @@ z.close()`, zip]);
     await ctx.close();
     ({ p, ctx } = await page());
     await p.fill('#search', 'Panthéon'); await p.waitForSelector('.results li.opt button', { timeout: 15000 }); await pick(p);
-    // favori et « Plus » dans la rangée d'actions, plus de barre flottante (30/10/2026) ; les listes dans « Plus »
-    await p.waitForSelector('.sec-btn[aria-haspopup="menu"]', { timeout: 10000 });
+    await p.waitForSelector('.action.save', { timeout: 10000 });
     assert(!(await p.$('.fab')), 'barre flottante encore présente');
     // « Enregistrer » ouvre le choix de la liste, Favoris en tête (P8, 30/10/2026)
     await p.click('.action.save'); await p.waitForSelector('.pick-lists');
     assert(/Favoris/.test(await p.textContent('.pick-lists li >> nth=0')), 'Favoris pas en tête du choix de liste');
     await p.click('.done'); await p.waitForTimeout(400);
-    await p.click('.sec-btn[aria-haspopup="menu"]'); await p.waitForSelector('.pmenu');
-    await p.mouse.click(195, 200); await p.waitForTimeout(400);
-    assert(!(await p.$('.pmenu')), 'le menu ⋯ reste ouvert après un toucher ailleurs');
+    assert(!(await p.$('.pmenu')) && !(await p.$('button[aria-label="Plus d\'options"]')), 'menu « Plus » encore présent');
     await ctx.close();
   },
   async 'recherche « restaurant végétarien 11e » : seulement des lieux végétariens, dans le 11e (P6, P7)'() {
@@ -1330,8 +1338,8 @@ z.close()`, zip]);
     const saved = await p.evaluate(() => JSON.parse(localStorage.getItem('raccourcis-perso')));
     const foot = saved.find((c) => c.name === 'Foot');
     assert(foot?.icon === 'sport' && /Panth/.test(foot.place?.name || ''), `raccourci mal enregistré : ${JSON.stringify(foot)}`);
-    // la fiche du Panthéon : « Raccourci » allumé (le lieu en est un)
-    assert(await p.$('.sec-btn.on:has-text("Raccourci")'), 'le bouton Raccourci de la fiche n’est pas allumé');
+    // la fiche du Panthéon dit qu'il est un raccourci
+    assert(/Raccourci « Foot »/.test(await p.textContent('.in-lists')), 'la fiche ne dit pas que le lieu est un raccourci');
     await p.click('.sheet .close'); await p.waitForTimeout(500);
     // appui long (ici clic droit) : modifier le nom
     await p.click('#search'); await p.waitForSelector('.pin-btn:has-text("Foot")');
@@ -1348,11 +1356,12 @@ z.close()`, zip]);
     assert(await p.$('.pin-btn:has-text("Foot du mardi")'), 'Annuler ne rétablit pas le raccourci');
     // depuis la fiche d'un lieu : adresse déjà remplie, icône proposée
     await p.fill('#search', 'Stade Charléty'); await p.waitForSelector('.results li.opt button', { timeout: 15000 }); await pick(p);
-    await p.waitForSelector('.sec-btn:has-text("Raccourci")', { timeout: 10000 });
-    await p.click('.sec-btn:has-text("Raccourci")'); await p.waitForSelector('.dlg .addr');
+    await p.waitForSelector('.action.save', { timeout: 10000 }); await p.waitForTimeout(800);
+    await p.click('.action.save'); await p.click('.shortcuts .other'); await p.waitForSelector('.dlg .addr');
     assert(/Ajouter aux raccourcis/.test(await p.textContent('.dlg h2')), 'titre de la fenêtre');
     await p.click('.dlg button.ok'); await p.waitForTimeout(300);
-    assert(await p.$('.sec-btn.on:has-text("Raccourci")'), 'lieu non ajouté aux raccourcis');
+    await p.waitForTimeout(400);
+    assert(/Raccourci « /.test(await p.textContent('.in-lists')), 'lieu non ajouté aux raccourcis');
     // le raccourci part dans la sauvegarde (fichier ou transfert)
     assert(!errors.length, errors.join(' | '));
     await ctx.close();
@@ -1370,19 +1379,9 @@ z.close()`, zip]);
       }
       return 'ok';
     });
-    // 1. menu « ⋯ » d'une fiche, fiche à mi-hauteur (bug du 16/10 : première ligne rognée par la fiche)
+    // 1. fiche (plus de menu « ⋯ » depuis le 31/10/2026 : ses actions sont dans « Enregistrer » et la rangée du dessous)
     await p.fill('#search', 'Panthéon'); await p.waitForSelector('.results li.opt button', { timeout: 15000 }); await pick(p);
-    await p.waitForSelector('.sec-btn[aria-haspopup="menu"]', { timeout: 10000 }); await p.waitForTimeout(800);
-    const more = 'button[aria-label="Plus d\'options"]';
-    await p.click(more); await p.waitForSelector('.pmenu');
-    assert((await visibleWhole('.pmenu')) === 'ok', `menu ⋯ : ${await visibleWhole('.pmenu')}`);
-    assert(await p.getAttribute(more, 'aria-expanded') === 'true', 'aria-expanded du bouton ⋯');
-    await p.keyboard.press('Escape'); await p.waitForTimeout(200);
-    assert(!(await p.$('.pmenu')), 'Échap ne ferme pas le menu ⋯');
-    await p.click(more); await p.waitForSelector('.pmenu');
-    await p.mouse.click(187, 90); await p.waitForTimeout(400);
-    assert(!(await p.$('.pmenu')), 'toucher ailleurs ne ferme pas le menu ⋯');
-    assert((await p.locator('.sheet h1').textContent()).includes('Panthéon'), 'le toucher qui ferme le menu a déclenché autre chose');
+    await p.waitForSelector('.action.save', { timeout: 10000 }); await p.waitForTimeout(800);
     // fenêtre (i) « Infos vérifiées » quand le lieu a une date de vérification
     if (await p.$('.info-btn')) {
       await p.click('.info-btn'); await p.waitForSelector('.dlg');
