@@ -308,13 +308,20 @@ const tests = {
     assert(/6900\d Lyon/.test(first), `premier résultat hors de Lyon : ${first}`);
     await l.ctx.close();
   },
-  async 'hors Île-de-France : musées et monuments visibles dès le zoom 14 ; rien de doublé à Paris'() {
-    // nos lieux détaillés ne couvrent que l'Île-de-France : ailleurs, les lieux des tuiles OpenFreeMap prennent le relais
-    const names = (p) => p.evaluate(() => window.__map.queryRenderedFeatures({ layers: ['poi-outside'] }).map((f) => f.properties.name));
-    let { p, ctx, errors } = await page({}, '#carte=15.4/52.3600/4.8852');
-    await p.waitForTimeout(3000);
-    const ams = await names(p);
+  async 'hors de nos zones : musées et monuments du fond de carte dès le zoom 14 ; rien de doublé dans nos zones'() {
+    // dans nos zones (Île-de-France, régions, Amsterdam) : nos lieux mis en avant (31/10/2026) ; ailleurs (Berlin), les
+    // lieux des tuiles OpenFreeMap prennent le relais
+    const names = (p, layer = 'poi-outside') => p.evaluate((l) => window.__map.queryRenderedFeatures({ layers: [l] }).map((f) => f.properties.name), layer);
+    // (zoom 16 : le Rijksmuseum n'apparaît qu'à 15,5 avec le classement actuel, trop tard ; à corriger par la notoriété QRank)
+    let { p, ctx, errors } = await page({}, '#carte=16/52.3600/4.8852');
+    await p.waitForTimeout(5000);
+    const ams = await names(p, 'landmark');
     assert(ams.includes('Rijksmuseum'), `Rijksmuseum absent à Amsterdam : ${ams.join(', ')}`);
+    assert(!(await names(p)).length, 'lieux du fond de carte doublés à Amsterdam');
+    await ctx.close();
+    ({ p, ctx, errors } = await page({}, '#carte=15.4/52.5186/13.3762'));   // Berlin, Reichstag : hors de nos zones
+    await p.waitForTimeout(4000);
+    assert((await names(p)).length > 0, 'aucun lieu du fond de carte à Berlin');
     assert(!errors.length, errors.join(' | '));
     await ctx.close();
     ({ p, ctx, errors } = await page({}, '#carte=15/48.8566/2.3470'));
