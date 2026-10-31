@@ -18,7 +18,7 @@ export function levelOf(n) {
 /** Flèches disponibles : la classique, puis une par niveau atteint. */
 export const unlockedArrows = (n) => ['classique', ...LEVELS.filter((l) => n >= l.min).map((l) => l.id)];
 
-const ARROW_KEY = 'fleche-guidage', ASK_KEY = 'avis-a-demander';
+const ARROW_KEY = 'fleche-guidage', ASK_KEY = 'avis-a-demander', ANNOUNCED_KEY = 'niveau-annonce';
 const read = (k, d, store) => { try { return JSON.parse(store.getItem(k) || 'null') ?? d; } catch { return d; } };
 const write = (k, v, store) => { try { store.setItem(k, JSON.stringify(v)); } catch { /* navigation privée */ } };
 
@@ -50,3 +50,12 @@ export const asked = (asks, id) => asks.map((a) => (a.id === id ? { ...a, done: 
 let intent = null;
 export const setIntent = (id, stars) => { intent = { id, stars }; };
 export function takeIntent(id) { const i = intent?.id === id ? intent : null; if (i) intent = null; return i; }
+
+// ——— Nouveau niveau annoncé (porteur, 31/10/2026 : « je suis passé Passeur sans le savoir, ni que je pouvais changer la flèche ») ———
+/** Niveau atteint mais pas encore annoncé (le plus haut s'il y en a plusieurs), ou null. */
+export function levelToAnnounce(n, store = globalThis.localStorage) {
+  const { level, rank } = levelOf(n);
+  if (!level) return null;
+  return read(ANNOUNCED_KEY, 0, store) < rank ? level : null;
+}
+export const markAnnounced = (n, store = globalThis.localStorage) => write(ANNOUNCED_KEY, levelOf(n).rank, store);

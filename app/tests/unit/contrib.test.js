@@ -42,3 +42,14 @@ test('note touchée sur la carte : reprise une seule fois par la fiche du bon li
   assert.equal(takeIntent('node/1').stars, 4);
   assert.equal(takeIntent('node/1'), null);
 });
+
+// Porteur, 31/10/2026 : passé Passeur sans le savoir
+import { levelToAnnounce, markAnnounced } from '#lib/contrib.js';
+test('nouveau niveau annoncé une fois, le plus haut atteint', () => {
+  const m = new Map(); const store = { getItem: (k) => m.get(k) ?? null, setItem: (k, v) => m.set(k, v) };
+  assert.equal(levelToAnnounce(0, store), null);
+  assert.equal(levelToAnnounce(6, store).id, 'passeur');      // jamais rien annoncé : Passeur directement
+  markAnnounced(6, store);
+  assert.equal(levelToAnnounce(7, store), null);
+  assert.equal(levelToAnnounce(20, store).id, 'vigie');
+});

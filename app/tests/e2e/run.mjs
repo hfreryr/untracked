@@ -113,6 +113,23 @@ const tests = {
     assert(!errors.length, errors.join(' | '));
     await ctx.close();
   },
+  async 'nouveau niveau annoncé une fois, avec la flèche à choisir (31/10)'() {
+    const { p, ctx, errors } = await page();
+    // 5 avis déjà publiés sur cet appareil, aucun niveau encore annoncé : Passeur
+    await p.evaluate(() => { localStorage.setItem('avis-auteur', JSON.stringify({ nick: '', mine: Array.from({ length: 5 }, (_, i) => ({ id: `node/${i + 1}`, name: `Lieu ${i}`, stars: 4, text: '', nick: '', t: 1, sig: `s${i}` })) })); localStorage.removeItem('niveau-annonce'); });
+    await p.reload({ waitUntil: 'networkidle' }); await p.waitForTimeout(2000);
+    await p.fill('#search', 'Panthéon'); await p.waitForSelector('.results li.opt button', { timeout: 15000 }); await pick(p);
+    await p.waitForSelector('.dlg', { timeout: 15000 });
+    assert(/Vous êtes Passeur/.test(await p.textContent('.dlg')), `annonce : ${await p.textContent('.dlg')}`);
+    await p.click('.dlg button:has-text("Choisir ma flèche")'); await p.waitForTimeout(1200);
+    assert(/Flèche de guidage/.test(await p.textContent('section.sheet')), 'les contributions ne s’ouvrent pas');
+    // annoncé une seule fois
+    await p.reload({ waitUntil: 'networkidle' }); await p.waitForTimeout(2000);
+    await p.fill('#search', 'Panthéon'); await p.waitForSelector('.results li.opt button', { timeout: 15000 }); await pick(p); await p.waitForTimeout(3000);
+    assert(!(await p.$('.dlg')), 'niveau annoncé deux fois');
+    assert(!errors.length, errors.join(' | '));
+    await ctx.close();
+  },
   async 'vue de la rue : vignette puis visionneuse plein écran'() {
     // lieu des tuiles locales avec une photo de devanture (Panoramax)
     const { p, ctx, errors } = await page();
@@ -228,7 +245,10 @@ const tests = {
     await p.click('.dlg .gen');
     assert(/ (du|des|de la) /.test(await p.inputValue('#rev-nick')), 'pseudo non généré');
     await p.fill('#rev-text', 'Très bon, un peu cher.');
-    await p.click('.dlg .go'); await p.waitForSelector('.dlg', { state: 'detached', timeout: 10000 });
+    await p.click('.dlg .go'); await p.waitForSelector('.dlg #rev-text', { state: 'detached', timeout: 10000 });
+    // premier avis : niveau Éclaireur annoncé (31/10/2026)
+    await p.waitForSelector('.dlg:has-text("Vous êtes Éclaireur")', { timeout: 5000 });
+    await p.click('.dlg button:has-text("Plus tard")'); await p.waitForSelector('.dlg', { state: 'detached', timeout: 5000 });
     assert(sent.length === 1 && sent[0].method() === 'PUT' && /\/submit\//.test(sent[0].url()), 'avis non envoyé à Mangrove');
     const payload = JSON.parse(Buffer.from(sent[0].url().split('/submit/')[1].split('.')[1], 'base64url').toString());
     assert(payload.rating === 80 && payload.opinion === 'Très bon, un peu cher.' && payload.metadata.osm_id === 'node/3194013327', `contenu inattendu : ${JSON.stringify(payload)}`);
