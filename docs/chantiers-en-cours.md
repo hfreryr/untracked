@@ -8,7 +8,7 @@ Liste tenue à jour à chaque étape, pour ne rien perdre entre les sujets mené
 |---|---|---|
 | #113 | Import Google : un lieu par seconde, essais espacés, toutes les listes créées, « Réessayer » (129 lieux sur 137 au lieu de 5) | Publier ; le porteur supprime puis réimporte son fichier |
 | #114 | Nouveau niveau de contribution annoncé une fois, avec la flèche à choisir (empilée sur #113) | Publier |
-| (à venir) | Recherche par nom sur le téléphone dans toutes les régions et à Amsterdam (étape 1 de 3) | Publier ; les régions ont leur index à leur prochain calcul |
+| #116 | Recherche par nom sur le téléphone dans toutes les régions et à Amsterdam (étape 1 de 3) | Publier ; les régions ont leur index à leur prochain calcul |
 
 ## Décisions attendues du porteur
 | Sujet | Question posée | Où regarder |
