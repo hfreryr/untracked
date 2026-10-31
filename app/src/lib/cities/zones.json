@@ -4,11 +4,11 @@
   {"id": "marseille", "name": "Marseille", "country": "FR", "extract": "europe/france/provence_alpes_cote_d_azur/bouches_du_rhone", "bbox": [5.23, 43.17, 5.62, 43.58], "day": 1},
   {"id": "nice", "name": "Nice", "country": "FR", "extract": "europe/france/provence_alpes_cote_d_azur/alpes_maritimes", "bbox": [6.9, 43.52, 7.45, 43.8], "day": 1},
   {"id": "lille", "name": "Lille", "country": "FR", "extract": "europe/france/nord_pas_de_calais/nord", "bbox": [2.9, 50.52, 3.32, 50.78], "day": 2},
-  {"id": "rennes", "name": "Rennes", "country": "FR", "extract": "europe/france/bretagne/ille_et_vilaine", "bbox": [-1.8, 48.03, -1.55, 48.2], "day": 2},
   {"id": "toulouse", "name": "Toulouse", "country": "FR", "extract": "europe/france/midi_pyrenees/haute_garonne", "bbox": [1.24, 43.48, 1.62, 43.72], "day": 3},
   {"id": "bordeaux", "name": "Bordeaux", "country": "FR", "extract": "europe/france/aquitaine/gironde", "bbox": [-0.8, 44.7, -0.4, 44.98], "day": 4},
   {"id": "nantes", "name": "Nantes", "country": "FR", "extract": "europe/france/pays_de_la_loire/loire_atlantique", "bbox": [-1.75, 47.12, -1.4, 47.32], "day": 5},
   {"id": "grenoble", "name": "Grenoble", "country": "FR", "extract": "europe/france/rhone_alpes/isere", "bbox": [5.62, 45.1, 5.85, 45.26], "day": 5},
   {"id": "strasbourg", "name": "Strasbourg", "country": "FR", "extract": "europe/france/alsace/bas_rhin", "bbox": [7.62, 48.48, 7.9, 48.66], "day": 6},
-  {"id": "montpellier", "name": "Montpellier", "country": "FR", "extract": "europe/france/languedoc_roussillon/herault", "bbox": [3.75, 43.53, 4.0, 43.7], "day": 7}
+  {"id": "montpellier", "name": "Montpellier", "country": "FR", "extract": "europe/france/languedoc_roussillon/herault", "bbox": [3.75, 43.53, 4.0, 43.7], "day": 7},
+  {"id": "bretagne", "name": "Bretagne", "country": "FR", "extract": "europe/france/bretagne", "bbox": [-5.2, 47.2, -0.95, 48.95], "day": 6, "region": true}
 ]
