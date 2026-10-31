@@ -38,3 +38,24 @@ def test_secours_si_somme_fausse(tmp_path):
 def test_echec_si_aucune_source(tmp_path):
     r, out = run(tmp_path, (tmp_path / "x.pbf").as_uri(), (tmp_path / "y.pbf").as_uri())
     assert r.returncode != 0 and not out.exists()
+
+
+def petit_pbf(path: Path) -> bytes:
+    import osmium
+    w = osmium.SimpleWriter(str(path))
+    w.add_node(osmium.osm.mutable.Node(id=1, location=(2.35, 48.85), tags={"name": "x"}))
+    w.close()
+    return path.read_bytes()
+
+
+def test_somme_pas_a_jour_mais_extrait_sain(tmp_path):
+    # OSM France, 30/10/2026 : extrait refait, somme de contrôle restée à la veille → lecture complète, accepté
+    data = petit_pbf(tmp_path / "gen.osm.pbf")
+    r, out = run(tmp_path, source(tmp_path, "a.pbf", data, md5="0" * 32), source(tmp_path, "b.pbf", b"BBB"))
+    assert r.returncode == 0 and out.read_bytes() == data, r.stdout + r.stderr
+
+
+def test_somme_fausse_et_extrait_tronque(tmp_path):
+    data = petit_pbf(tmp_path / "gen.osm.pbf")[:-20]
+    r, out = run(tmp_path, source(tmp_path, "a.pbf", data, md5="0" * 32), source(tmp_path, "b.pbf", b"BBB"))
+    assert r.returncode == 0 and out.read_bytes() == b"BBB"
