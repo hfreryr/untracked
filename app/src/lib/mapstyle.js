@@ -2,6 +2,7 @@
 // Intention : une carte calme et nette. Îlots crème, rues grises pleines sans liseré (comme Plans),
 // voies rapides ambrées, parcs et eau doux, bâtiments en léger relief, et des lieux
 // signalés par une pastille colorée à pictogramme blanc. Police : Inter (SIL OFL), hébergée avec l'app.
+import ZONES from './cities/zones.json' with { type: 'json' };
 import { isDark } from '#lib/theme.js';
 import { city } from '#lib/cities/index.js';
 
@@ -85,12 +86,14 @@ const POI_PRI = (() => {
   return m;
 })();
 const POI_SORT = ['+', POI_PRI, ['/', ['min', ['get', 'rank'], 999], 1000]];
-// Hors de la zone de nos données (Île-de-France) : les lieux du fond de carte (OpenFreeMap, présents dans les tuiles à
+// Hors des zones de nos données : les lieux du fond de carte (OpenFreeMap, présents dans les tuiles à
 // partir du zoom 14) apparaissent dès le zoom 14 au lieu de 17, sinon on ne voit que les stations (Amsterdam, porteur,
 // 30/10/2026). Culture et monuments d'abord, puis manger et dormir (15), puis le reste (16). « rank » est un rang par
 // case de la tuile (OpenMapTiles) : il répartit les lieux à l'écran, il ne dit pas leur notoriété.
-const [W, S, E, N] = city.searchBbox;
-const COVERED = { type: 'Polygon', coordinates: [[[W, S], [E, S], [E, N], [W, N], [W, S]]] };
+// Zones de nos données (Île-de-France, régions, villes) : leurs lieux mis en avant viennent de nos carrés
+// (landmarkstore.js), avec les mêmes règles partout (31/10/2026) ; le fond de carte ne sert plus qu'ailleurs.
+const box = ([W, S, E, N]) => [[[W, S], [E, S], [E, N], [W, N], [W, S]]];
+const COVERED = { type: 'MultiPolygon', coordinates: [box(city.searchBbox), ...ZONES.map((z) => box(z.bbox))] };
 const FAMILY_OF = (keys) => keys.flatMap((k) => FAMILIES[k].classes);
 // palier de chaque lieu (0 : culture, monuments ; 1 : manger, boire, dormir, parcs ; 2 : le reste), combiné au rang en
 // une seule note, comparée à un seuil qui monte avec le zoom (MapLibre n'accepte qu'un palier de zoom par filtre)
@@ -186,7 +189,8 @@ function lightStyle(base) {
     version: 8,
     glyphs: `${base}fonts/{fontstack}/{range}.pbf`,
     sources: {
-      landmarks: { type: 'geojson', data: `${base}data/landmarks.geojson`, promoteId: 'rank' },
+      // lieux mis en avant : remplis au fil des déplacements par landmarkstore.js (carrés de chaque zone)
+      landmarks: { type: 'geojson', data: { type: 'FeatureCollection', features: [] } },
       // lignes de métro, RER et tram (Île-de-France, ≈ 800 Ko) : chargées seulement quand on choisit la carte Transports
       // (mapdraw.showTransitLines), pour ne pas ralentir l'ouverture de l'app
       transit: { type: 'geojson', data: { type: 'FeatureCollection', features: [] } },

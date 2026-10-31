@@ -30,7 +30,7 @@ const ALLOWED = {
 };
 
 const CODE = /[|=&{}]|\.json\b|\b(rotate|translate\w*|scale)\(|cubic-bezier|ease-in|^Inter |^UntrackedMaps|^Europe\/|^Île-de-France$/;
-const GEO = new Set(['Feature', 'FeatureCollection', 'Point', 'LineString', 'MultiLineString', 'Polygon', 'City']);
+const GEO = new Set(['Feature', 'FeatureCollection', 'Point', 'LineString', 'MultiLineString', 'Polygon', 'MultiPolygon', 'City']);
 function french(s) {
   if (!/[A-Za-zÀ-ÿ]{3}/.test(s) && !/^[A-ZÀ-Ý][a-zà-ÿ]?$/.test(s) && !/[À-ÿ]/.test(s)) return false;
   if (CODE.test(s) || GEO.has(s)) return false;

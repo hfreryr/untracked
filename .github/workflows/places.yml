@@ -31,7 +31,7 @@ jobs:
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
         with: { python-version: '3.12' }
       - if: steps.fresh.outputs.skip != 'true'
-        run: pip install osmium==4.3.1
+        run: pip install osmium==4.3.1 shapely==2.2.0
       - if: steps.fresh.outputs.skip != 'true'
         name: Extrait OSM d'Île-de-France (somme de contrôle vérifiée)
         # OSM France, et Geofabrik en secours si OSM France ne répond pas (panne du 25/10/2026)
@@ -45,6 +45,9 @@ jobs:
         run: python app/scripts/fetch_reviews.py --bbox 1.44,48.12,3.56,49.24 --out reviews.json || echo '[]' > reviews.json
       - if: steps.fresh.outputs.skip != 'true'
         run: python app/scripts/build_places.py idf.osm.pbf --out out/places --facades facades.json --extras extras.json --reviews reviews.json
+      - if: steps.fresh.outputs.skip != 'true'
+        name: Lieux mis en avant sur la carte (mêmes règles dans toutes les zones)
+        run: python app/scripts/build_landmarks.py idf.osm.pbf --out out/places
       - if: steps.fresh.outputs.skip != 'true'
         name: Réseau cyclable (carte vélo) — bandes, voies bus, double-sens, pistes
         run: python app/scripts/build_bikes.py idf.osm.pbf --out out

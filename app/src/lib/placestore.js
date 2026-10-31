@@ -10,7 +10,7 @@ import ZONES from './cities/zones.json' with { type: 'json' };
 // Plusieurs jeux de tuiles : l'Île-de-France (data/places/, refait chaque nuit) et les autres villes
 // (data/zones/<ville>/places/, refaites moins souvent, voir zones.json). L'index d'une ville n'est chargé que si
 // l'on regarde dans son cadre.
-const SOURCES = [{ id: 'idf', dir: 'places/', bbox: null }, ...ZONES.map((z) => ({ id: z.id, dir: ['zones', z.id, 'places', ''].join('/'), bbox: z.bbox }))];
+export const SOURCES = [{ id: 'idf', dir: 'places/', bbox: null }, ...ZONES.map((z) => ({ id: z.id, dir: ['zones', z.id, 'places', ''].join('/'), bbox: z.bbox }))];
 const indexes = new Map();  // id de la source → Promise<{ zooms, tiles: Set('z/x/y'), built }>
 const files = new Map();    // 'source:z/x/y' → Promise<Map('x/y' de zoom 14 → [lieux])>
 const ZOOM = 14;            // carrés de base (≈ 2,4 km) ; un fichier en couvre un ou plusieurs (voir scripts/tileio.py)

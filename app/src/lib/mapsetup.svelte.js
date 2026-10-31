@@ -3,6 +3,7 @@
 import { applyTheme, isDark } from '#lib/theme.js';
 import { tx } from '#lib/i18n/index.js';
 import { PARIS } from '#lib/places.js';
+import { followLandmarks } from '#lib/landmarkstore.js';
 import { mapStyle, provideImage } from '#lib/mapstyle.js';
 import * as maplibregl from 'maplibre-gl';
 import { restore, unpack, unpackList } from '#lib/myplaces.js';
@@ -33,6 +34,7 @@ export function createMapSetup(app) {
     if (location.hostname === 'localhost') window.__nav = () => app.nav && { k: app.nav.k, s: app.nav.s, total: app.nav.total, coords: $state.snapshot(app.nav.coords) };
     // Nos calques (trajet, favoris) sont à rajouter à chaque changement de style (clair ↔ sombre).
     app.map.on('style.load', app.addCustomLayers);
+    followLandmarks(app.map);   // lieux mis en avant, mêmes règles dans toutes les zones (landmarkstore.js)
     darkMQ.addEventListener('change', () => { if (app.themePref === 'auto') app.restyle(); });
     app.restyle = () => { app.dark = isDark(app.themePref); app.map.setStyle(mapStyle(base, app.dark)); };
     app.map.once('load', () => {

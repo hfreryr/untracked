@@ -43,7 +43,7 @@ jobs:
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
         with: { python-version: '3.12' }
       - if: steps.due.outputs.zones != ''
-        run: pip install osmium==4.3.1 duckdb==1.5.6
+        run: pip install osmium==4.3.1 duckdb==1.5.6 shapely==2.2.0
       - if: steps.due.outputs.zones != ''
         name: Construire, contrôler et publier
         env:
@@ -62,6 +62,7 @@ jobs:
             python app/scripts/build_extras.py "$id.osm.pbf" --out "$id-extras.json" --no-paris --pays "$country" $([ -f atp.zip ] && echo --atp atp.zip) \
               || echo '{"places":{}}' > "$id-extras.json"
             python app/scripts/build_places.py "$id.osm.pbf" --out "out/$id" --bbox="$bbox" --reviews "$id-reviews.json" --extras "$id-extras.json"
+            python app/scripts/build_landmarks.py "$id.osm.pbf" --out "out/$id" --bbox="$bbox"   # lieux mis en avant sur la carte
             if python app/scripts/check_publish.py "out/$id/index.json" "https://untrackedmaps.app/data/zones/$id/places/index.json"; then
               rm -rf "pages/data/zones/$id/places" && mkdir -p "pages/data/zones/$id" && cp -r "out/$id" "pages/data/zones/$id/places"
             else
