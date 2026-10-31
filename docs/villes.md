@@ -43,6 +43,21 @@ Le reste se répartit entre le réseau cyclable (18 Mo), la police Inter (7,5 Mo
 
 Total prévu après le lot 2 : ≈ 320 Mo.
 
-**Toute la France** : ≈ 0,65 à 0,8 Go et ≈ 180 000 fichiers, hors de portée en l'état. Avant de décider, on fait un
-essai sur une région (Bretagne) avec des tuiles plus grandes hors des villes et des tuiles allégées, pour mesurer le
-gain réel.
+## Format des tuiles (31/10/2026) : adaptatif et compressé
+- **Taille adaptée à la densité** (`app/scripts/tileio.py`). On part de carrés d'≈ 40 km et on les coupe en 4 tant
+  qu'un fichier compressé dépasse 48 Ko, jusqu'à ≈ 2,4 km en ville. Résultat : un fichier par canton à la campagne,
+  des fichiers fins en ville.
+- **Stockage compressé** (gzip) : c'est la taille stockée qui compte dans la limite de 1 Go. L'app décompresse
+  elle-même (`gzjson.js`).
+- Les compteurs de tuiles de `check_publish.py` portent sur les carrés de 2,4 km couverts (`cells`), plus sur les
+  fichiers.
+
+| Zone | Avant | Après |
+|---|---|---|
+| Ille-et-Vilaine (essai) | 2 984 fichiers, 9,6 Mo | 120 fichiers, 2,4 Mo |
+| Île-de-France (données locales) | 4 332 fichiers, 53,6 Mo | 472 fichiers, 12,6 Mo |
+| Lyon | 307 fichiers, 9,2 Mo | 73 fichiers, 2,1 Mo |
+
+**Toute la France** devient possible : ≈ 150 à 200 Mo et ≈ 10 000 à 15 000 fichiers (déduit de l'Ille-et-Vilaine),
+contre ≈ 0,65 à 0,8 Go et 180 000 fichiers avec l'ancien format. Prochaine étape : mise à jour région par région,
+d'abord la Bretagne.

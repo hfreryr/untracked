@@ -3,6 +3,7 @@
 // Tout reste sur l'appareil ; seules les tuiles consultées sont téléchargées, depuis notre hébergement.
 import { tx } from '#lib/i18n/index.js';
 import { dataBase } from './config.js';
+import { readJson } from './gzjson.js';
 
 import ZONES from './cities/zones.json' with { type: 'json' };
 
@@ -10,9 +11,9 @@ import ZONES from './cities/zones.json' with { type: 'json' };
 // (data/zones/<ville>/places/, refaites moins souvent, voir zones.json). L'index d'une ville n'est chargé que si
 // l'on regarde dans son cadre.
 const SOURCES = [{ id: 'idf', dir: 'places/', bbox: null }, ...ZONES.map((z) => ({ id: z.id, dir: ['zones', z.id, 'places', ''].join('/'), bbox: z.bbox }))];
-const indexes = new Map();  // id de la source → Promise<{ zoom, tiles: Set('x/y'), built }>
-const tiles = new Map();    // 'source:x/y' → Promise<[{ id, lon, lat, tags }]>
-const ZOOM = 14;
+const indexes = new Map();  // id de la source → Promise<{ zooms, tiles: Set('z/x/y'), built }>
+const files = new Map();    // 'source:z/x/y' → Promise<Map('x/y' de zoom 14 → [lieux])>
+const ZOOM = 14;            // carrés de base (≈ 2,4 km) ; un fichier en couvre un ou plusieurs (voir scripts/tileio.py)
 
 function loadIndex(src = SOURCES[0]) {
   if (!indexes.has(src.id)) {
@@ -20,13 +21,28 @@ function loadIndex(src = SOURCES[0]) {
       try {
         const r = await fetch(`${dataBase()}${src.dir}index.json`);
         const j = r.ok ? await r.json() : null;
-        return j ? { zoom: j.zoom, built: j.built, tiles: new Set(j.tiles) } : { zoom: ZOOM, built: null, tiles: new Set() };
+        return j ? readIndex(j) : { zooms: [ZOOM], built: null, tiles: new Set(), ext: '.json.gz' };
       } catch {
-        return { zoom: ZOOM, built: null, tiles: new Set() };
+        return { zooms: [ZOOM], built: null, tiles: new Set(), ext: '.json.gz' };
       }
     })());
   }
   return indexes.get(src.id);
+}
+
+/** Index v2 (fichiers adaptatifs « z/x/y », compressés) ou v1 (un fichier .json par carré « x/y » de zoom 14). */
+export function readIndex(j) {
+  if (j.v >= 2) return { zooms: [...j.zooms].sort((a, b) => a - b), built: j.built, tiles: new Set(j.tiles), ext: '.json.gz' };
+  return { zooms: [j.zoom], built: j.built, tiles: new Set(j.tiles.map((k) => `${j.zoom}/${k}`)), ext: '.json' };
+}
+
+/** Le fichier qui contient ce carré de zoom 14 (« z/x/y »), ou null. */
+export function fileOf(index, x, y) {
+  for (const z of index.zooms) {
+    const s = ZOOM - z, key = `${z}/${x >> s}/${y >> s}`;
+    if (index.tiles.has(key)) return key;
+  }
+  return null;
 }
 
 /** Bords (ouest, sud, est, nord) d'une tuile. */
@@ -39,9 +55,13 @@ const meets = (a, b) => !b || (a[0] < b[2] && a[2] > b[0] && a[1] < b[3] && a[3]
 /** Sources dont le cadre touche cette tuile (l'Île-de-France est toujours consultée). */
 export const sourcesFor = (x, y, z = ZOOM) => SOURCES.filter((s) => meets(tileBox(x, y, z), s.bbox));
 
-/** La source qui a cette tuile, ou null. */
+/** La source et le fichier qui ont ce carré, ou null. */
 async function sourceOf(x, y) {
-  for (const s of sourcesFor(x, y)) if ((await loadIndex(s)).tiles.has(`${x}/${y}`)) return s;
+  for (const s of sourcesFor(x, y)) {
+    const index = await loadIndex(s);
+    const file = fileOf(index, x, y);
+    if (file) return { src: s, file, ext: index.ext };
+  }
   return null;
 }
 
@@ -53,18 +73,28 @@ export function tileXY(lon, lat, z) {
   return [x, y];
 }
 
-function loadTile(x, y) {
-  const key = `${x}/${y}`;
-  if (!tiles.has(key)) {
-    tiles.set(key, (async () => {
-      const src = await sourceOf(x, y);
-      if (!src) return [];
-      const r = await fetch(`${dataBase()}${src.dir}${ZOOM}/${x}/${y}.json`).catch(() => null);
-      const j = r?.ok ? await r.json() : null;
-      return (j?.t || []).map(([id, lon, lat, tags, f]) => ({ id, lon, lat, tags, facade: f ? facadeOf(f) : null }));
-    })());
+/** Lieux d'un fichier, rangés par carré de zoom 14. */
+function loadFile({ src, file, ext }) {
+  const key = `${src.id}:${file}`;
+  if (!files.has(key)) {
+    files.set(key, (async () => {
+      const r = await fetch(`${dataBase()}${src.dir}${file}${ext}`).catch(() => null);
+      const j = r?.ok ? await readJson(r) : null;
+      const cells = new Map();
+      for (const [id, lon, lat, tags, f] of j?.t || []) {
+        const k = tileXY(lon, lat, ZOOM).join('/');
+        if (!cells.has(k)) cells.set(k, []);
+        cells.get(k).push({ id, lon, lat, tags, facade: f ? facadeOf(f) : null });
+      }
+      return cells;
+    })().catch(() => new Map()));
   }
-  return tiles.get(key);
+  return files.get(key);
+}
+
+async function loadTile(x, y) {
+  const where = await sourceOf(x, y);
+  return where ? ((await loadFile(where)).get(`${x}/${y}`) || []) : [];
 }
 
 /** Les lieux d'une zone (au plus `maxTiles` tuiles, les plus proches du centre d'abord). */
@@ -73,7 +103,12 @@ export async function placesInBounds({ west, south, east, north }, maxTiles = 6)
   const [x1, y1] = tileXY(east, south, ZOOM);
   const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
   const keys = [];
-  for (let x = x0; x <= x1; x++) for (let y = y0; y <= y1; y++) if (await sourceOf(x, y)) keys.push([x, y]);
+  for (let x = x0; x <= x1; x++) for (let y = y0; y <= y1; y++) {
+    const where = await sourceOf(x, y);
+    // un fichier d'un seul carré n'existe que s'il a des lieux ; un grand fichier (campagne) peut avoir des carrés vides :
+    // on le charge (il est petit, et sera lu de toute façon) pour ne garder que les carrés habités
+    if (where && (where.file.startsWith(`${ZOOM}/`) || (await loadFile(where)).has(`${x}/${y}`))) keys.push([x, y]);
+  }
   keys.sort((a, b) => Math.hypot(a[0] - cx, a[1] - cy) - Math.hypot(b[0] - cx, b[1] - cy));
   const lists = await Promise.all(keys.slice(0, maxTiles).map(([x, y]) => loadTile(x, y)));
   return lists.flat();
@@ -100,8 +135,8 @@ export async function covers(lat, lon) {
 export async function dataDate(lat, lon) {
   if (lat == null) return (await loadIndex()).built;
   const [x, y] = tileXY(lon, lat, ZOOM);
-  const src = await sourceOf(x, y);
-  return src ? (await loadIndex(src)).built : null;
+  const where = await sourceOf(x, y);
+  return where ? (await loadIndex(where.src)).built : null;
 }
 
 /**

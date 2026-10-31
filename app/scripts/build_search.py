@@ -29,6 +29,8 @@ import os
 import re
 import unicodedata
 
+import tileio
+
 MAIN = ("amenity", "shop", "tourism", "leisure", "healthcare", "office", "craft", "historic", "railway", "public_transport", "place", "building")
 ALT = ("alt_name", "old_name", "short_name", "official_name", "loc_name", "name:fr")
 # lieux sans intérêt pour la recherche par nom (ils doublonnent la gare, le lieu ou la rue dont ils portent le nom)
@@ -169,9 +171,8 @@ def write_split(base, types, streets, rows):
 
 
 def read_tiles(places_dir):
-    for f in glob.glob(os.path.join(places_dir, "*", "*", "*.json")):
-        for it in json.load(open(f))["t"]:
-            yield it[0], it[1], it[2], it[3]
+    for it in tileio.iter_items(places_dir):
+        yield it[0], it[1], it[2], it[3]
 
 
 def main():

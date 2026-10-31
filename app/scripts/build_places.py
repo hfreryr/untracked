@@ -7,8 +7,8 @@ charge les 1 à 4 tuiles autour de la vue et y lit tout (horaires, téléphone, 
 
 Entrée : un extrait OSM (ex. https://download.openstreetmap.fr/extracts/europe/france/ile_de_france/paris-latest.osm.pbf,
          mis à jour chaque nuit).
-Sortie : static/data/places/14/{x}/{y}.json  (zoom 14 ≈ 2,4 km de côté à Paris)
-         static/data/places/index.json      (tuiles disponibles, nombre de lieux, date de l'extrait)
+Sortie : static/data/places/{z}/{x}/{y}.json.gz  (fichiers adaptatifs et compressés, voir tileio.py)
+         static/data/places/index.json          (fichiers disponibles, nombre de lieux, date de l'extrait)
 
 Format d'une tuile : {"v":1,"t":[[id, lon, lat, {tags}, devanture?], …]}
   Grands lieux (stade, parc, hôpital… plus de 150 m de diagonale) : leurs accès dans l'étiquette "_acc" ([[lon, lat], …]),
@@ -26,6 +26,7 @@ from pathlib import Path
 
 import osmium
 import osmium.filter
+import tileio
 
 # Étiquettes principales qui font qu'un élément est « un lieu »
 MAIN = ("amenity", "shop", "tourism", "leisure", "craft", "office", "healthcare", "historic", "railway", "public_transport", "man_made", "place")
@@ -337,7 +338,6 @@ def main():
     if out.exists():
         for p in sorted(out.rglob("*"), reverse=True):
             p.unlink() if p.is_file() else p.rmdir()
-    sizes = []
     nf = ne = nr = 0
     for (x, y), items in h.tiles.items():
         items.sort(key=lambda it: it[0])
@@ -354,18 +354,12 @@ def main():
             if f:
                 it.append(f)
                 nf += 1
-        d = out / str(args.zoom) / str(x)
-        d.mkdir(parents=True, exist_ok=True)
-        s = json.dumps({"v": 1, "t": items}, ensure_ascii=False, separators=(",", ":"))
-        (d / f"{y}.json").write_text(s)
-        sizes.append(len(s))
-    index = {
-        "v": 1, "zoom": args.zoom, "built": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-        "source": os.path.basename(args.pbf), "count": h.count, "tiles": sorted(f"{x}/{y}" for x, y in h.tiles),
-    }
-    (out / "index.json").write_text(json.dumps(index, separators=(",", ":")))
-    print(f"{na} grands lieux avec accès (sur {len(h.big)}) ; {nf} devantures ; {ne} lieux complétés hors OSM ; {nr} rues proches ; " + f"{h.count} lieux dans {len(h.tiles)} tuiles (zoom {args.zoom}), {sum(sizes)/1e6:.1f} Mo bruts, "
-          f"tuile médiane {sorted(sizes)[len(sizes)//2]/1e3:.0f} Ko, en {time.time()-t0:.0f} s")
+    # fichiers adaptatifs et compressés (tileio.py) : grands à la campagne, fins en ville
+    meta = {"built": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "source": os.path.basename(args.pbf), "count": h.count}
+    sizes = sorted(tileio.write(str(out), h.tiles, meta, zmax=args.zoom))
+    print(f"{na} grands lieux avec accès (sur {len(h.big)}) ; {nf} devantures ; {ne} lieux complétés hors OSM ; {nr} rues proches ; "
+          f"{h.count} lieux dans {len(sizes)} fichiers ({len(h.tiles)} carrés de zoom {args.zoom}), {sum(sizes)/1e6:.1f} Mo compressés, "
+          f"fichier médian {sizes[len(sizes)//2]/1e3:.0f} Ko, plus gros {sizes[-1]/1e3:.0f} Ko, en {time.time()-t0:.0f} s")
 
 
 if __name__ == "__main__":

@@ -24,3 +24,12 @@ def test_ancien_index_sans_nombre_de_lieux():
 def test_index_vide_ou_pas_de_version_en_ligne():
     assert not verdict(idx(0, 0), idx(2000, 300000))[0]
     assert verdict(idx(2000, 300000), None)[0]
+
+
+def test_passage_aux_fichiers_adaptatifs():
+    # 31/10/2026 : 4 333 fichiers d'un carré → ≈ 300 fichiers adaptatifs couvrant les mêmes 4 333 carrés : pas une baisse
+    old = {"v": 1, "zoom": 14, "tiles": [f"{i}/1" for i in range(4333)], "count": 100}
+    new = {"v": 2, "zooms": [10, 14], "cells": 4330, "tiles": [f"12/{i}/1" for i in range(300)], "count": 100}
+    ok, why = verdict(new, old)
+    assert ok, why
+    assert not verdict({**new, "cells": 3000}, old)[0]

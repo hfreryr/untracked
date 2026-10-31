@@ -1,10 +1,11 @@
 # Vérification du classement des trajets en transports sur 24 trajets d'une station à une autre (souvent sur une même ligne) :
 # compte les cas où la 1re proposition impose une correspondance alors qu'un trajet plus simple est proposé.
 # Mêmes règles que app/src/lib/transitrank.js. Usage (après build_places.py) : python app/scripts/verif_correspondances.py
-import json, glob, urllib.request, urllib.parse, time
+import json, glob, os, sys, urllib.request, urllib.parse, time
+sys.path.insert(0, os.path.dirname(__file__))
+import tileio
 st={}
-for f in glob.glob('app/static/data/places/14/*/*.json'):
-    for it in json.load(open(f))['t']:
+for it in tileio.iter_items('app/static/data/places'):
         t=it[3]
         if t.get('railway')=='station' and t.get('subway')=='yes' or (t.get('railway')=='station' and t.get('station')=='subway'):
             st.setdefault(t.get('name'),(it[2],it[1]))

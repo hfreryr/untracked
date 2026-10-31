@@ -15,6 +15,8 @@ Mesuré le 13/10/2026 sur le 6e : 63 177 photos, 82 % des commerces ont une phot
 """
 import argparse, collections, glob, json, math, sys, time, urllib.parse, urllib.request
 
+import tileio
+
 API = "https://api.panoramax.xyz/api/search"
 UA = "UntrackedMaps/0.2 (https://untrackedmaps.app; facades build)"
 R = 111320
@@ -101,10 +103,9 @@ def main():
     for pid, p in pics.items():
         grid[(int(p[0] / cell), int(p[1] / cell))].append((pid, p))
     places = []
-    for f in glob.glob(f"{args.places}/*/*/*.json"):
-        for pid, lon, lat, tags, *_ in json.load(open(f))["t"]:   # (5e élément : devanture déjà présente)
-            if bbox[0] < lon < bbox[2] and bbox[1] < lat < bbox[3] and wanted(tags):
-                places.append((pid, lon, lat))
+    for pid, lon, lat, tags, *_ in tileio.iter_items(args.places):   # (5e élément : devanture déjà présente)
+        if bbox[0] < lon < bbox[2] and bbox[1] < lat < bbox[3] and wanted(tags):
+            places.append((pid, lon, lat))
     out = {}
     for pid, lon, lat in places:
         cx, cy = int(lon / cell), int(lat / cell)
