@@ -33,3 +33,12 @@ def test_passage_aux_fichiers_adaptatifs():
     ok, why = verdict(new, old)
     assert ok, why
     assert not verdict({**new, "cells": 3000}, old)[0]
+
+
+def test_garde_fou_de_nuit_compte_les_carres():
+    # 31/10/2026 : le garde-fou de places.yml comptait les fichiers (490 avec les tuiles adaptatives, seuil 2 000) et a
+    # bloqué la publication ; il doit compter les carrés de 2,4 km couverts, comme check_publish.py
+    from pathlib import Path
+    yml = (Path(__file__).resolve().parents[3] / ".github/workflows/places.yml").read_text()
+    line = next(l for l in yml.splitlines() if "n >= 2000" in l)
+    assert "cells" in line
