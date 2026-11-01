@@ -54,6 +54,7 @@ export function createPlace(app) {
     // Lien partagé : on ne connaissait que l'identifiant du lieu, on récupère son nom.
     if (!p.name && app.info.name) { app.place = { ...app.place, name: app.info.name, type: app.info.kind || app.info.type || app.place.type }; remember(app.place); app.showSelection(app.place); }
     if (app.info.wikidata || app.info.wikipedia) {
+      app.wiki = { pending: true };   // le bandeau de photos réserve leur place pendant la recherche (PhotoStrip.svelte)
       const w = await wikiInfo(app.info).catch(() => null);
       if (app.place?.id === p.id) app.wiki = w;
     }

@@ -488,8 +488,10 @@ const tests = {
     await p.goto(`http://localhost:${PORT}/#carte=18/48.861574/2.370638&lieu=node/3194013327`);
     await p.waitForSelector('.pcard img', { timeout: 15000 });
     await p.waitForTimeout(1500);
-    const src = await p.$$eval('.pcard .psrc', (es) => es.map((e) => e.textContent));
-    assert(JSON.stringify(src) === JSON.stringify(['Avis Mangrove', 'deuxfoisplusdepiment.test']), `sources : ${src}`);
+    // ordre : photo de l'avis, puis celle du site ; aucune source écrite sur les vignettes (porteur, 01/11), photos visibles (fondu fini)
+    const src = await p.$$eval('.pcard img', (es) => es.map((e) => new URL(e.src).hostname + ' ' + getComputedStyle(e).opacity));
+    assert(src.length === 2 && /^localhost 1$/.test(src[0]) && /^photos\.restaurant\.test 1$/.test(src[1]), `photos : ${src}`);
+    assert(!(await p.$('.pcard .psrc')), 'source écrite sur une vignette');
     assert(ref === `http://localhost:${PORT}/`, `le site doit savoir d'où vient la demande (pour pouvoir refuser) : ${ref}`);
     // la rangée de photos vient juste après les informations (pas après les détails)
     const order = await p.evaluate(() => { const a = document.querySelector('.pstrip'), b = document.querySelector('.rev'); return !!(a && b && a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING); });
