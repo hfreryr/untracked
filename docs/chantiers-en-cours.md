@@ -6,7 +6,7 @@ Liste tenue à jour à chaque étape, pour ne rien perdre entre les sujets mené
 ## À fusionner
 | PR | Sujet | Après fusion |
 |---|---|---|
-| (cette PR) | Récompenses : badges, carte de mes avis, couleur de sa position ; pop-up de niveau seulement après un avis | Publier |
+| #119 | Récompenses : badges, carte de mes avis, couleur de sa position ; pop-up de niveau seulement après un avis | Publier |
 
 ## Décisions attendues du porteur
 | Sujet | Question posée | Où regarder |
@@ -41,7 +41,7 @@ Mesure : `node app/tests/search/grid.mjs` (6 points de départ × 27 recherches,
 - Limite connue : une rue française cherchée depuis l'étranger reste confiée à Photon.
 - Avant tout lancement public : notre propre Photon (règle « zéro pistage »).
 
-### Récompenses (développées le 01/11, cette PR)
+### Récompenses (développées le 01/11, #119)
 - Badges (Gourmet 10 restaurants, Explorateur 5 villes, Du quartier 5 avis dans un même quartier, Culture, Pause café,
   Oiseau de nuit : 5 chacun), carte de mes avis, couleur du point « vous êtes ici » (et de la flèche du guidage).
 - Annonce (niveau ou badge) seulement juste après l'avis qui la donne ; sinon « Nouveau » sur Mes contributions
