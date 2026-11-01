@@ -58,7 +58,7 @@ test('fusion : ajoute ce qui manque, réunit les listes, garde les noms de liste
   assert.equal(r.added, 1);
   assert.deepEqual(r.places[0].lists.sort(), ['brunch', 'fav']);
   assert.ok(r.lists.some((l) => l.name === 'Brunch'));
-  assert.equal(r.lists.length, 3);
+  assert.equal(r.lists.length, DEFAULT_LISTS.length + 1);   // Favoris (seule liste par défaut depuis le 02/11) + Brunch
 });
 test('anciens favoris sans liste : rangés dans Favoris', () => {
   assert.deepEqual(migratePlaces([{ name: 'a' }])[0].lists, ['fav']);
