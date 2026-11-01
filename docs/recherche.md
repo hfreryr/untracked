@@ -36,7 +36,7 @@ Même index, préparé chaque semaine avec les lieux de chaque région français
   de l'essentiel (5,7 Mo). Essentiel breton désormais : 5 757 lieux, 146 Ko ; index breton complet : 4,4 Mo.
 - **Mesuré à Rennes** (index breton, sans notoriété) : 440 Ko chargés, « parlement de bretagne », « champs libres »,
   « saint-malo » trouvés en moins de 20 ms. À améliorer : « gare de rennes » (la gare s'appelle « Rennes » dans OSM).
-- Loin de sa région (chercher « Rennes » depuis Paris) : Photon, en attendant l'annuaire national par nom (étape suivante).
+- Loin de sa région : l'annuaire national (ci-dessous).
 
 ## Mesure
 
@@ -77,6 +77,41 @@ Règle du porteur : la recherche propose la réponse pertinente **quelle que soi
 | Lieux par leur nom, Photon coupé | — | 7/54 |
 
 Sans Photon, adresses et rues tiennent (seul Amsterdam échoue) ; les lieux s'effondrent. Restent : les lieux loin d'ici que notre index ne couvre pas (« Gordes », « Palais des Papes », « Parlement de Bretagne » vus de Paris : étape suivante, l'annuaire national) ; une rue française cherchée depuis l'étranger, laissée à Photon pour ne pas confondre une rue de Bruxelles avec son homonyme française.
+
+## Annuaire national des lieux (01/11/2026)
+
+Pour trouver « Gordes », le Palais des Papes ou le Rijksmuseum depuis n'importe où, sans service tiers.
+
+- **Contenu** : l'essentiel de chaque région publiée, réuni (`build_directory.py`, à chaque passage de `places-zones.yml`) :
+  communes, gares, musées, châteaux, parcs, stades, et tout lieu assez connu (notoriété QRank ≥ 25). Quartiers et
+  lieux-dits seulement s'ils sont connus. ≈ 90 000 lieux, ≈ 6,7 Mo en tout.
+- **Découpé par début de mot** (`data/directory/<début>.json.gz`) : un lieu figure sous chacun de ses mots ; un début trop
+  fréquent est redécoupé sur une lettre de plus. Une recherche charge les fichiers des deux mots les plus rares tapés
+  (souvent 20 à 40 Ko). Gros fichiers restants : les mots entiers « château », « gare », « saint » (≈ 200 Ko), chargés
+  seulement quand aucun autre mot n'est plus rare.
+- **« Gare de Rennes »** : chaque gare de train reçoit l'autre nom « Gare de <nom> » (pas les stations de métro).
+- **Prudence loin d'ici** : un lieu de l'annuaire n'est montré avant Photon que si le texte tapé couvre presque tout son
+  nom, sans faute de frappe (sinon « puy de dome » donnait la cathédrale Notre-Dame-du-Puy). Il reste affiché après.
+- **Limites** : une faute de frappe dans les premières lettres des deux mots les plus rares ; un lieu cherché avec le nom
+  de sa commune quand celle-ci n'est pas dans son nom (« musée Jean Cocteau Menton ») ; les sommets (« Puy de Dôme »),
+  absents de nos lieux. Photon reste consulté pour ces cas.
+- **Complet au plus tard le 07/11/2026** : 13 régions, calculées avant l'index par région, l'auront à leur calcul
+  hebdomadaire ; l'annuaire est refait à chaque passage.
+- Hors de France et d'Amsterdam : Photon seul, inchangé.
+
+**Mesure** (grille, 01/11, annuaire construit avec toutes les régions) :
+
+| Bonne réponse en premier | Avant (#117) | Avec l'annuaire |
+|---|---|---|
+| Avec Photon : lieux par leur nom | 48/54 | **53/54**\* |
+| Avec Photon : total | 134/142 (95 %) | **140/142 (99 %)** |
+| Photon coupé : lieux par leur nom | 7/54 | **42/54** |
+| Photon coupé : total | 57 % | **82 %** |
+
+\* Contrôle « Puy de Dôme » rendu plus strict (le premier résultat doit être le sommet) : il pouvait réussir à tort, par exemple avec
+« Archives départementales du Puy-de-Dôme ». Échec restant vu de Paris : « Antenne du Puy-de-Dôme », un lieu
+parisien, défaut antérieur. Photon coupé, échouent seulement « musée Jean Cocteau Menton » et « Puy de Dôme » (et,
+depuis Amsterdam, les adresses françaises, confiées à Photon).
 
 ## Adresse dans la liste des résultats
 

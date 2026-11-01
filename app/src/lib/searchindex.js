@@ -8,7 +8,7 @@ import { tx } from './i18n/index.js';
 export const norm = (s) => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 
 // mots qui ne distinguent pas un lieu (on les tolère dans la recherche sans les exiger)
-const STOP = new Set(['de', 'du', 'des', 'la', 'le', 'les', 'l', 'd', 'a', 'au', 'aux', 'et', 'en', 'sur', 'paris', 'the', 'and', 'of']);
+export const STOP = new Set(['de', 'du', 'des', 'la', 'le', 'les', 'l', 'd', 'a', 'au', 'aux', 'et', 'en', 'sur', 'paris', 'the', 'and', 'of']);
 // une ligne de l'index : [nom, lon, lat, id, type, notoriété, autres noms, extra, adresse]
 const TYPE_BONUS = {
   'railway=station': 10, 'public_transport=station': 8, 'tourism=museum': 8, 'tourism=attraction': 8, 'historic=monument': 6,
@@ -62,6 +62,9 @@ export function prepare(raw) {
   return { raw, items, words, sig, byWord, vocab: [...byWord.keys()] };
 }
 
+// une lettre fausse (les débuts de mot valent de 0,70 à 0,85, jamais exactement cette valeur)
+const TYPO = 0.72;
+
 /** Pour un mot tapé : les mots de l'index qui lui correspondent, avec la qualité de la correspondance (1 = exact). */
 function matchesOf(idx, q, last) {
   const out = new Map();
@@ -74,7 +77,7 @@ function matchesOf(idx, q, last) {
     if (w.startsWith(q) && (last || q.length >= 4) && q.length >= 2) { out.set(w, 0.85 - Math.min(0.15, (w.length - q.length) * 0.02)); continue; }
     if (!maxEd || Math.abs(w.length - q.length) > maxEd || w[0] !== q[0] && q.length < 6) continue;
     const d = editDistance(q, w, maxEd);
-    if (d <= maxEd) out.set(w, d === 1 ? 0.72 : 0.55);
+    if (d <= maxEd) out.set(w, d === 1 ? TYPO : 0.55);
     // un mot tapé sans sa fin, avec une faute (« palai » → « palais » via « palai » ≈ début de « palais »)
     else if (last && w.length > q.length && editDistance(q, w.slice(0, q.length), 1) <= 1 && q.length >= 4) out.set(w, 0.6);
   }
@@ -132,7 +135,11 @@ export function searchIndex(idx, query, at, limit = 7) {
     const type = TYPE_BONUS[idx.raw.types[it[4]]] || 0;
     const km = meters(at, { lon: it[1], lat: it[2] }) / 1000;
     const far = Math.min(25, km * 3) * (1 - Math.min(1, rank / 70));
-    return { i, s: 100 * text * (0.6 + 0.4 * cover) + 100 * start + 0.6 * rank + type - far, strong: text >= 0.7 && cover >= 0.5 };
+    // index « strict » (l'annuaire national, directory.js) : un lieu lointain n'est net que sans faute de frappe et si le
+    // texte tapé couvre presque tout son nom ; sinon Photon passe devant (« puy de dome » donnait la cathédrale
+    // Notre-Dame-du-Puy, « dome » ≈ « dame », puis les Archives du Puy-de-Dôme, devant le sommet ; grille du 01/11)
+    const exact = !idx.strict || (cover >= 0.75 && perWord.every((m) => m.get(i) >= 0.7 && m.get(i) !== TYPO));
+    return { i, s: 100 * text * (0.6 + 0.4 * cover) + 100 * start + 0.6 * rank + type - far, strong: text >= 0.7 && cover >= 0.5 && exact };
   });
   scored.sort((a, b) => b.s - a.s);
   // « strong » : le texte correspond nettement (pas seulement un mot approché dans un long nom)

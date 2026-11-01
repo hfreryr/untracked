@@ -2,7 +2,7 @@
 # chaque ville a son jour (« day » : 1 = lundi … 7 = dimanche), pour étaler les calculs et les publications
 # (porteur, 30/10/2026 : plus de villes, mises à jour moins fréquentes, sobriété).
 # Extrait de la région ou du département (openstreetmap.fr, somme de contrôle vérifiée), réduit au cadre de la zone,
-# publié dans data/zones/<ville>/places/ du site, sans toucher au reste. Même garde-fou que la nuit (-10 %).
+# publié dans data/zones/<ville>/places/ du site, sans toucher au reste ; puis l'annuaire national (data/directory/). Même garde-fou que la nuit (-10 %).
 # Avec les avis Mangrove et les compléments hors OSM (Overture, All The Places, annuaire), source affichée dans la fiche.
 name: Lieux des régions et autres villes (hebdomadaire)
 on:
@@ -78,7 +78,9 @@ jobs:
             python3 -c "import json,sys; sys.exit(0 if '$z' in [x['id'] for x in json.load(open('app/src/lib/cities/zones.json'))] else 1)" \
               || { echo "zone retirée : $z"; rm -rf "$d"; }
           done
+          # annuaire national des lieux par nom (toutes les régions publiées, Île-de-France comprise) : refait à chaque passage
+          python app/scripts/build_directory.py pages/data || echo "::warning::annuaire national non refait"
           bash app/scripts/site_budget.sh pages   # plafond de poids du site (700 Mo), voir docs/villes.md
-          cd pages && git add -A data/zones
+          cd pages && git add -A data/zones data/directory
           git -c user.name=untracked-bot -c user.email=bot@untrackedmaps.app commit -qm "Lieux des villes ($ZONES) : extraits OSM du $(date -u +%F)" && git push origin HEAD:gh-pages || echo "rien de nouveau"
           [ -z "${failed:-}" ]

@@ -33,7 +33,7 @@
     { "kind": "lieu", "q": "Mont-Saint-Michel", "expect": "Mont.Saint.Michel" },
     { "kind": "lieu", "q": "Parlement de Bretagne", "expect": "Parlement de Bretagne" },
     { "kind": "lieu", "q": "Palais des Papes", "expect": "Palais des Papes" },
-    { "kind": "lieu", "q": "Puy de Dôme", "expect": "Puy.de.Dôme" },
+    { "kind": "lieu", "q": "Puy de Dôme", "expect": "^Puy.de.Dôme" },
     { "kind": "lieu", "q": "tour Eiffel", "expect": "Tour Eiffel" },
     { "kind": "lieu", "q": "Rijksmuseum", "expect": "Rijksmuseum" }
   ]

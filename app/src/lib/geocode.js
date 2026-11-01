@@ -14,6 +14,7 @@ import { typeLabel, typeOfTags } from './places.js';
 import { searchLocal } from './localsearch.js';
 import { norm } from './searchindex.js';
 import { indexesAt, searchMany } from './searchzones.js';
+import { directoryFor } from './directory.js';
 import { intentOf, nearestOf } from './searchintent.js';
 import { placesInBounds } from './placestore.js';
 import { dataBase } from './config.js';
@@ -130,6 +131,8 @@ const near = (a, b) => Math.hypot((a.lon - b.lon) * 0.66, a.lat - b.lat) * 11132
 // en 0,02 s au lieu de 1,5 s. Photon reste consulté pour ce que l'index n'a pas (rues, quartiers).
 // Index découpé par zone (searchzones.js) : l'essentiel de la région + les zones autour de « at ».
 const index = (at = city.center) => indexesAt(dataBase(), at);
+// plus l'annuaire national (directory.js) : les lieux loin de sa région (« Gordes » vu de Paris)
+const indexFor = async (query, at) => (await Promise.all([index(at), directoryFor(dataBase(), query)])).flat();
 /** Charge l'index autour de `at` dès que l'on touche la barre de recherche. */
 export const warmSearch = (at) => { index(at || city.center); };
 
@@ -164,7 +167,7 @@ async function findByName(query, at, signal, limit = 7, onEarly = null) {
     const r = await byIntent(intent, at, limit);
     if (r.length) return r;
   }
-  const idx = await index(at);
+  const idx = await indexFor(query, at);
   const mine = searchMany(idx, query, at, limit);
   const strong = mine.filter((r) => r.strong);
   if (strong.length) onEarly?.(strong);
@@ -270,7 +273,7 @@ export async function searchAllPlaces(query, at, shown = [], limit = 40) {
 /** Premier résultat de l'index du téléphone (instantané), pour décider vite ce que fait la touche Entrée. */
 export async function localFirst(query, at) {
   if (!hasPlaces(at)) return null;
-  const idx = await index(at);
+  const idx = await indexFor(query.trim(), at);
   return searchMany(idx, query.trim(), at, 1)[0] || null;
 }
 
