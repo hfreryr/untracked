@@ -7,7 +7,7 @@ Liste tenue à jour à chaque étape, pour ne rien perdre entre les sujets mené
 | PR | Sujet | Après fusion |
 |---|---|---|
 | #120 | Le faisceau d'orientation prend la couleur du point | Publier |
-| (cette PR) | Classement des lieux sur la carte : rang dans le quartier | Recalculer l'Île-de-France et les régions (lieux mis en avant) |
+| #121 | Classement des lieux sur la carte : rang dans le quartier | Recalculer l'Île-de-France et les régions (lieux mis en avant) |
 
 ## Décisions attendues du porteur
 | Sujet | Question posée | Où regarder |
@@ -19,7 +19,7 @@ Liste tenue à jour à chaque étape, pour ne rien perdre entre les sujets mené
 
 ## Chantiers ouverts
 ### Classement des lieux sur la carte
-- 01/11 : rang dans le quartier (cette PR, `docs/villes.md`) : Rijksmuseum dès le zoom 14, même nombre de bons lieux
+- 01/11 : rang dans le quartier (#121, `docs/villes.md`) : Rijksmuseum dès le zoom 14, même nombre de bons lieux
   avec 18 % d'étiquettes en moins.
 - Reste : la notoriété (« Marché Saint-Germain » devant l'église) ; les restaurants réputés (aucune donnée libre).
 
