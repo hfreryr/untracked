@@ -78,13 +78,22 @@ def commercial(t):
     return None
 
 
-def richness(t):
+# Enseignes connues (porteur, 01/11/2026, option « comme Plans ») : un magasin d'enseigne (Monoprix, Kruidvat, une
+# pharmacie de réseau…) est un repère que tout le monde reconnaît, il passe devant ; un restaurant ou un café de chaîne
+# reste derrière les adresses uniques, qu'on cherche pour manger. Mesuré sur l'étalon (docs/mesures/
+# etalon-classement.json) : 7 à 40 fois plus d'enseignes au zoom 15, un restaurant de l'étalon en moins au zoom 16.
+CHAIN_FAMILIES = {"shop", "bakery", "health"}
+CHAIN_BONUS = {True: 2, False: -2}
+
+
+def richness(t, family=None):
     """Une fiche OSM bien remplie signale un lieu connu et vivant."""
     keys = {tag.k for tag in t}
-    # Les enseignes de chaîne reçoivent des traductions automatiques du nom : elles ne disent rien
-    # de la notoriété du lieu lui-même. On ne les compte pas, et on passe les lieux uniques devant.
+    # Les enseignes de chaîne reçoivent des traductions automatiques du nom : elles ne disent rien de la notoriété du
+    # lieu lui-même. On ne les compte pas ; l'enseigne elle-même compte selon le genre de lieu (CHAIN_BONUS).
     chain = bool(keys & {"brand", "brand:wikidata"})
-    return ((8 if "wikidata" in keys else 0) + (0 if chain else min(fame(t), 10)) - (2 if chain else 0)
+    return ((8 if "wikidata" in keys else 0) + (0 if chain else min(fame(t), 10))
+            + (CHAIN_BONUS[family in CHAIN_FAMILIES] if chain else 0)
             + (1.5 if keys & {"website", "contact:website"} else 0)
             + (1 if keys & {"phone", "contact:phone"} else 0)
             + (1 if "opening_hours" in keys else 0)
@@ -139,7 +148,7 @@ class Landmarks(osmium.SimpleHandler):
             pt, _ = geom_fn()
         except Exception:
             return
-        score = richness(tags) + CAT_BONUS.get(family, 0)
+        score = richness(tags, family) + CAT_BONUS.get(family, 0)
         self.places.append({"name": tags.get("name:fr") or tags["name"], "family": family, "subclass": sub,
                             "score": round(score, 1), "osm": ref, "kind": "place",
                             "lon": round(pt.x, 6), "lat": round(pt.y, 6)})
