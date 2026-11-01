@@ -12,6 +12,7 @@
   import { takeIntent, earnedBy } from '#lib/contrib.js';
   import { badgeProgress } from '#lib/badges.js';
   import { reviewMeta } from '#lib/reviewmeta.js';
+  import { shrink, uploadPhoto } from '#lib/photoupload.js';
   import Dialog from './Dialog.svelte';
   import LevelUp from './LevelUp.svelte';
   /** @type {{ place: any, reviews: any, hideRate?: boolean }} */
@@ -27,6 +28,15 @@
 
   // fenêtre d'avis
   let earned = $state(null);
+  // photo jointe : réduite sur le téléphone (métadonnées effacées), envoyée à Mangrove seulement en publiant
+  let photo = $state(null), photoUrl = $state(null);
+  function pickPhoto(e) {
+    const f = e.currentTarget.files?.[0]; e.currentTarget.value = '';
+    if (!f) return;
+    if (photoUrl) URL.revokeObjectURL(photoUrl);
+    shrink(f).then((b) => { photo = b; photoUrl = URL.createObjectURL(b); }).catch(() => { failed = true; });
+  }
+  function dropPhoto() { if (photoUrl) URL.revokeObjectURL(photoUrl); photo = null; photoUrl = null; }
   let open = $state(false), stars = $state(0), text = $state(''), nick = $state(''), sending = $state(false), failed = $state(false);
   function start(n) {
     stars = n; text = mine?.text || ''; nick = mine?.nick ?? me.nick; failed = false; open = true;
@@ -59,14 +69,17 @@
     try {
       let r = me;
       if (!r.jwk) { r = { ...r, jwk: await newKeyJwk() }; saveReviewer(r); me = r; }
-      const jwt = await signReview(r.jwk, payloadOf({ place, stars, text, nick }));
+      const images = photo ? [await uploadPhoto(photo)] : [];
+      const jwt = await signReview(r.jwk, payloadOf({ place, stars, text, nick, images }));
       const sig = await submit(jwt);
       // modifier = nouvel avis, puis l'ancien retiré (même clé) ; s'il ne part pas, la construction des données garde le plus récent
       if (mine?.sig) signReview(r.jwk, { sub: `urn:maresi:${mine.sig}`, action: 'delete', iat: Math.floor(Date.now() / 1000) }).then(submit).catch(() => {});
       // position, genre de lieu et commune : pour les badges et la carte de mes avis (badges.js)
       const meta = await reviewMeta(place, app.info).catch(() => ({ lat: +place.lat, lon: +place.lon }));
       const before = me.mine;
-      me = withMine({ ...r, nick: nick.trim() }, { id: placeId(place), name: place.name || '', stars, text: text.trim(), nick: nick.trim(), t: Math.floor(Date.now() / 1000), sig, ...meta });
+      me = withMine({ ...r, nick: nick.trim() }, { id: placeId(place), name: place.name || '', stars, text: text.trim(), nick: nick.trim(), t: Math.floor(Date.now() / 1000), sig, ...meta,
+        ...(images[0] ? { photo: images[0] } : {}) });
+      dropPhoto();
       saveReviewer(me);
       // niveau ou badge gagné par cet avis : annoncé maintenant, et seulement maintenant (LevelUp.svelte)
       const e = earnedBy(before, me.mine, badgeProgress);
@@ -122,6 +135,7 @@
           <button class="link" onclick={() => start(mine.stars)}>{tx('avis.modifier')}</button>
         </p>
         {#if mine.text}<p class="txt">{mine.text}</p>{/if}
+        {#if mine.photo}<img class="myph" src={mine.photo} alt={tx('avis.votre_photo')} referrerpolicy="no-referrer" />{/if}
       </li>
     {/if}
     {#each others as r (r.sig)}
@@ -156,6 +170,19 @@
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 0 1 14-5.3M20 12a8 8 0 0 1-14 5.3M18 3v4h-4M6 21v-4h4" /></svg>
         {tx('avis.generer')}
       </button>
+    </div>
+    <div class="addph">
+      {#if photoUrl}
+        <span class="thumb"><img src={photoUrl} alt={tx('avis.votre_photo')} /><button class="rm" onclick={dropPhoto} aria-label={tx('avis.retirer_la_photo')}>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10M17 7 7 17" /></svg></button></span>
+      {:else}
+        <label class="pickph">
+          <input type="file" accept="image/*" hidden onchange={pickPhoto} />
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l2-2.5h6L17 8h3v11H4z" /><circle cx="12" cy="13" r="3.5" /></svg>
+          {tx('avis.ajouter_une_photo')} <small>{tx('avis.facultatif')}</small>
+        </label>
+      {/if}
+      <p class="phnote">{tx('avis.photo_consigne')}</p>
     </div>
     <p class="note">{tx('avis.public_licence')}</p>
     {#if failed}<p class="err" role="alert">{tx('avis.envoi_impossible')}</p>{/if}
@@ -206,4 +233,15 @@
   .go { display: block; width: 100%; margin-top: 16px; height: 50px; border: 0; border-radius: 14px; background: var(--accent-btn); color: #fff; font: inherit;
     font-size: 16.5px; font-weight: 700; cursor: pointer; }
   .go:disabled { opacity: 0.5; cursor: default; }
+  .addph { margin: 12px 0 0; }
+  .pickph { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 14px; border-radius: 12px; background: var(--fill);
+    color: var(--accent); font-weight: 600; cursor: pointer; }
+  .pickph small { color: var(--muted); font-weight: 400; }
+  .pickph svg, .rm svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linejoin: round; }
+  .thumb { position: relative; display: inline-block; }
+  .thumb img { width: 96px; height: 96px; object-fit: cover; border-radius: 12px; display: block; }
+  .rm { position: absolute; top: -8px; right: -8px; width: 32px; height: 32px; border-radius: 50%; border: 0; background: #2b2f36; color: #fff;
+    display: grid; place-items: center; cursor: pointer; }
+  .phnote { margin: 6px 0 0; font-size: 13px; color: var(--ink); }
+  .myph { width: 120px; height: 120px; object-fit: cover; border-radius: 12px; margin-top: 6px; display: block; }
 </style>

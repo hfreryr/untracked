@@ -12,6 +12,7 @@
     [tx('confidentialite.itineraires_a_pied_velo_voiture'), tx('confidentialite.valhalla_serveur_public_fossgis'), tx('confidentialite.votre_ip_le_depart_souvent_votre'), tx('confidentialite.fossgis_conditions'), 'https://www.fossgis.de/arbeitsgruppen/osm-server/nutzungsbedingungen/'],
     [tx('confidentialite.transports_en_commun'), tx('confidentialite.transitous_projet_libre'), tx('confidentialite.votre_ip_le_depart_et_arrivee_la'), tx('confidentialite.aucune_politique_publiee_a_remplacer'), 'https://transitous.org'],
     [tx('confidentialite.avis_publies'), tx('confidentialite.mangrove_association'), tx('confidentialite.mangrove_recoit'), tx('confidentialite.mangrove_politique'), 'https://mangrove.reviews/terms'],
+    [tx('confidentialite.photos_des_commerces'), tx('confidentialite.site_du_lieu'), tx('confidentialite.site_du_lieu_recoit'), tx('confidentialite.site_du_lieu_politique'), 'https://github.com/hfreryr/untracked/blob/main/docs/photos-lieux.md'],
     [tx('confidentialite.photos_et_textes_des_monuments'), tx('confidentialite.wikimedia_wikidata_wikipedia_commons'), tx('confidentialite.votre_ip_et_le_lieu_consulte'), tx('confidentialite.fondation_a_but_non_lucratif_sans'), 'https://foundation.wikimedia.org/wiki/Policy:Privacy_policy']
   ];
 </script>
