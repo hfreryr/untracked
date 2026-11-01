@@ -6,7 +6,7 @@ Liste tenue à jour à chaque étape, pour ne rien perdre entre les sujets mené
 ## À fusionner
 | PR | Sujet | Après fusion |
 |---|---|---|
-| (cette PR) | Recherche : annuaire national des lieux (lieux loin d'ici trouvés sans Photon) | Publier, puis lancer `places-zones.yml` (zone corse) pour créer l'annuaire tout de suite |
+| #118 | Recherche : annuaire national des lieux (lieux loin d'ici trouvés sans Photon) | Publier, puis lancer `places-zones.yml` (zone corse) pour créer l'annuaire tout de suite |
 
 ## Décisions attendues du porteur
 | Sujet | Question posée | Où regarder |
@@ -35,7 +35,7 @@ Règle : la réponse pertinente d'abord, quelle que soit la distance ; la proxim
 Mesure : `node app/tests/search/grid.mjs` (6 points de départ × 27 recherches, voir `docs/recherche.md`).
 1. ✅ **Index par région et Amsterdam** (#116, fusionnée).
 2. ✅ **Adresses et rues** (#117, fusionnée, publiée le 01/11) : 71 % → 95 % de bonnes réponses en premier.
-3. 🔧 **Annuaire national des lieux** (cette PR) : ≈ 90 000 lieux, 6,7 Mo, découpé par début de mot. Photon coupé, lieux
+3. 🔧 **Annuaire national des lieux** (#118) : ≈ 90 000 lieux, 6,7 Mo, découpé par début de mot. Photon coupé, lieux
    7/54 → 42/54. Complet quand les 13 régions calculées avant #116 auront leur index (au plus tard le 07/11, calcul
    hebdomadaire). « gare de rennes » réglé. Restent : « musée Jean Cocteau Menton » (commune absente du nom),
    « Puy de Dôme » (sommets absents de nos lieux).
