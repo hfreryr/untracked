@@ -223,6 +223,17 @@ async function streetOrPlaces(q, at, signal, onEarly) {
   return (streets.length ? [...streets.slice(0, 3), ...others, ...extra] : [...others, ...extra]).slice(0, 7);
 }
 
+/** Lieux de ce nom dans l'annuaire national (directory.js), sur le téléphone : pour l'import des listes Google. */
+export async function searchDirectory(name, at = city.center) {
+  return searchMany(await directoryFor(dataBase(), name), name, at, 10).filter((r) => r.strong);
+}
+
+/** Position d'une adresse française (géocodeur de l'État), ou null si elle n'est pas trouvée nettement. */
+export async function geocodeAddress(text) {
+  const r = (await geopfRaw(text, city.center, undefined, 1))[0];
+  return r && !r.area && r.score > 0.7 && inFrance(r) ? { lat: r.lat, lon: r.lon } : null;
+}
+
 /** Lieux portant ce nom, partout (proches de « at » d'abord) : pour retrouver un lieu importé dont on n'a que le nom. */
 export const searchAnywhere = (query, at = city.center, signal) => byName(query.trim(), at, signal, 7, true);
 

@@ -5,7 +5,7 @@ import { tx } from '#lib/i18n/index.js';
 import { PARIS } from '#lib/places.js';
 import { mergeInto } from '#lib/myplaces.js';
 import { readGoogleExport } from '#lib/importgoogle.js';
-import { search } from '#lib/geocode.js';
+import { search, searchForImport } from '#lib/geocode.js';
 import { resolvePlace, eachLimited, eachPaced, snapToOsm } from '#lib/importresolve.js';
 
 const pickIds = (o) => (o?.osmType && o?.osmId ? { osmType: o.osmType, osmId: o.osmId, subclass: o.subclass || undefined } : {});
@@ -73,11 +73,15 @@ export function createImport(app) {
     let missed = 0, unsure = 0, done = 0;
     await eachPaced(lost, 1000, async (p) => {
       try {
-        const r = await resolvePlace(p, PARIS);
+        let usedRemote = false;
+        const r = await resolvePlace(p, PARIS, { remote: (q, at) => { usedRemote = true; return searchForImport(q, at); } });
         if (r) { found.set(p, r); if (!r.sure) unsure++; } else missed++;
-      } catch { failed.push(p); }
-      done++;
-      app.importing = tx('import.recherche_des_lieux_sans_position', { i: done, n: lost.length, min: Math.ceil((lost.length - done) / 60) });
+        done++;
+        app.importing = tx('import.recherche_des_lieux_sans_position', { i: done, n: lost.length, min: Math.ceil((lost.length - done) / 60) });
+        return usedRemote;          // trouvé dans nos données : pas d'attente (seul Photon impose ≈ 1 demande par seconde)
+      } catch {
+        failed.push(p); done++;
+      }
     });
     return { found, missed, unsure, failed };
   }
