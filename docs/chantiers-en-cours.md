@@ -14,12 +14,10 @@ Liste tenue à jour à chaque étape, pour ne rien perdre entre les sujets mené
 | Récompenses | Valider la maquette : badges à collectionner, carte de mes avis, couleur du point « vous êtes ici » | maquette-recompenses.png (conversation du 31/10) |
 | Classement des lieux | Lancer la nouvelle méthode de placement (rang dans le quartier, la carte arbitre les chevauchements) + deux classements séparés | Résultats ci-dessous |
 
-## En cours (tourne seul)
-- **Lieux mis en avant des 21 régions et d'Amsterdam** : recalcul région par région, relancé à chaque arrêt (2 h au plus).
-  Faits : Île-de-France, Rhône-Alpes, PACA, Nord-Pas-de-Calais, Midi-Pyrénées, Aquitaine, Pays de la Loire,
-  Languedoc-Roussillon, Bretagne, Alsace, Lorraine, Centre, les deux Normandie, Bourgogne, Picardie (31/10, minuit).
-  Restent : Poitou-Charentes, Champagne-Ardenne, Franche-Comté, Auvergne, Limousin, Corse, Amsterdam. Celles calculées
-  après la fusion de #116 (31/10) ont aussi leur index de recherche ; les autres l'auront à leur calcul hebdomadaire.
+## Fait récemment
+- **Lieux mis en avant des 21 régions et d'Amsterdam** : recalcul terminé le 01/11 (dernières : Poitou-Charentes,
+  Champagne-Ardenne, Franche-Comté, Auvergne, Limousin, Corse, Amsterdam). Celles calculées après la fusion de #116 ont
+  aussi leur index de recherche ; les autres l'auront à leur calcul hebdomadaire.
 
 ## Chantiers ouverts
 ### Classement des lieux sur la carte
