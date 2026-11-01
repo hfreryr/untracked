@@ -6,6 +6,8 @@ Liste tenue à jour à chaque étape, pour ne rien perdre entre les sujets mené
 ## À fusionner
 | PR | Sujet | Après fusion |
 |---|---|---|
+| #136 puis (cette PR) | Photos : place réservée et fondu, sans source dessus (#136) ; photos Wikimedia préparées à l'avance (cette PR) | Publier ; les photos préparées arrivent après le prochain calcul des compléments |
+| #137 | Vignette Panoramax vide (38 % des devantures, hôte du stockage de l'IGN) | Publier |
 | (cette PR) | Photos et horaires des sites : régions et villes, chaque zone le jour de son calcul | Rattrapage zone par zone (« Sites à lire ») |
 | #133 | Liens Google Maps et Plans reçus : collés dans la recherche, ou « Partager → Untracked » (Android) | Publier |
 

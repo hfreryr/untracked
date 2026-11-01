@@ -72,12 +72,17 @@ jobs:
             centre=$(python3 -c "b=[float(x) for x in '$bbox'.split(',')]; print(f'{(b[0]+b[2])/2},{(b[1]+b[3])/2}')")
             python app/scripts/build_sitehours.py "$id.osm.pbf" --extras "$id-extras.json" --state "$id-sitehours.json" \
               --max-new "${SITES:-4000}" --centre "$centre" || echo "::warning::$id : sites des lieux non lus (le reste est publié)"
+            # photos Wikimedia préparées à l'avance (build_wikiphotos.py) ; état gardé dans data/zones/<zone>/wikiphotos.json
+            curl -sSfL -o "$id-wikiphotos.json" "https://untrackedmaps.app/data/zones/$id/wikiphotos.json" || echo '{}' > "$id-wikiphotos.json"
+            python app/scripts/build_wikiphotos.py "$id.osm.pbf" --extras "$id-extras.json" --state "$id-wikiphotos.json" \
+              || echo "::warning::$id : photos Wikimedia non préparées (le reste est publié)"
             python app/scripts/build_places.py "$id.osm.pbf" --out "out/$id" --bbox="$bbox" --reviews "$id-reviews.json" --extras "$id-extras.json"
             python app/scripts/build_landmarks.py "$id.osm.pbf" --out "out/$id" --bbox="$bbox"   # lieux mis en avant sur la carte
             python app/scripts/build_search.py "out/$id" --extras "$id-extras.json"   # recherche sur le téléphone
             if python app/scripts/check_publish.py "out/$id/index.json" "https://untrackedmaps.app/data/zones/$id/places/index.json"; then
               rm -rf "pages/data/zones/$id/places" && mkdir -p "pages/data/zones/$id" && cp -r "out/$id" "pages/data/zones/$id/places"
               cp "$id-sitehours.json" "pages/data/zones/$id/sitehours.json"
+              cp "$id-wikiphotos.json" "pages/data/zones/$id/wikiphotos.json"
             else
               echo "::warning::$id non publiée (baisse anormale)"; failed=1
             fi

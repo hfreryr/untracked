@@ -81,6 +81,9 @@ export function fromTags(t, at = null) {
     website: t.website || t['contact:website'],
     menu: t['website:menu'] || null,
     // photo publiée par le site du lieu (build_sitehours.py) : seulement son adresse ; chargée depuis le site, jamais copiée
+    // photos Wikimedia préparées à l'avance (build_wikiphotos.py) et titre de l'article Wikipédia
+    wikiPhotos: Array.isArray(t._wph) ? t._wph : null,
+    wikiTitle: typeof t._wt === 'string' ? t._wt : null,
     sitePhoto: typeof t._photo === 'string' && t._photo.startsWith('https://') ? t._photo : null,      // carte du restaurant (P6), quand OSM la connaît
     // compléments hors OSM (sites, téléphones…) : leur source, affichée sous l'information (docs/sources-donnees.md)
     sources: t._src || {},

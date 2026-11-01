@@ -117,3 +117,16 @@ Point d'attention 🔶 : le commerçant n'est pas toujours titulaire des droits 
   publiant, jointe à l'avis signé. Consigne affichée : publique, licence libre, sans visages.
 - **IP de l'auteur vue par Mangrove** à l'envoi (comme pour le texte de l'avis). La masquer demanderait un relais par
   notre serveur : prévu avec nos propres serveurs sans journaux, avant tout lancement public (règle « zéro pistage »).
+
+## 7. Photos Wikimedia préparées à l'avance (01/11/2026)
+
+- **Constat du porteur** : les photos mettaient 1 à 3 s à apparaître. Cause : à l'ouverture de chaque fiche, l'app
+  interrogeait Wikidata, Wikipédia puis Commons, l'un après l'autre (contraire à la règle « données préparées à l'avance »).
+- **Maintenant** (`build_wikiphotos.py`, chaque semaine avec les compléments, et pour chaque zone) : adresses des images
+  (960 px, taille standard de Wikimedia), auteur et licence rangés dans les tuiles ; l'app ne demande plus que les images
+  et le résumé Wikipédia (texte, sans faire attendre les photos). Lieux pas encore préparés : l'ancienne recherche.
+- **Crédits** : plus écrits sur les vignettes (porteur, 01/11 : « c'est moche ») ; auteur et licence affichés en plein
+  écran, comme Wikipédia.
+- **Politesse** : lots de 50, une demande à la fois, pause, attente si Wikimedia demande de ralentir ; résultat gardé
+  90 jours ; catégories Commons (photos supplémentaires) : 3 000 au plus par passage.
+
