@@ -23,10 +23,9 @@ export function createImport(app) {
     try {
       const { places, home, work, listsMissing } = await readGoogleExport(file);
       let added = 0, missed = 0, unsure = 0;
-      // chaque liste Google retrouve son équivalent : Favoris, À tester (« À visiter »), ou une liste à son nom
+      // chaque liste Google retrouve son équivalent : Favoris, ou une liste à son nom (« À visiter » comprise, 02/11/2026)
       const listFor = (name) => {
         if (!name || /favori|favorite/i.test(name)) return 'fav';
-        if (/want to go|visiter|envie/i.test(name)) return 'todo';
         const l = app.createList(name);
         if (l && /suivi|starred/i.test(name) && l.icon !== 'star') { app.lists = app.lists.map((x) => (x.id === l.id ? { ...x, icon: 'star', color: '#C7972B' } : x)); }
         return l?.id || 'fav';

@@ -917,7 +917,7 @@ const tests = {
     });
     await p.reload(); await p.waitForTimeout(2500);
     await p.click('.chip:has-text("Mes lieux")'); await p.waitForTimeout(1200);
-    await p.click('.hub-lists > li > button:has-text("Favoris")'); await p.waitForTimeout(2000);
+    await p.click('.hub-lists li:has-text("Favoris") .swipe-content'); await p.waitForTimeout(2000);
     const r = await p.evaluate(() => { const b = window.__map.getBounds(); return { snap: document.querySelector('.app > section.sheet')?.dataset.snap, a: b.contains([2.3522, 48.8566]), b: b.contains([4.8357, 45.764]) }; });
     assert(r.a && r.b, `tous les lieux ne sont pas à l'écran : ${JSON.stringify(r)}`);
     assert(r.snap === 'peek', `fiche pas réduite : ${r.snap}`);
@@ -931,16 +931,16 @@ const tests = {
     await p.click('.action.save'); await p.check('.pick-lists li:has-text("Favoris") input'); await p.click('.done'); await p.waitForTimeout(500);
     await p.click('.close'); await p.waitForTimeout(500);
     await p.click('.chip:has-text("Mes lieux")'); await p.waitForTimeout(1200);
-    await p.click('.hub-lists > li > button:has-text("Favoris")'); await p.waitForTimeout(1200);
+    await p.click('.hub-lists li:has-text("Favoris") .swipe-content'); await p.waitForTimeout(1200);
     await p.click('.list-actions .link:has-text("Modifier")');
-    await p.waitForSelector('.list-style');
-    await p.click('.ls-btn >> nth=4'); await p.click('.ls-color >> nth=2'); await p.waitForTimeout(400);
+    await p.waitForSelector('.ed');
+    await p.click('.ed .ic >> nth=4'); await p.click('.ed .sw >> nth=2'); await p.waitForTimeout(400);
     const l = await p.evaluate(() => JSON.parse(localStorage.getItem(Object.keys(localStorage).find((k) => /list/i.test(k) && localStorage.getItem(k).includes('Favoris')))).find((x) => x.id === 'fav'));
     assert(l.icon === 'cup' && l.color === '#2A5BD7', `style non enregistré : ${JSON.stringify(l)}`);
     assert(!errors.length, errors.join(' | '));
     await ctx.close();
   },
-  async 'Mes lieux : favori, nouvelle liste, renommer, supprimer'() {
+  async 'Mes lieux : favori, nouvelle liste, renommer sur place, supprimer après confirmation'() {
     const { p, ctx, errors } = await page();
     await p.fill('#search', "Ed's rue Muller"); await p.waitForSelector('.results li.opt button', { timeout: 20000 }); await pick(p); await p.waitForTimeout(3000);
     await p.click('.action.save'); await p.check('.pick-lists li:has-text("Favoris") input'); await p.click('.done'); await p.waitForTimeout(500);   // Enregistrer → Favoris
@@ -950,13 +950,46 @@ const tests = {
     await p.fill('.hub-lists .new-list input', 'Brunch'); await p.press('.hub-lists .new-list input', 'Enter'); await p.waitForTimeout(500);
     assert(await p.locator('.hub-lists li:has-text("Brunch")').count() === 1, 'liste non créée');
     assert(/1/.test(await p.textContent('.hub-lists li:has-text("Favoris") .pl-count')), 'favori absent de la liste');
-    await p.click('.hub-lists li:has-text("Brunch") button'); await p.waitForTimeout(500);
-    p.once('dialog', (d) => d.accept('Brunch du dimanche'));
-    await p.click('.list-actions button:has-text("Renommer")'); await p.waitForTimeout(500);
+    await p.click('.hub-lists li:has-text("Brunch") .swipe-content'); await p.waitForTimeout(500);
+    await p.click('.list-actions .link:has-text("Modifier")'); await p.waitForSelector('.ed-title input');
+    await p.fill('.ed-title input', 'Brunch du dimanche'); await p.click('.ed-top .done'); await p.waitForTimeout(400);
     assert(/Brunch du dimanche/.test(await p.textContent('.list-title')), 'liste non renommée');
-    p.once('dialog', (d) => d.accept());
-    await p.click('.list-actions button:has-text("Supprimer")'); await p.waitForTimeout(800);
+    await p.click('.list-actions .link:has-text("Modifier")'); await p.click('.del-list'); await p.waitForSelector('.dlg');
+    await p.click('.dlg .del'); await p.waitForTimeout(800);
     assert(await p.locator('.hub-lists li:has-text("Brunch")').count() === 0, 'liste non supprimée');
+    assert(!errors.length, errors.join(' | '));
+    await ctx.close();
+  },
+  async 'glisser vers la gauche : corbeille, puis suppression en tirant jusqu\'au bout (liste : avec confirmation) (02/11)'() {
+    const { p, ctx, errors } = await page();
+    await p.evaluate(() => {
+      localStorage.setItem('mes-listes', JSON.stringify([{ id: 'fav', name: 'Favoris', icon: 'heart', color: '#D63A7A' }, { id: 'l1', name: 'Essai', icon: 'star', color: '#1E8E3E' }, { id: 'todo', name: 'À tester', icon: 'flag', color: '#E0862F' }]));
+      localStorage.setItem('lieux-favoris', JSON.stringify([{ id: 'a', name: 'Lieu A', lat: 48.8566, lon: 2.3522, lists: ['l1'] }, { id: 'b', name: 'Lieu B', lat: 48.857, lon: 2.353, lists: ['l1'] }]));
+    });
+    await p.reload(); await p.waitForTimeout(2500);
+    await p.click('.chip:has-text("Mes lieux")'); await p.waitForTimeout(1000);
+    const names = await p.$$eval('.hub-lists .pl-name', (es) => es.map((e) => e.firstChild.textContent.trim()));
+    assert(names[0] === 'Favoris' && !names.includes('À tester'), `listes : ${names}`);   // « À tester » vide : retirée
+    const swipe = (sel, to) => p.locator(sel).first().evaluate((el, to) => {
+      const r = el.getBoundingClientRect(), y = r.top + r.height / 2;
+      const ev = (type, x) => { const t = new Touch({ identifier: 1, target: el, clientX: x, clientY: y }); el.dispatchEvent(new TouchEvent(type, { touches: type === 'touchend' ? [] : [t], changedTouches: [t], bubbles: true, cancelable: true })); };
+      ev('touchstart', r.right - 10); for (let i = 1; i <= 10; i++) ev('touchmove', r.right - 10 - (r.right - 10 - to) * i / 10); ev('touchend', to);
+    }, to);
+    // une liste tirée jusqu'au bout : confirmation, puis supprimée
+    await swipe('.hub-lists li:has-text("Essai") .swipe-content', 20); await p.waitForSelector('.dlg', { timeout: 3000 });
+    await p.click('.dlg .keep'); await p.waitForTimeout(300);
+    assert(await p.locator('.hub-lists li:has-text("Essai")').count() === 1, 'liste supprimée sans confirmation');
+    // dans la liste : un petit glissement découvre la corbeille, la tirer jusqu'au bout retire le lieu
+    await p.click('.hub-lists li:has-text("Essai") .swipe-content'); await p.waitForTimeout(1500);
+    await p.evaluate(() => { const s = document.querySelector('.app > section.sheet'); if (s) s.dataset.snap = 'full'; });
+    const row = '.nearby li:has-text("Lieu A")';
+    const box = await p.locator(row).boundingBox();
+    await swipe(`${row} .swipe-content`, box.x + box.width - 100); await p.waitForTimeout(400);
+    assert(await p.isVisible(`${row} .swipe-act`), 'corbeille non découverte');
+    await swipe(`${row} .swipe-content`, 10); await p.waitForTimeout(800);
+    assert(await p.locator('.nearby li:has-text("Lieu A")').count() === 0, 'lieu non retiré');
+    // mode « Modifier » : un bouton rond par lieu
+    await p.click('.list-actions .link:has-text("Modifier")'); await p.waitForSelector('.del-round');
     assert(!errors.length, errors.join(' | '));
     await ctx.close();
   },

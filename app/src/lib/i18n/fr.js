@@ -188,7 +188,6 @@ export default {
   'liste.choisir_le_fichier': 'Choisir le fichier',
   'liste.ajouter_a_mes_lieux': 'Ajouter à Mes lieux',
   'liste.partager': 'Partager',
-  'liste.renommer': 'Renommer',
   'liste.supprimer': 'Supprimer',
   'liste.ouvert_maintenant': 'Ouvert maintenant',
   'liste.retirer_le_filtre_horaires': 'Retirer le filtre d\'horaires',
@@ -747,6 +746,16 @@ export default {
   'ecran.station_de_tram': 'Station de tram',
   'ecran.train': 'Train',
   // ——— Liens de lieux reçus de Google Maps ou de Plans (maplinkopen.js) ———
+  // ——— Ordre et modification des listes de Mes lieux (listorder.js, ListRows.svelte, ListEditor.svelte) ———
+  'liste.ouverte_quand': 'Ouverte {quand}',
+  'liste.lieu_ajoute_quand': 'Lieu ajouté {quand}',
+  'liste.aujourd_hui': 'aujourd\'hui',
+  'liste.hier': 'hier',
+  'liste.il_y_a_n_jours': 'il y a {n} jours',
+  'liste.supprimer_la_liste_q': 'Supprimer la liste « {name} » ?',
+  'liste.supprimer_la_liste_detail': ({ n }) => `Ses ${n} ${pluriel(n, 'lieu', 'lieux')} quitteront aussi Mes lieux, sauf ceux rangés dans une autre liste.`,
+  'liste.supprimer_la_liste_vide': 'Elle ne contient aucun lieu.',
+  'liste.supprimer_la_liste_bouton': 'Supprimer la liste « {name} »',
   'liens.lien_court': 'Ce lien court ne dit pas de quel lieu il s\'agit. Tapez plutôt son nom.',
   'liens.position_partagee': 'Position partagée',
   'ecran.la_recherche_ne_repond_pas_verifiez': 'La recherche ne répond pas. Vérifiez votre connexion et réessayez.',
@@ -886,7 +895,6 @@ export default {
 
   // ——— Mes lieux ———
   'meslieux.favoris': 'Favoris',
-  'meslieux.a_tester': 'À tester',
   'meslieux.liste': 'Liste',
   'meslieux.liste_partagee': 'Liste partagée',
   'meslieux.untracked_maps': 'Untracked Maps',
