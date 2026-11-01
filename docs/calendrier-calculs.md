@@ -4,11 +4,18 @@ Les données de l'app (lieux, photos, horaires, recherche) sont préparées à l
 GitHub (onglet **Actions**), puis publiées sur le site. L'app elle-même (le code) est publiée à part, après chaque
 fusion (`bash app/scripts/publish.sh`). Page écrite le 02/11/2026, à la demande du porteur.
 
-## Règle
+## Règle : relancer un calcul est une décision, pas un réflexe
 
-Après une fusion : on publie l'app, **on ne relance rien à la main**. Les données suivent ce calendrier. Un lancement à
-la main n'a lieu que si un changement doit être visible dès le lendemain ; dans ce cas, un seul calcul est indiqué
-au porteur, avec la raison.
+Après chaque fusion, se poser trois questions (porteur, 02/11/2026) :
+1. **La fusion change-t-elle les données ?** Seulement l'app (écran, code du téléphone) : publier l'app, aucun calcul.
+   Un script de `app/scripts/` ou un calcul de `.github/workflows/` : passer à la question 2.
+2. **Quand le calendrier l'appliquera-t-il, et qu'est-ce qu'on perd à attendre ?** Si le calcul tourne dans la nuit, ou
+   si le changement n'est utile qu'à une mesure ou un essai plus tard, attendre. Si le porteur doit le voir ou le tester
+   avant, ou si un défaut visible reste en ligne pendant ce temps, lancer.
+3. **Si on lance : quoi, et quand ?** Seulement les calculs touchés, une fois toutes les fusions liées faites (pas après
+   chacune) ; une zone précise plutôt que « toutes » ; jamais pendant qu'un calcul du même groupe tourne déjà.
+
+La décision est dite au porteur avec sa raison (« je lance X parce que… » ou « rien à lancer : Y s'en charge cette nuit »).
 
 ## Le calendrier (heure de Paris en hiver ; une heure de plus en été)
 
