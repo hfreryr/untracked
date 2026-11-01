@@ -21,7 +21,8 @@ export function cleanReviewer(o) {
   const jwk = o.jwk && o.jwk.kty === 'EC' && o.jwk.crv === 'P-256' && typeof o.jwk.d === 'string' ? { kty: 'EC', crv: 'P-256', x: o.jwk.x, y: o.jwk.y, d: o.jwk.d } : null;
   const mine = (Array.isArray(o.mine) ? o.mine : []).filter((m) => m && typeof m.id === 'string' && m.stars >= 1 && m.stars <= 5)
     .map((m) => ({ id: m.id, name: String(m.name || '').slice(0, 120), stars: Math.round(m.stars), text: String(m.text || '').slice(0, 1000),
-      nick: String(m.nick || '').slice(0, 40), t: +m.t || 0, sig: String(m.sig || ''), ...metaOf(m) })).slice(0, MAX);
+      nick: String(m.nick || '').slice(0, 40), t: +m.t || 0, sig: String(m.sig || ''), ...metaOf(m),
+      ...(/^https:\/\/files\.mangrove\.reviews\/[\w-]+$/.test(m.photo || '') ? { photo: m.photo } : {}) })).slice(0, MAX);
   return { jwk, nick: String(o.nick || '').slice(0, 40), mine };
 }
 

@@ -6,6 +6,7 @@ Liste tenue à jour à chaque étape, pour ne rien perdre entre les sujets mené
 ## À fusionner
 | PR | Sujet | Après fusion |
 |---|---|---|
+| (cette PR) | Bandeau de photos sous l'en-tête, photos des avis, « Ajouter une photo » (contient #127) | Publier ; photos des avis à la nuit suivante |
 | (cette PR) | Photo publiée par le site des restaurants et commerces, affichée depuis leur site | Lancer `extras.yml` (Île-de-France), puis la nuit suivante les tuiles la portent |
 | #122 | Import Google par l'annuaire national et l'adresse (Photon en dernier recours) | Publier |
 
@@ -60,7 +61,9 @@ Mesure : `node app/tests/search/grid.mjs` (6 points de départ × 27 recherches,
 ### Photos des lieux (01/11)
 - Décision : photo du site du lieu, affichée depuis son site, sans clic (cette PR) ; Île-de-France d'abord (relevé avec les
   horaires, `extras.yml`), régions ensuite.
-- Ensuite : photos des avis Mangrove (vérifier la licence), devantures Panoramax dans les régions, « ajouter une photo ».
+- Bandeau de photos sous l'en-tête (comme Plans), photos des avis Mangrove copiées chez nous (CC BY 4.0 vérifiée),
+  « Ajouter une photo » à un avis (cette PR, qui contient #127).
+- Ensuite : devantures Panoramax dans les régions ; relais sans journaux pour masquer l'IP à Mangrove (avec nos serveurs).
 
 ### Marque
 - INPI : marque verbale « Untracked », classes 9, 38, 42 ; avis d'un conseil en propriété industrielle recommandé

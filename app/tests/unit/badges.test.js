@@ -56,3 +56,28 @@ test('avis anciens : retrouvés dans l’index, gardés une fois rechargés', as
   const pl = reviewPlaces(back.mine);
   assert.equal(pl.length, 2); assert.equal(pl[0].osmType, 'node'); assert.equal(pl[0].osmId, 1); assert.match(pl[0].type, /4 sur 5/);
 });
+
+test('photo d’avis : taille réduite, envoi à Mangrove, adresse jointe à l’avis signé', async () => {
+  const { fitSize, uploadPhoto } = await import('#lib/photoupload.js');
+  const { payloadOf } = await import('#lib/mangrove.js');
+  assert.deepEqual(fitSize(4000, 3000), [1600, 1200]); assert.deepEqual(fitSize(800, 600), [800, 600]);
+  let sent = null;
+  const url = await uploadPhoto(new Blob(['x']), async (u, o) => { sent = [u, o.method]; return { ok: true, json: async () => ['AbCdEfGhIjKl_123'] }; });
+  assert.deepEqual(sent, ['https://upload.mangrove.reviews', 'PUT']);
+  assert.equal(url, 'https://files.mangrove.reviews/AbCdEfGhIjKl_123');
+  await assert.rejects(uploadPhoto(new Blob(['x']), async () => ({ ok: true, json: async () => ['../../x'] })));
+  const p = payloadOf({ place: { lat: 48.85, lon: 2.35, name: 'A', osmType: 'node', osmId: 1 }, stars: 4, text: '', nick: '', images: [url, 'https://evil.test/x'] });
+  assert.deepEqual(p.images, [{ src: url, label: null }]);
+});
+
+test('photos du lieu : un commerce montre d’abord ses photos d’avis et de site, un monument d’abord Wikimedia', async () => {
+  const { placePhotos } = await import('#lib/placephotos.js');
+  const wiki = { photos: [{ src: 'w.jpg', full: 'W.jpg', page: 'p', credit: 'X' }] };
+  const info = { expectsHours: true, sitePhoto: 'https://cdn.resto.fr/s.jpg', website: 'https://www.resto.fr',
+    reviews: { photos: [{ thumb: 'd/photos/a.t.jpg', full: 'd/photos/a.jpg', nick: 'Lou' }] } };
+  const c = placePhotos(wiki, info);
+  assert.deepEqual(c.map((p) => p.src), ['d/photos/a.t.jpg', 'https://cdn.resto.fr/s.jpg', 'w.jpg']);
+  assert.equal(c[1].referrer, 'origin'); assert.equal(c[1].cors, false); assert.equal(c[1].source, 'resto.fr');
+  assert.match(c[0].credit, /Lou.*CC BY 4\.0/);
+  assert.deepEqual(placePhotos(wiki, { ...info, expectsHours: false }).map((p) => p.src)[0], 'w.jpg');
+});

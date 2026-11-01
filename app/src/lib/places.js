@@ -98,7 +98,7 @@ export function fromTags(t, at = null) {
     wikidata: t.wikidata,
     wikipedia: t.wikipedia,
     access: Array.isArray(t._acc) ? t._acc : null,    // accès d'un grand lieu (build_places.py), pour l'itinéraire
-    reviews: reviewsOf(t)                              // avis libres Mangrove (reviews.js)
+    reviews: reviewsOf(t, at?.base || '')             // avis libres Mangrove (reviews.js), et leurs photos
   };
 }
 

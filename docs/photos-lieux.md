@@ -100,3 +100,17 @@ Point d'attention 🔶 : le commerçant n'est pas toujours titulaire des droits 
   interdiction à côté d'autres avis), relais par notre serveur (zone grise juridique ; décision : inutile).
 - **À venir** : photos des avis Mangrove (licence à vérifier), devantures Panoramax dans toutes les régions, « ajouter une
   photo » avec un avis.
+
+## 6. Bandeau de photos et photos des avis (01/11/2026)
+
+- **Bandeau sous l'en-tête de la fiche**, comme Plans (capture du porteur) : toutes les photos du lieu, deux grandes
+  vignettes visibles, la source écrite sur chacune, plein écran au toucher (`placephotos.js`, `PhotoStrip.svelte`).
+  Un commerce montre d'abord ses propres photos (avis, site), un monument d'abord Wikimedia.
+- **Photos des avis Mangrove** : licence CC BY 4.0 (conditions de Mangrove : le contenu soumis, texte ou non, est placé
+  sous CC BY 4.0, vérifié le 01/11/2026). Copiées chaque nuit chez nous en deux tailles (480 et 1 400 px), recompressées
+  (métadonnées effacées) : `review_photos.py`. Le téléphone ne contacte pas Mangrove pour les voir. Auteur (pseudo) affiché.
+- **« Ajouter une photo » dans la fenêtre d'avis** : réduite à 1 600 px et recompressée sur le téléphone (la position GPS de
+  la prise de vue et le modèle de l'appareil disparaissent), envoyée à Mangrove (upload.mangrove.reviews) seulement en
+  publiant, jointe à l'avis signé. Consigne affichée : publique, licence libre, sans visages.
+- **IP de l'auteur vue par Mangrove** à l'envoi (comme pour le texte de l'avis). La masquer demanderait un relais par
+  notre serveur : prévu avec nos propres serveurs sans journaux, avant tout lancement public (règle « zéro pistage »).
