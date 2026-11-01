@@ -85,6 +85,10 @@ export function fromTags(t, at = null) {
     wheelchair: t.wheelchair,
     checkDate: t.check_date || t['check_date:opening_hours'],
     kind: kindOf(t),
+    // pour les badges (badges.js) : sous-catégorie, commune et code postal
+    subclass: t.amenity || t.tourism || t.leisure || t.shop || null,
+    city: t['addr:city'] || null,
+    postcode: t['addr:postcode'] || null,
     expectsHours: expectsHours(t),
     practical: practical(t),
     good: goodToKnow(t),

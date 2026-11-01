@@ -9,7 +9,9 @@
   import { newKeyJwk, payloadOf, signReview, submit } from '#lib/mangrove.js';
   import { loadReviewer, saveReviewer, withMine, mineFor, placeId } from '#lib/reviewer.js';
   import { makePseudo } from '#lib/pseudo.js';
-  import { takeIntent } from '#lib/contrib.js';
+  import { takeIntent, earnedBy } from '#lib/contrib.js';
+  import { badgeProgress } from '#lib/badges.js';
+  import { reviewMeta } from '#lib/reviewmeta.js';
   import Dialog from './Dialog.svelte';
   import LevelUp from './LevelUp.svelte';
   /** @type {{ place: any, reviews: any, hideRate?: boolean }} */
@@ -24,6 +26,7 @@
   const month = (d) => d.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
 
   // fenêtre d'avis
+  let earned = $state(null);
   let open = $state(false), stars = $state(0), text = $state(''), nick = $state(''), sending = $state(false), failed = $state(false);
   function start(n) {
     stars = n; text = mine?.text || ''; nick = mine?.nick ?? me.nick; failed = false; open = true;
@@ -37,6 +40,19 @@
     window.addEventListener('avis-noter', on);
     return () => window.removeEventListener('avis-noter', on);
   });
+  // avis publié avant le 01/11/2026 (sans position ni genre de lieu) : complété quand on rouvre sa fiche, sans annonce
+  $effect(() => {
+    const m = mine, info = app.info;
+    if (!m || m.lat != null || !info) return;
+    reviewMeta(place, info).then((meta) => {
+      const cur = loadReviewer();
+      const i = cur.mine.findIndex((x) => x.id === m.id);
+      if (i < 0) return;
+      cur.mine[i] = { ...cur.mine[i], ...meta };
+      saveReviewer(cur);
+      me = cur;
+    }).catch(() => {});
+  });
   async function publish() {
     if (!stars || sending) return;
     sending = true; failed = false;
@@ -47,8 +63,14 @@
       const sig = await submit(jwt);
       // modifier = nouvel avis, puis l'ancien retiré (même clé) ; s'il ne part pas, la construction des données garde le plus récent
       if (mine?.sig) signReview(r.jwk, { sub: `urn:maresi:${mine.sig}`, action: 'delete', iat: Math.floor(Date.now() / 1000) }).then(submit).catch(() => {});
-      me = withMine({ ...r, nick: nick.trim() }, { id: placeId(place), name: place.name || '', stars, text: text.trim(), nick: nick.trim(), t: Math.floor(Date.now() / 1000), sig });
+      // position, genre de lieu et commune : pour les badges et la carte de mes avis (badges.js)
+      const meta = await reviewMeta(place, app.info).catch(() => ({ lat: +place.lat, lon: +place.lon }));
+      const before = me.mine;
+      me = withMine({ ...r, nick: nick.trim() }, { id: placeId(place), name: place.name || '', stars, text: text.trim(), nick: nick.trim(), t: Math.floor(Date.now() / 1000), sig, ...meta });
       saveReviewer(me);
+      // niveau ou badge gagné par cet avis : annoncé maintenant, et seulement maintenant (LevelUp.svelte)
+      const e = earnedBy(before, me.mine, badgeProgress);
+      if (e.level || e.badges.length) earned = e;
       open = false;
       app.say(tx('avis.merci_publie'));
     } catch {
@@ -119,8 +141,8 @@
   {/if}
 </section>
 
-<!-- nouveau niveau : annoncé une fois (à l'ouverture d'une fiche, ou juste après l'avis qui le donne) -->
-{#if !open}<LevelUp count={me.mine.length} />{/if}
+<!-- nouveau niveau ou badge : annoncé juste après l'avis qui le donne, jamais ailleurs -->
+{#if earned && !open}<LevelUp {earned} mine={me.mine} onclose={() => (earned = null)} />{/if}
 
 {#if open}
   <Dialog title={place.name} sub={tx('avis.votre_avis')} onclose={() => (open = false)}>

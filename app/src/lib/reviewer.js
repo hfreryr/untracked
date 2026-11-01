@@ -4,6 +4,15 @@
 export const REVIEWER_KEY = 'avis-auteur';
 const MAX = 500;
 
+// pour les badges et la carte de mes avis (badges.js, reviewmeta.js) : position, genre de lieu, commune, code postal
+const num = (v, lim) => (Number.isFinite(+v) && Math.abs(+v) <= lim && v !== null && v !== '' ? +v : undefined);
+function metaOf(m) {
+  const o = { lat: num(m.lat, 90), lon: num(m.lon, 180), kind: typeof m.kind === 'string' ? m.kind.slice(0, 20) : undefined,
+    city: typeof m.city === 'string' ? m.city.slice(0, 80) : undefined, pc: typeof m.pc === 'string' ? m.pc.slice(0, 10) : undefined };
+  for (const k of Object.keys(o)) if (o[k] === undefined) delete o[k];
+  return o;
+}
+
 export function emptyReviewer() { return { jwk: null, nick: '', mine: [] }; }
 
 /** Données lues (ou reçues d'une sauvegarde), nettoyées. */
@@ -12,7 +21,7 @@ export function cleanReviewer(o) {
   const jwk = o.jwk && o.jwk.kty === 'EC' && o.jwk.crv === 'P-256' && typeof o.jwk.d === 'string' ? { kty: 'EC', crv: 'P-256', x: o.jwk.x, y: o.jwk.y, d: o.jwk.d } : null;
   const mine = (Array.isArray(o.mine) ? o.mine : []).filter((m) => m && typeof m.id === 'string' && m.stars >= 1 && m.stars <= 5)
     .map((m) => ({ id: m.id, name: String(m.name || '').slice(0, 120), stars: Math.round(m.stars), text: String(m.text || '').slice(0, 1000),
-      nick: String(m.nick || '').slice(0, 40), t: +m.t || 0, sig: String(m.sig || '') })).slice(0, MAX);
+      nick: String(m.nick || '').slice(0, 40), t: +m.t || 0, sig: String(m.sig || ''), ...metaOf(m) })).slice(0, MAX);
   return { jwk, nick: String(o.nick || '').slice(0, 40), mine };
 }
 

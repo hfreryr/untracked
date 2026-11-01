@@ -185,8 +185,8 @@ button { font: inherit; color: inherit; }
 }
 .me { width: 18px; height: 18px; position: relative; }   /* taille de Plans et Google Maps (16-18 px) */
 .me .me-dot {
-  position: absolute; inset: 0; border-radius: 50%; background: var(--accent); box-sizing: border-box;
-  border: 2.5px solid #fff; box-shadow: 0 0 0 7px rgb(42 91 215 / 0.14), 0 1px 3px rgb(0 0 0 / 0.3);
+  position: absolute; inset: 0; border-radius: 50%; background: var(--me-color, var(--accent)); box-sizing: border-box;
+  border: 2.5px solid #fff; box-shadow: 0 0 0 7px color-mix(in srgb, var(--me-color, #2a5bd7) 14%, transparent), 0 1px 3px rgb(0 0 0 / 0.3);
 }
 /* Faisceau de direction : un éventail bleu dégradé qui part du point (comme Plans et Maps) */
 .me .me-beam {
