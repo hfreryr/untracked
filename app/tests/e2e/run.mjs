@@ -864,6 +864,24 @@ const tests = {
     assert(!errors.length, errors.join(' | '));
     await ctx.close();
   },
+  async 'lien Google Maps ou Plans reçu : collé dans la recherche ou partagé vers l\'app (01/11)'() {
+    const flore = 'https://www.google.com/maps/place/Caf%C3%A9+de+Flore/@48.854,2.332,17z/data=!3d48.854165!4d2.332525';
+    const { p, ctx, errors } = await page();
+    await p.fill('#search', flore); await p.waitForSelector('.results li.opt button', { timeout: 20000 });
+    const row = await p.textContent('.results li.opt >> nth=0');
+    assert(/Flore/.test(row), `lien long : ${row}`);
+    await p.fill('#search', 'https://maps.apple/p/U8rE9v8n8iVZjr'); await p.waitForSelector('.results li.note', { timeout: 10000 });
+    assert(/lien court/i.test(await p.textContent('.results li.note')), 'lien court : pas de message');
+    await ctx.close();
+    // partage depuis une autre app (Android) : l'app s'ouvre avec ?texte=… et ouvre la fiche du lieu
+    const s = await page({}, `?texte=${encodeURIComponent('Café de Flore ' + flore)}`);
+    await s.p.waitForSelector('section.sheet h1.title, .phead h1', { timeout: 20000 });
+    const title = await s.p.textContent('section.sheet h1.title, .phead h1');
+    assert(/Flore/.test(title), `fiche : ${title}`);
+    assert(!/texte=/.test(s.p.url()), 'le texte partagé reste dans l\'adresse');
+    assert(!errors.length && !s.errors.length, [...errors, ...s.errors].join(' | '));
+    await s.ctx.close();
+  },
   async 'toucher une liste : la carte montre tous ses lieux, la fiche réduite en bas (01/11)'() {
     const { p, ctx, errors } = await page();
     // deux lieux loin l'un de l'autre (Paris, Lyon) dans « Favoris »

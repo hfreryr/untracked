@@ -6,12 +6,7 @@ Liste tenue à jour à chaque étape, pour ne rien perdre entre les sujets mené
 ## À fusionner
 | PR | Sujet | Après fusion |
 |---|---|---|
-| #131 | Carte en vue large : villes avec un point, grandes villes plus grandes ; mode sombre sans jaune | Publier |
-| #130 | Import Google : position lue dans le lien de chaque lieu (52 → 1 lieu mal placé) ; une liste s'ouvre en carte | Publier |
-| #128 | Carte plus dense (comme Plans) : échelle corrigée, tous les lieux visibles de près | Publier ; les zones se recalculent au fil de la semaine |
-| #129 | Bandeau de photos sous l'en-tête, photos des avis, « Ajouter une photo » (contient #127) | Publier ; photos des avis à la nuit suivante |
-| #129 | Photo publiée par le site des restaurants et commerces, affichée depuis leur site | Lancer `extras.yml` (Île-de-France), puis la nuit suivante les tuiles la portent |
-| #122 | Import Google par l'annuaire national et l'adresse (Photon en dernier recours) | Publier |
+| (cette PR) | Liens Google Maps et Plans reçus : collés dans la recherche, ou « Partager → Untracked » (Android) | Publier |
 
 ## Décisions attendues du porteur
 | Sujet | Question posée | Où regarder |
@@ -22,6 +17,13 @@ Liste tenue à jour à chaque étape, pour ne rien perdre entre les sujets mené
   région après l'autre, PACA d'abord (≈ 4 h).
 
 ## Chantiers ouverts
+### Liens Google Maps et Plans reçus (effet de réseau, porteur, 01/11)
+- Liens longs (nom et position en clair) : lus, le lieu ouvert chez nous (cette PR). Partage Android vers l'app (cette PR).
+- Liens courts (`maps.app.goo.gl`, et `maps.apple/p` depuis iOS 26) : illisibles depuis une app web ; on cherche le texte
+  partagé avec eux, sinon on demande le nom. Réglé par la vraie app (le téléphone lit le lien lui-même), date non fixée.
+- iPhone : pas de menu Partager pour une app web ; raccourci iOS écarté (rustine), attendre la vraie app.
+- Fait le 01/11 : #127–#132 fusionnées et publiées (photos, carte dense, import, vue large, enseignes).
+
 ### Classement des lieux sur la carte
 - 01/11 : rang dans le quartier (#121, fusionnée, `docs/villes.md`) ; appliqué à chaque zone à son prochain calcul : Île-de-France la nuit suivante, régions au fil de la semaine (toutes au 08/11) : Rijksmuseum dès le zoom 14, même nombre de bons lieux
   avec 18 % d'étiquettes en moins.

@@ -746,6 +746,9 @@ export default {
   'ecran.entree_de_metro': 'Entrée de métro',
   'ecran.station_de_tram': 'Station de tram',
   'ecran.train': 'Train',
+  // ——— Liens de lieux reçus de Google Maps ou de Plans (maplinkopen.js) ———
+  'liens.lien_court': 'Ce lien court ne dit pas de quel lieu il s\'agit. Tapez plutôt son nom.',
+  'liens.position_partagee': 'Position partagée',
   'ecran.la_recherche_ne_repond_pas_verifiez': 'La recherche ne répond pas. Vérifiez votre connexion et réessayez.',
   'ecran.aujourd_hui': 'Aujourd\'hui',
   'ecran.demain': 'Demain',

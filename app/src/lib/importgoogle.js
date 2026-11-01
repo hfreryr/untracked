@@ -49,7 +49,7 @@ async function unzip(buf) {
 }
 
 // Coordonnées cachées dans une adresse Google Maps (…!3d48.85!4d2.33… ou …@48.85,2.33…).
-function coordsFromUrl(url = '') {
+export function coordsFromUrl(url = '') {
   const m = /!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/.exec(url) || /@(-?\d+\.\d+),(-?\d+\.\d+)/.exec(url)
     || /[?&](?:q|query|ll)=(-?\d+\.\d+),\s*(-?\d+\.\d+)/.exec(url) || /\/maps\/search\/(-?\d+\.\d+),\s*(-?\d+\.\d+)/.exec(url);
   if (m) return { lat: Number(m[1]), lon: Number(m[2]) };

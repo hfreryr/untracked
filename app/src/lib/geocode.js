@@ -6,6 +6,7 @@
 //    à remplacer par notre propre instance avant tout lancement public.
 //
 // Ce qui est envoyé : le texte tapé et un point de référence (centre de la carte ou position), rien d'autre.
+import { isMapLink } from './maplink.js';
 import { covered, hasPlaces, inFrance, streetLine } from '#lib/searchscope.js';
 import { looksLikeStreet, matchesQuery, rankAddresses, townAt, withTown } from '#lib/addressnear.js';
 import { tx } from '#lib/i18n/index.js';
@@ -189,6 +190,8 @@ async function findByName(query, at, signal, limit = 7, onEarly = null) {
 export async function search(query, at = city.center, signal, onEarly = null) {
   const q = query.trim();
   if (!q) return [];
+  // lien Google Maps ou Plans reçu (maplink.js) : le lieu qu'il désigne (chargé à la demande)
+  if (isMapLink(q)) return (await import('./maplinkopen.js')).linkResults(q, at, { search: (t, a) => search(t, a, signal) });
   if (inFrance(at) && looksLikeAddress(q)) {
     // l'adresse d'abord (rapide) ; Photon n'est consulté que si l'adresse n'est pas nette (un nom de commerce avec un chiffre…)
     const a = await geopf(q, at, signal).catch(() => []);

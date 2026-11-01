@@ -7,6 +7,9 @@ import { followLandmarks } from '#lib/landmarkstore.js';
 import { mapStyle, provideImage } from '#lib/mapstyle.js';
 import * as maplibregl from 'maplibre-gl';
 import { restore, unpack, unpackList } from '#lib/myplaces.js';
+import { openShared } from '#lib/sharedopen.js';
+import { isMapLink } from '#lib/maplink.js';
+import { search } from '#lib/geocode.js';
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
 
 /** @param {any} app */
@@ -52,6 +55,8 @@ export function createMapSetup(app) {
           if (pts.length) app.fitTo(pts);
         }).catch(() => app.say(tx('ecran.ce_lien_de_liste_est_incomplet')));
       }
+      // Texte ou lien partagé vers l'app depuis une autre app (sharedopen.js)
+      openShared(app, { isMapLink, search, at: () => ({ lat: app.map.getCenter().lat, lon: app.map.getCenter().lng }) });
       // Lien partagé vers un lieu (…#carte=…&lieu=node/123) : on rouvre sa fiche.
       const shared = /[#&]lieu=(node|way|relation)\/(\d+)/.exec(location.hash);
       if (shared) {
