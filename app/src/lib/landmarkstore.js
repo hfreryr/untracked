@@ -15,7 +15,9 @@ function index(src) {
   if (!indexes.has(src.id)) {
     indexes.set(src.id, fetch(`${dataBase()}${src.dir}landmarks/index.json`)
       .then((r) => (r.ok ? r.json() : null))
-      .then((j) => (j ? { zoom: j.zoom, tiles: new Set(j.tiles) } : { zoom: 10, tiles: new Set() }))
+      // v2 (01/11/2026) : les lieux qui n'apparaissent que de près sont dans des carrés plus petits (« fine »)
+      .then((j) => (j ? { zoom: j.zoom, tiles: new Set(j.tiles), fine: j.fine ? { ...j.fine, tiles: new Set(j.fine.tiles) } : null }
+        : { zoom: 10, tiles: new Set(), fine: null }))
       .then((ix) => { if (ix.tiles.size && src.bbox) covered(src.bbox); return ix; })
       .catch(() => ({ zoom: 10, tiles: new Set() })));
   }
@@ -48,16 +50,21 @@ function tile(src, key) {
 const meets = (a, b) => !b || (a[0] < b[2] && a[2] > b[0] && a[1] < b[3] && a[3] > b[1]);
 
 /** Les lieux mis en avant dans une zone de la carte, sans doublon (bordure entre deux régions). */
-export async function landmarksIn({ west, south, east, north }) {
+export async function landmarksIn({ west, south, east, north }, zoom = 0) {
   const view = [west, south, east, north];
   const lists = [];
+  const add = (src, z, have) => {
+    const [x0, y0] = tileXY(west, north, z), [x1, y1] = tileXY(east, south, z);
+    for (let x = x0; x <= x1; x++) for (let y = y0; y <= y1; y++) {
+      const key = `${z}/${x}/${y}`;
+      if (have.has(key)) lists.push(tile(src, key));
+    }
+  };
   for (const src of SOURCES.filter((s) => meets(view, s.bbox))) {
     const ix = await index(src);
-    const [x0, y0] = tileXY(west, north, ix.zoom), [x1, y1] = tileXY(east, south, ix.zoom);
-    for (let x = x0; x <= x1; x++) for (let y = y0; y <= y1; y++) {
-      const key = `${ix.zoom}/${x}/${y}`;
-      if (ix.tiles.has(key)) lists.push(tile(src, key));
-    }
+    add(src, ix.zoom, ix.tiles);
+    // de près : aussi les petits carrés (un peu avant leur zoom, pour qu'ils soient là à temps)
+    if (ix.fine && zoom >= ix.fine.from - 0.75) add(src, ix.fine.zoom, ix.fine.tiles);
   }
   const seen = new Set();
   return (await Promise.all(lists)).flat().filter((f) => !seen.has(f.properties.osm) && seen.add(f.properties.osm));
@@ -72,7 +79,7 @@ export function followLandmarks(map) {
     const b = map.getBounds(), id = ++n;
     // un peu au-delà de l'écran, pour que les lieux soient là quand on fait glisser la carte
     const dx = (b.getEast() - b.getWest()) / 2, dy = (b.getNorth() - b.getSouth()) / 2;
-    const feats = await landmarksIn({ west: b.getWest() - dx, south: b.getSouth() - dy, east: b.getEast() + dx, north: b.getNorth() + dy });
+    const feats = await landmarksIn({ west: b.getWest() - dx, south: b.getSouth() - dy, east: b.getEast() + dx, north: b.getNorth() + dy }, map.getZoom());
     if (id !== n) return;   // une demande plus récente est partie entre-temps
     if (feats.length === data.features.length && feats.every((f, i) => f === data.features[i])) return;
     data = { type: 'FeatureCollection', features: feats };

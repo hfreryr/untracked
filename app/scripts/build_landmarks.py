@@ -16,6 +16,7 @@ import argparse
 import gzip
 import json
 import os
+import shutil
 import time
 from collections import defaultdict
 
@@ -85,20 +86,29 @@ def select(landmarks, places, bbox=None, n_landmarks=N_LANDMARKS, method="quarti
     return out
 
 
+# lieux qui n'apparaissent que de près (zoom ≥ 16) : rangés à part en carrés d'≈ 5 km (zoom 13), chargés seulement
+# quand on zoome ; sans eux, le carré de 40 km de Paris pèserait 2 Mo (01/11/2026)
+FINE_ZOOM, FINE_FROM = 13, 16.0
+
+
 def write(out_dir, items):
     d = os.path.join(out_dir, "landmarks")
+    shutil.rmtree(d, ignore_errors=True)
     tiles = defaultdict(list)
     for rank, i in enumerate(items, 1):
-        x, y = cell_of(i["lon"], i["lat"], ZOOM)
-        tiles[(x, y)].append([i["lon"], i["lat"], i["name"], i["family"], i["subclass"], i["z"], rank, i["osm"]])
-    for (x, y), rows in tiles.items():
-        os.makedirs(os.path.join(d, str(ZOOM), str(x)), exist_ok=True)
+        z = FINE_ZOOM if i["z"] >= FINE_FROM else ZOOM
+        x, y = cell_of(i["lon"], i["lat"], z)
+        tiles[(z, x, y)].append([i["lon"], i["lat"], i["name"], i["family"], i["subclass"], i["z"], rank, i["osm"]])
+    for (z, x, y), rows in tiles.items():
+        os.makedirs(os.path.join(d, str(z), str(x)), exist_ok=True)
         data = json.dumps(rows, ensure_ascii=False, separators=(",", ":")).encode()
-        with open(os.path.join(d, str(ZOOM), str(x), f"{y}.json.gz"), "wb") as f:
+        with open(os.path.join(d, str(z), str(x), f"{y}.json.gz"), "wb") as f:
             f.write(gzip.compress(data, 9, mtime=0))
     with open(os.path.join(d, "index.json"), "w") as f:
-        json.dump({"v": 1, "zoom": ZOOM, "count": len(items), "tiles": sorted(f"{ZOOM}/{x}/{y}" for x, y in tiles)}, f,
-                  separators=(",", ":"))
+        json.dump({"v": 2, "zoom": ZOOM, "count": len(items),
+                   "tiles": sorted(f"{z}/{x}/{y}" for z, x, y in tiles if z == ZOOM),
+                   "fine": {"zoom": FINE_ZOOM, "from": FINE_FROM, "tiles": sorted(f"{z}/{x}/{y}" for z, x, y in tiles if z == FINE_ZOOM)}},
+                  f, separators=(",", ":"))
     return len(tiles)
 
 
