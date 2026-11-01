@@ -47,6 +47,18 @@ def fetch(url, tries=3):
             time.sleep(5 * (i + 1))
 
 
+def instance_host(feature):
+    """Hôte de l'instance Panoramax qui héberge la photo (lien « via » du méta-catalogue), celui que l'app interroge
+    en /api/pictures/<id>/sd.jpg. Pas l'hôte de « geovisio:image » : pour une partie des photos de l'IGN, c'est leur
+    stockage S3, où cette adresse n'existe pas (constaté le 01/11/2026 : 38 % des devantures sans image)."""
+    for link in feature.get("links") or []:
+        if link.get("rel") == "via" and link.get("href"):
+            return urllib.parse.urlparse(link["href"]).netloc
+    img = (feature.get("properties") or {}).get("geovisio:image") or ""
+    host = urllib.parse.urlparse(img).netloc
+    return "" if ".s3." in host else host
+
+
 def photos_in(bbox, cell=0.005):
     """Toutes les photos 360° d'une boîte, par cellules assez petites pour rester sous la limite de 10 000 par appel."""
     w, s, e, n = bbox
@@ -71,8 +83,7 @@ def photos_in(bbox, cell=0.005):
                 io = p.get("pers:interior_orientation") or {}
                 if (io.get("field_of_view") or 360) != 360 or p.get("view:azimuth") is None:
                     continue
-                img = p.get("geovisio:image") or ""
-                host = urllib.parse.urlparse(img).netloc
+                host = instance_host(f)
                 if not host:
                     continue
                 out[f["id"]] = (f["geometry"]["coordinates"][0], f["geometry"]["coordinates"][1], float(p["view:azimuth"]),
