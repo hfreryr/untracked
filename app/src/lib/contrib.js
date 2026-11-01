@@ -1,12 +1,16 @@
 // Contributions et petits jeux, tout sur le téléphone (proposition Mangrove validée le 30/10/2026) :
 //  - niveaux Éclaireur (1) → Passeur (5) → Vigie (20) → Phare (50), selon le nombre d'avis publiés ;
-//  - chaque niveau débloque une couleur de flèche de guidage (décoratif : rien d'utile n'est réservé) ;
+//  - chaque niveau débloque une couleur pour sa position sur la carte et la flèche de guidage (décoratif : rien d'utile
+//    n'est réservé) ;
 //  - « Comment était X ? » : après un guidage vers un lieu, la question revient une fois, entre 1 h et 2 jours après.
 import { mineFor } from '#lib/reviewer.js';
 
 export const LEVELS = [{ id: 'eclaireur', min: 1 }, { id: 'passeur', min: 5 }, { id: 'vigie', min: 20 }, { id: 'phare', min: 50 }];
 export const ARROWS = { classique: 'rgb(122 150 212 / 0.78)', eclaireur: 'rgb(46 150 90 / 0.8)', passeur: 'rgb(214 140 30 / 0.82)',
   vigie: 'rgb(138 63 252 / 0.72)', phare: 'rgb(214 58 58 / 0.78)' };
+
+// couleur du point « vous êtes ici » (maquette du 31/10/2026) : la même que le disque de la flèche de guidage, en plein
+export const DOTS = { classique: '#2a5bd7', eclaireur: '#2e965a', passeur: '#d68c1e', vigie: '#8a3ffc', phare: '#d63a3a' };
 
 /** Niveau atteint (null avant le premier avis), suivant, et combien il en manque. */
 export function levelOf(n) {
@@ -59,3 +63,11 @@ export function levelToAnnounce(n, store = globalThis.localStorage) {
   return read(ANNOUNCED_KEY, 0, store) < rank ? level : null;
 }
 export const markAnnounced = (n, store = globalThis.localStorage) => write(ANNOUNCED_KEY, levelOf(n).rank, store);
+
+/** Ce qu'un avis vient de faire gagner (pour l'annoncer tout de suite) : le niveau franchi, les badges complétés. */
+export function earnedBy(before, after, progress) {
+  const a = levelOf(after.length), b = levelOf(before.length);
+  const done = (m) => new Set(progress(m).filter((x) => x.done).map((x) => x.id));
+  const was = done(before);
+  return { level: a.rank > b.rank ? a.level : null, badges: [...done(after)].filter((id) => !was.has(id)) };
+}

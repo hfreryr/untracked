@@ -1,15 +1,34 @@
 <!-- Mes contributions (dans Mes lieux) : niveau, avis publiés, flèches de guidage gagnées, lieux sans avis autour de soi.
      Tout est calculé sur le téléphone (contrib.js, reviewer.js) ; pas de classement entre personnes (il faudrait un
-     serveur et des identités). Maquette validée le 30/10/2026. -->
+     serveur et des identités). Maquette validée le 30/10/2026 ; badges, carte de mes avis et couleur du point
+     « vous êtes ici » ajoutés le 01/11 (maquette du 31/10). -->
 <script>
   import { tx } from '#lib/i18n/index.js';
   import { getContext } from 'svelte';
-  import { levelOf, unlockedArrows, LEVELS, ARROWS, readArrow, saveArrow } from '#lib/contrib.js';
-  import { loadReviewer, placeId } from '#lib/reviewer.js';
+  import { levelOf, unlockedArrows, LEVELS, DOTS, readArrow, saveArrow, markAnnounced } from '#lib/contrib.js';
+  import { loadReviewer, saveReviewer, placeId } from '#lib/reviewer.js';
+  import { badgeProgress, badgesNotAnnounced, markBadges, topArea } from '#lib/badges.js';
+  import { reviewPlaces, showMyReviews } from '#lib/reviewsmap.js';
+  import { locateOld } from '#lib/reviewbackfill.js';
+  import BadgeIcon from './BadgeIcon.svelte';
+  import { badgeName, badgeSub } from '#lib/badgetext.js';
   import { placesInBounds } from '#lib/placestore.js';
   const app = getContext('app');
-  const me = loadReviewer();
+  let me = $state(loadReviewer());
   const n = me.mine.length;
+  // ce qui est « Nouveau » est vu en ouvrant ce panneau : plus de pastille ni d'annonce ensuite
+  const fresh = new Set(badgesNotAnnounced(me.mine));
+  markAnnounced(n);
+  markBadges(me.mine);
+  const badges = $derived(badgeProgress(me.mine));
+  const mapped = $derived(reviewPlaces(me.mine));
+  const cities = $derived([...new Set(me.mine.map((r) => r.city).filter(Boolean))]);
+  const area = $derived(topArea(me.mine));
+  // avis d'avant le 01/11/2026 (sans position) : retrouvés dans l'index de recherche autour de soi
+  locateOld(me, app.me || (app.map && { lat: app.map.getCenter().lat, lon: app.map.getCenter().lng })).then((r) => {
+    if (!r) return;
+    saveReviewer(r); me = r; markBadges(r.mine);
+  }).catch(() => {});
   const lv = levelOf(n);
   const open = unlockedArrows(n);
   let arrow = $state(readArrow(n));
@@ -53,13 +72,37 @@
 
 <div class="stats"><div class="stat"><b>{n}</b><span>{tx('contrib.avis_publies', { n })}</span></div></div>
 
+<h3 class="h">{tx('badges.titre')}</h3>
+<ul class="badges">
+  {#each badges as b (b.id)}
+    <li class="bdg" class:done={b.done}>
+      <BadgeIcon id={b.id} size={44} off={!b.done} />
+      <b>{badgeName(b.id)}{#if fresh.has(b.id)} <span class="new">{tx('contrib.nouveau')}</span>{/if}</b>
+      <small>{b.done ? (b.id === 'quartier' && area ? tx('badges.obtenu_ou', { ou: area.arr ? tx('badges.arrondissement', { n: area.arr }) : area.city }) : tx('badges.obtenu_court'))
+        : badgeSub(b.id, b.n, b.goal)}</small>
+    </li>
+  {/each}
+</ul>
+
+<h3 class="h">{tx('badges.carte_titre')}</h3>
+{#if mapped.length}
+  <button class="map-card" onclick={() => showMyReviews(app)}>
+    <span class="mini" aria-hidden="true"><i style:left="22%" style:top="40%"></i><i style:left="62%" style:top="28%"></i><i style:left="44%" style:top="66%"></i></span>
+    <span class="mc-t"><b>{tx('badges.lieux_notes', { n: mapped.length })}</b><small>{[cities.slice(0, 3).join(', '), tx('badges.voir_sur_la_carte')].filter(Boolean).join(' · ')}</small></span>
+  </button>
+  {#if mapped.length < n}<p class="muted">{tx('badges.sans_position', { n: n - mapped.length })}</p>{/if}
+{:else}
+  <p class="muted">{n ? tx('badges.sans_position', { n }) : tx('badges.carte_vide')}</p>
+{/if}
+
 <h3 class="h">{tx('contrib.fleches')}</h3>
+<p class="muted sub">{tx('contrib.couleur_aide')}</p>
 <div class="grid" role="radiogroup" aria-label={tx('contrib.fleches')}>
   {#each ALL as id}
     {@const ok = open.includes(id)}
     <button class="un" class:lock={!ok} class:on={arrow === id} role="radio" aria-checked={arrow === id} disabled={!ok}
-      onclick={() => { arrow = id; saveArrow(id); }}>
-      <span class="disc" style:background={ARROWS[id]} aria-hidden="true"><svg viewBox="10 6 24 29"><path d="M22 8 12 33 22 27Z" fill="#fff" /><path d="M22 8 32 33 22 27Z" fill="#D5DAE2" /></svg></span>
+      onclick={() => { arrow = id; saveArrow(id); app.meMarker?.getElement().style.setProperty('--me-color', DOTS[id]); }}>
+      <span class="pt" style:--c={DOTS[id]} aria-hidden="true"></span>
       <span>{NAME[id]()}</span>
       {#if !ok}<small>{tx('contrib.a_partir_de', { n: minOf(id) })}</small>{/if}
     </button>
@@ -99,8 +142,21 @@
   .un.on { border-color: var(--accent); }
   .un.lock { opacity: 0.55; cursor: default; }
   .un small { font-size: 11px; color: var(--muted); }
-  .disc { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; border: 2px solid rgb(236 239 243 / 0.95); }
-  .disc svg { width: 22px; height: 26px; }
+  .pt { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; background: var(--card); }
+  .pt::after { content: ''; width: 18px; height: 18px; border-radius: 50%; background: var(--c); border: 2.5px solid #fff; box-shadow: 0 1px 3px rgb(0 0 0 / 0.3); }
+  .sub { margin: -4px 0 10px; }
+  .badges { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+  .bdg { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 12px 4px 10px; border-radius: 16px; background: var(--fill); text-align: center; }
+  .bdg b { font-size: 14px; font-weight: 650; }
+  .bdg small { font-size: 12px; color: var(--ink); line-height: 1.3; }
+  .new { display: inline-block; padding: 1px 6px; border-radius: 999px; background: var(--accent-btn); color: #fff; font-size: 11px; font-weight: 650; vertical-align: 1px; }
+  .map-card { width: 100%; display: flex; gap: 14px; align-items: center; padding: 12px; border: 0; border-radius: 16px; background: var(--fill); font: inherit; color: var(--ink); text-align: left; cursor: pointer; }
+  .mini { position: relative; width: 84px; height: 62px; flex: none; border-radius: 12px; overflow: hidden;
+    background: linear-gradient(115deg, transparent 46%, var(--line) 46% 53%, transparent 53%), #efe8d8; }
+  .mini i { position: absolute; width: 11px; height: 11px; border-radius: 50%; background: #e39b17; border: 2px solid #fff; }
+  .mc-t { display: grid; gap: 2px; }
+  .mc-t b { font-size: 16px; }
+  .mc-t small { font-size: 13.5px; color: var(--ink); }
   .todo { list-style: none; margin: 0; padding: 0; }
   .todo button { width: 100%; min-height: 48px; display: flex; align-items: center; gap: 8px; border: 0; border-bottom: 1px solid var(--line); background: none;
     font: inherit; font-size: 15.5px; color: var(--ink); text-align: left; cursor: pointer; padding: 0 2px; }

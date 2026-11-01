@@ -2,6 +2,8 @@
 // Code sorti de +page.svelte : il lit et modifie l'état de l'écran par l'objet « app » (bloc « app » de la page).
 import * as maplibregl from 'maplibre-gl';
 import { closeAll } from '#lib/popover.js';
+import { DOTS, readArrow } from '#lib/contrib.js';
+import { loadReviewer } from '#lib/reviewer.js';
 
 /** @param {any} app */
 export function createScreen(app) {
@@ -67,6 +69,7 @@ export function createScreen(app) {
     if (!app.meMarker) {
       const el = document.createElement('div');
       el.className = 'me';
+      el.style.setProperty('--me-color', DOTS[readArrow(loadReviewer().mine.length)]);   // couleur choisie (Mes contributions)
       // me-nav : pendant le guidage, flèche blanche en relief (deux faces) sur un disque bleuté translucide cerclé de clair
       // (référence fournie par le porteur le 23/10 ; dessin maison)
       el.innerHTML = '<span class="me-beam"></span><span class="me-dot"></span>'

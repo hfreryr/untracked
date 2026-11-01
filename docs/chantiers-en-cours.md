@@ -6,18 +6,16 @@ Liste tenue à jour à chaque étape, pour ne rien perdre entre les sujets mené
 ## À fusionner
 | PR | Sujet | Après fusion |
 |---|---|---|
-| #118 | Recherche : annuaire national des lieux (lieux loin d'ici trouvés sans Photon) | Publier, puis lancer `places-zones.yml` (zone corse) pour créer l'annuaire tout de suite |
+| #119 | Récompenses : badges, carte de mes avis, couleur de sa position ; pop-up de niveau seulement après un avis | Publier |
 
 ## Décisions attendues du porteur
 | Sujet | Question posée | Où regarder |
 |---|---|---|
-| Récompenses | Valider la maquette : badges à collectionner, carte de mes avis, couleur du point « vous êtes ici » | maquette-recompenses.png (conversation du 31/10) |
 | Classement des lieux | Lancer la nouvelle méthode de placement (rang dans le quartier, la carte arbitre les chevauchements) + deux classements séparés | Résultats ci-dessous |
 
-## Fait récemment
-- **Lieux mis en avant des 21 régions et d'Amsterdam** : recalcul terminé le 01/11 (dernières : Poitou-Charentes,
-  Champagne-Ardenne, Franche-Comté, Auvergne, Limousin, Corse, Amsterdam). Celles calculées après la fusion de #116 ont
-  aussi leur index de recherche ; les autres l'auront à leur calcul hebdomadaire.
+## En cours (tourne seul)
+- **Index de recherche des 13 régions qui n'en ont pas** (pour l'annuaire national) : recalcul lancé le 01/11, une
+  région après l'autre, PACA d'abord (≈ 4 h).
 
 ## Chantiers ouverts
 ### Classement des lieux sur la carte
@@ -35,7 +33,7 @@ Règle : la réponse pertinente d'abord, quelle que soit la distance ; la proxim
 Mesure : `node app/tests/search/grid.mjs` (6 points de départ × 27 recherches, voir `docs/recherche.md`).
 1. ✅ **Index par région et Amsterdam** (#116, fusionnée).
 2. ✅ **Adresses et rues** (#117, fusionnée, publiée le 01/11) : 71 % → 95 % de bonnes réponses en premier.
-3. 🔧 **Annuaire national des lieux** (#118) : ≈ 90 000 lieux, 6,7 Mo, découpé par début de mot. Photon coupé, lieux
+3. ✅ **Annuaire national des lieux** (#118, fusionnée, publiée le 01/11) : ≈ 90 000 lieux, 6,7 Mo, découpé par début de mot. Photon coupé, lieux
    7/54 → 42/54. Complet quand les 13 régions calculées avant #116 auront leur index (au plus tard le 07/11, calcul
    hebdomadaire). « gare de rennes » réglé. Restent : « musée Jean Cocteau Menton » (commune absente du nom),
    « Puy de Dôme » (sommets absents de nos lieux).
@@ -43,8 +41,13 @@ Mesure : `node app/tests/search/grid.mjs` (6 points de départ × 27 recherches,
 - Limite connue : une rue française cherchée depuis l'étranger reste confiée à Photon.
 - Avant tout lancement public : notre propre Photon (règle « zéro pistage »).
 
-### Récompenses (validées 1, 2, 3 le 31/10, maquette à confirmer)
-- Badges à collectionner, carte de mes avis, couleur du point « vous êtes ici ». Pictos à dessiner (pas d'émojis).
+### Récompenses (développées le 01/11, #119)
+- Badges (Gourmet 10 restaurants, Explorateur 5 villes, Du quartier 5 avis dans un même quartier, Culture, Pause café,
+  Oiseau de nuit : 5 chacun), carte de mes avis, couleur du point « vous êtes ici » (et de la flèche du guidage).
+- Annonce (niveau ou badge) seulement juste après l'avis qui la donne ; sinon « Nouveau » sur Mes contributions
+  (retour du porteur : pop-up surgi en ouvrant une fiche sans rapport).
+- Avis d'avant le 01/11 : position et genre retrouvés dans notre index de recherche autour de soi, ou en rouvrant leur
+  fiche. Limite : un avis loin d'ici, sur un lieu peu connu, n'apparaît qu'après avoir rouvert sa fiche.
 - Écartée : « vos avis ont été lus N fois » (demanderait de compter les lectures).
 
 ### Villes européennes (mises en pause le 31/10, la France d'abord)

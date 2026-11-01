@@ -1,7 +1,9 @@
 <script>
   import Contributions from '#lib/ui/Contributions.svelte';
   import { loadReviewer } from '#lib/reviewer.js';
-  import { levelOf } from '#lib/contrib.js';
+  import { levelOf, levelToAnnounce } from '#lib/contrib.js';
+  import { badgesNotAnnounced } from '#lib/badges.js';
+  import { backToContrib } from '#lib/reviewsmap.js';
   import { popover } from '#lib/popover.js';
   import { tx } from '#lib/i18n/index.js';
   import { getContext } from 'svelte';
@@ -25,6 +27,8 @@
   const criteres = () => [...app.filters.map((k) => CRIT[k]), ...(app.openAt ? [tx('filtre.c_ouverts', { quand: quand() })] : [])].join(', ');
   // ligne « Mes contributions » : niveau et nombre d'avis
   const LEVEL_NAME = { eclaireur: () => tx('contrib.eclaireur'), passeur: () => tx('contrib.passeur'), vigie: () => tx('contrib.vigie'), phare: () => tx('contrib.phare') };
+  // niveau ou badge obtenu sans avoir été annoncé (avis d'avant l'annonce, avis complétés plus tard) : signalé ici, sans pop-up
+  function hasNews() { const m = loadReviewer().mine; return !!levelToAnnounce(m.length) || badgesNotAnnounced(m).length > 0; }
   function contribLine() { const n = loadReviewer().mine.length, l = levelOf(n).level; return tx('contrib.resume', { n, niveau: l ? LEVEL_NAME[l.id]() : '' }); }
 </script>
 
@@ -59,7 +63,7 @@
         <!-- avis et niveaux (Contributions.svelte) -->
         <ul class="rows hub-rows">
           <li class="row"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3.5 2.6 5.5 6 .7-4.4 4.1 1.2 5.9L12 16.8l-5.4 2.9 1.2-5.9-4.4-4.1 6-.7z" /></svg>
-            <button class="row-btn" onclick={() => (app.hubPanel = 'contrib')}><span>{tx('contrib.titre')}<small class="why">{contribLine()}</small></span></button></li>
+            <button class="row-btn" onclick={() => (app.hubPanel = 'contrib')}><span>{tx('contrib.titre')}<small class="why">{contribLine()}</small></span>{#if hasNews()}<span class="news">{tx('contrib.nouveau')}</span>{/if}</button></li>
         </ul>
         <h2 class="hub-h">{tx('liste.vos_donnees')}</h2>
         <ul class="rows hub-rows">
@@ -114,11 +118,13 @@
         {/if}
       {:else if app.category.saved}
         {@const l = app.category.shared ? app.category : app.listOf(app.savedList)}
-        {#if !app.category.shared}<button class="link back-link" onclick={() => { app.savedList = null; app.refreshSaved(); }}>{tx('liste.mes_lieux')}</button>{/if}
+        {#if app.category.reviews}<button class="link back-link" onclick={() => backToContrib(app)}>{tx('contrib.retour')}</button>
+        {:else if !app.category.shared}<button class="link back-link" onclick={() => { app.savedList = null; app.refreshSaved(); }}>{tx('liste.mes_lieux')}</button>{/if}
         <h1 class="list-title"><ListDot l={l} size={30} />{l.name || app.category.label}</h1>
-        <p class="kind">{app.category.shared ? tx('liste.liste_partagee_lieu', { n: app.nearby.length }) : app.nearby.length ? tx('liste.lieu', { n: app.nearby.length, ordre: app.nearbyFromMe ? tx('liste.les_plus_proches_de_vous_abord') : tx('liste.par_distance') }) : tx('liste.aucun_lieu_pour_instant_touchez')}</p>
+        <p class="kind">{app.category.reviews ? tx('badges.lieux_notes', { n: app.nearby.length }) : app.category.shared ? tx('liste.liste_partagee_lieu', { n: app.nearby.length }) : app.nearby.length ? tx('liste.lieu', { n: app.nearby.length, ordre: app.nearbyFromMe ? tx('liste.les_plus_proches_de_vous_abord') : tx('liste.par_distance') }) : tx('liste.aucun_lieu_pour_instant_touchez')}</p>
         <div class="list-actions">
-          {#if app.category.shared}
+          {#if app.category.reviews}
+          {:else if app.category.shared}
             <button class="go" onclick={app.keepIncomingList}>{tx('liste.ajouter_a_mes_lieux')}</button>
           {:else}
             <button class="link" onclick={() => { app.listEditing = !app.listEditing; app.swiped = null; }}>{app.listEditing ? tx('enregistrer.termine') : tx('liste.modifier')}</button>
@@ -388,4 +394,5 @@
   .ls-color { width: 28px; height: 28px; border-radius: 50%; border: 3px solid var(--card); box-shadow: 0 0 0 1px var(--line); cursor: pointer; }
   .ls-color.on { box-shadow: 0 0 0 2px var(--accent); }
   .add-chip { display: block; margin: 2px 0 4px; }
+  .news { margin-left: auto; flex: none; align-self: center; padding: 3px 9px; border-radius: 999px; background: var(--accent-btn); color: #fff; font-size: 13px; font-weight: 650; }
 </style>

@@ -113,20 +113,37 @@ const tests = {
     assert(!errors.length, errors.join(' | '));
     await ctx.close();
   },
-  async 'nouveau niveau annoncé une fois, avec la flèche à choisir (31/10)'() {
-    const { p, ctx, errors } = await page();
-    // 5 avis déjà publiés sur cet appareil, aucun niveau encore annoncé : Passeur
-    await p.evaluate(() => { localStorage.setItem('avis-auteur', JSON.stringify({ nick: '', mine: Array.from({ length: 5 }, (_, i) => ({ id: `node/${i + 1}`, name: `Lieu ${i}`, stars: 4, text: '', nick: '', t: 1, sig: `s${i}` })) })); localStorage.removeItem('niveau-annonce'); });
+  async 'récompenses : pas de pop-up sur une autre fiche, « Nouveau » dans Mes lieux, badges et carte de mes avis (01/11)'() {
+    const { p, ctx, errors } = await page({ bypassCSP: true });
+    // 5 cafés notés avant l'annonce des niveaux (31/10) : Passeur et « Pause café » jamais annoncés
+    // retour du porteur (01/11) : le pop-up surgissait à l'ouverture d'une fiche sans rapport ; il ne vient plus qu'après un avis
+    await p.evaluate(() => { localStorage.setItem('avis-auteur', JSON.stringify({ nick: '', mine: Array.from({ length: 5 }, (_, i) => ({ id: `node/${i + 1}`, name: `Café ${i}`, stars: 4, text: '', nick: '', t: 1, sig: `s${i}`, lat: 48.85 + i / 1000, lon: 2.33, kind: 'cafe', city: 'Paris', pc: '75006' })) })); localStorage.removeItem('niveau-annonce'); localStorage.removeItem('badges-annonces'); });
     await p.reload({ waitUntil: 'networkidle' }); await p.waitForTimeout(2000);
     await p.fill('#search', 'Panthéon'); await p.waitForSelector('.results li.opt button', { timeout: 15000 }); await pick(p);
-    await p.waitForSelector('.dlg', { timeout: 15000 });
-    assert(/Vous êtes Passeur/.test(await p.textContent('.dlg')), `annonce : ${await p.textContent('.dlg')}`);
-    await p.click('.dlg button:has-text("Choisir ma flèche")'); await p.waitForTimeout(1200);
-    assert(/Flèche de guidage/.test(await p.textContent('section.sheet')), 'les contributions ne s’ouvrent pas');
-    // annoncé une seule fois
-    await p.reload({ waitUntil: 'networkidle' }); await p.waitForTimeout(2000);
-    await p.fill('#search', 'Panthéon'); await p.waitForSelector('.results li.opt button', { timeout: 15000 }); await pick(p); await p.waitForTimeout(3000);
-    assert(!(await p.$('.dlg')), 'niveau annoncé deux fois');
+    await p.waitForSelector('section.sheet h1', { timeout: 15000 }); await p.waitForTimeout(3000);
+    assert(!(await p.$('.dlg')), 'pop-up de niveau sur une fiche sans rapport');
+    await p.keyboard.press('Escape'); await p.waitForTimeout(600);
+    await p.click('.chip:has-text("Mes lieux")'); await p.waitForTimeout(1000);
+    assert(await p.$('button.row-btn:has-text("Mes contributions") .news'), 'pas de « Nouveau » sur Mes contributions');
+    await p.click('button.row-btn:has-text("Mes contributions")'); await p.waitForSelector('.lv');
+    const txt = await p.textContent('section.sheet');
+    assert(/Pause café/.test(txt) && /Obtenu/.test(txt) && /0 \/ 10 restaurants/.test(txt) && /6e arr\./.test(txt), `badges : ${txt.slice(0, 400)}`);
+    assert(/Couleur de votre position/.test(txt) && /5 lieux notés/.test(txt), `sections absentes : ${txt.slice(0, 400)}`);
+    // couleur choisie : le point « vous êtes ici » la prend
+    await p.click('.un:has-text("Passeur")');
+    assert(await p.evaluate(() => localStorage.getItem('fleche-guidage') === '"passeur"'), 'couleur non gardée');
+    // carte de mes avis : les 5 lieux, ma note, retour aux contributions
+    await p.click('.map-card'); await p.waitForTimeout(1200);
+    const list = await p.textContent('section.sheet');
+    assert(/Mes avis/.test(list) && /5 lieux notés/.test(list) && /Votre note : 4 sur 5/.test(list), `carte de mes avis : ${list.slice(0, 300)}`);
+    await p.click('section.sheet .back-link'); await p.waitForSelector('.lv');
+    // vu : plus de « Nouveau »
+    await p.click('section.sheet .back-link'); await p.waitForTimeout(800);
+    assert(!(await p.$('button.row-btn:has-text("Mes contributions") .news')), '« Nouveau » reste affiché');
+    await p.addScriptTag({ content: AXE });
+    await p.click('button.row-btn:has-text("Mes contributions")'); await p.waitForSelector('.lv');
+    const v = await p.evaluate(async () => (await window.axe.run('section.sheet', { runOnly: ['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'] })).violations.map((x) => `${x.id} ${x.nodes.map((n) => n.target.join(' ')).join(' ; ')}`));
+    assert(!v.length, `accessibilité : ${v.join(', ')}`);
     assert(!errors.length, errors.join(' | '));
     await ctx.close();
   },
