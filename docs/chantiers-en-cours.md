@@ -6,6 +6,7 @@ Liste tenue à jour à chaque étape, pour ne rien perdre entre les sujets mené
 ## À fusionner
 | PR | Sujet | Après fusion |
 |---|---|---|
+| (cette PR) | Listes : Favoris en tête puis par dernière utilisation ; « À tester » retirée ; page « Modifier » refaite ; glisser pour supprimer | Publier |
 | (cette PR) | Calendrier des calculs (`docs/calendrier-calculs.md`) ; lieux d'Île-de-France recalculés dès la fin des compléments et des devantures | Rien : plus de lancement à la main |
 | #136 puis (cette PR) | Photos : place réservée et fondu, sans source dessus (#136) ; photos Wikimedia préparées à l'avance (cette PR) | Publier ; les photos préparées arrivent après le prochain calcul des compléments |
 | #137 | Vignette Panoramax vide (38 % des devantures, hôte du stockage de l'IGN) | Publier |
