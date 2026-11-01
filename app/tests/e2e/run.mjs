@@ -395,6 +395,31 @@ const tests = {
     assert(!errors.length, errors.join(' | '));
     await ctx.close();
   },
+  async 'adresses et rues : la bonne réponse d\'abord, même loin d\'ici, sans attendre Photon (31/10)'() {
+    // règle du porteur : où que l'on soit, la réponse pertinente d'abord ; la distance ne départage que l'ambigu
+    // (grille complète : node tests/search/grid.mjs)
+    const cases = [
+      // trois échecs relevés le 31/10 avec la grille (tests/search/grid.mjs), avant correction :
+      ['13/43.2965/5.3698', '2 place du château Gordes', /84220 Gordes/],            // vu de Marseille : « 2 Rue gorde, 13010 Marseille »
+      ['13/45.7600/4.8350', '12 rue de la République Marseille', /1300\d Marseille/], // vu de Lyon : la rue de Lyon
+      ['13/48.8566/2.3522', 'rue paradis marseille', /paradis.*Marseille/i]   // vu de Paris : « Rue de Marseille · Afficher les lieux »
+    ];
+    for (const [at, q, want] of cases) {
+      const { p, ctx, errors } = await page({}, `#carte=${at}`);
+      await p.route('**/photon.komoot.io/**', async (r) => { await new Promise((ok) => setTimeout(ok, 10000)); r.abort().catch(() => {}); });
+      await p.click('#search'); await p.waitForTimeout(1000);
+      const t0 = Date.now();
+      await p.fill('#search', q);
+      await p.waitForFunction(([re, fl]) => new RegExp(re, fl).test(document.querySelector('.results li.opt')?.innerText || ''), [want.source, want.flags], { timeout: 6000 })
+        .catch(() => {});
+      const ms = Date.now() - t0;
+      const first = await p.$eval('.results li.opt', (e) => e.innerText.replace(/\s+/g, ' ')).catch(() => '(rien)');
+      assert(want.test(first), `« ${q} » depuis ${at} : premier résultat ${first}`);
+      assert(ms < 4000, `« ${q} » : ${ms} ms`);
+      assert(!errors.length, errors.join(' | '));
+      await ctx.close();
+    }
+  },
   async 'Photon en panne : la recherche par nom passe par nos données'() {
     const { p, ctx, errors } = await page();
     await p.route('**/photon.komoot.io/**', (r) => r.abort());
