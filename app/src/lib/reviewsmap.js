@@ -23,8 +23,7 @@ export function showMyReviews(app) {
   app.category = { key: 'mesavis', saved: true, shared: true, reviews: true, label: tx('badges.mes_avis'), name: tx('badges.mes_avis'),
     icon: 'star', color: REVIEWS_COLOR };
   app.refreshSaved();
-  const pts = app.nearby.slice(0, 12).map((n) => n.f.geometry.coordinates);
-  if (pts.length) app.fitTo(pts);
+  requestAnimationFrame(() => app.showListOnMap?.());
 }
 
 /** Retour à « Mes contributions » (dans Mes lieux). */

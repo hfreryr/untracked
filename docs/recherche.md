@@ -133,6 +133,24 @@ Les villages du Luberon, d'Alsace, du Gers sont désormais sûrs ; « Les Jardin
 un homonyme dans le Loiret). Restent « à vérifier » surtout les lieux à l'étranger (Baléares, Norvège, Forêt-Noire) et
 les restaurants homonymes.
 
+### Position lue dans le lien de chaque lieu (01/11/2026)
+
+Le porteur estimait 20 % de lieux mal placés (des lieux de Bavière en Île-de-France). Cause : chaque lieu était cherché
+par son nom, en partant de Paris. Or chaque lieu d'une liste Google est exporté avec un lien
+`…/data=!4m2!3m1!1s0x47915bf6abbd0cad:0x…` dont le premier nombre est l'identifiant d'une cellule « S2 » (découpage
+public de la sphère) : la position du lieu. Format non documenté par Google ; vérifié sur 135 lieux d'un vrai export.
+
+- `s2cell.js` lit cette position ; le lieu est rattaché à sa fiche OSM (même nom, quelques dizaines de mètres), dans nos
+  données, ou, à l'étranger, par le moteur de recherche après l'import, sans le faire attendre.
+- Lieux sans ce lien : cherchés autour des autres lieux de leur liste (`importcenter.js`), jamais autour de Paris ; un
+  homonyme à plus de 150 km de sa liste n'est pas posé (mieux vaut pas de point qu'un faux point).
+- Ces positions viennent de l'export de l'utilisateur : elles restent sur son téléphone, jamais envoyées dans OSM.
+
+| Vrai export (138 lieux) | Avant | Après |
+|---|---|---|
+| Lieux à plus de 2 km de leur vraie position | 52 | **1** (homonyme entre deux listes) |
+| Durée de l'import | 100 s | **6 s** |
+
 ## Adresse dans la liste des résultats
 
 Comme Google Maps, chaque lieu de la liste montre sa rue.

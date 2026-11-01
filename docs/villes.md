@@ -121,3 +121,25 @@ contre ≈ 0,65 à 0,8 Go et 180 000 fichiers avec l'ancien format.
   l'église, à cause de sa surface). Les restaurants des guides restent rares sur la carte : aucune donnée libre ne dit
   qu'un restaurant est réputé.
 - Poids : +17 à +30 % pour les fichiers de lieux mis en avant (Île-de-France 892 → 1 160 Ko).
+
+### Carte trop vide, comparée à Plans (01/11/2026)
+- **Constat du porteur** : à Amsterdam (galerie Gelderlandplein, zoom ≈ 16,6), Plans montre une dizaine de lieux, nous 2 ou 3.
+- **Deux causes trouvées** :
+  1. **Échelle fausse de moitié** : le calcul de l'écart entre lieux supposait des tuiles de 256 px, la carte en dessine de
+     512. L'écart réel à l'écran était donc le double de celui voulu. Corrigé dans `landmark_rank.py`.
+  2. **Lieux jamais affichés** : un lieu qui n'était le premier de son carré à aucun zoom n'apparaissait jamais, même au plus
+     près (114 commerces dans OSM autour de la galerie, 19 retenus). Désormais, tous apparaissent à partir du zoom 16,5,
+     la carte ne gardant que ceux qui ne se chevauchent pas.
+- **Poids** : les lieux qui n'apparaissent que de près (zoom ≥ 16) sont rangés à part en carrés d'≈ 5 km, chargés seulement
+  quand on zoome. Carré de 40 km de Paris : 389 Ko (comme avant) ; petits carrés : 272 Ko au plus (centre de Paris).
+- **Mesure** (lieux dessinés sur un écran de téléphone) :
+
+| Vue | Avant | Après |
+|---|---|---|
+| Amsterdam, galerie Gelderlandplein, zoom 16,6 | 3 | 9 |
+| Amsterdam centre, zoom 15 | 20 | 29 |
+| Paris 6e, zoom 15 | 15 | 25 |
+| Paris 6e, zoom 16,5 | 9 | 19 |
+
+  Le choix des lieux diffère encore de Plans (Plans montre Douglas, Kruidvat : des enseignes connues ; nous, d'abord les
+  restaurants et lieux sans chaîne) : c'est la notoriété, chantier à part.

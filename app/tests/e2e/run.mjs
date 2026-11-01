@@ -107,7 +107,10 @@ const tests = {
     assert(got.some((f) => ['culture', 'sight'].includes(f)), `aucun monument : ${got}`);
     assert(!(await p.evaluate(() => window.__map.queryRenderedFeatures({ layers: ['poi-outside'] }).length)), 'lieux du fond de carte encore utilisés dans une zone couverte');
     // toucher un lieu mis en avant ouvre sa fiche
-    const pt = await p.evaluate(() => { const f = window.__map.queryRenderedFeatures({ layers: ['landmark'] })[0]; const q = window.__map.project(f.geometry.coordinates); return { x: q.x, y: q.y, name: f.properties.name }; });
+    // un lieu au milieu de l'écran (pas sous la barre de recherche ni les catégories, plus nombreux depuis le 01/11)
+    const pt = await p.evaluate(() => { const fs = window.__map.queryRenderedFeatures({ layers: ['landmark'] }).map((f) => ({ f, q: window.__map.project(f.geometry.coordinates) }));
+      const { f, q } = fs.find(({ q }) => q.y > 260 && q.y < innerHeight - 260 && q.x > 40 && q.x < innerWidth - 120) || fs[0];
+      return { x: q.x, y: q.y, name: f.properties.name }; });
     await p.mouse.click(pt.x, pt.y); await p.waitForSelector('section.sheet h1', { timeout: 15000 });
     assert((await p.textContent('section.sheet h1')).includes(pt.name.split(' ')[0]), `fiche ouverte : ${await p.textContent('section.sheet h1')} au lieu de ${pt.name}`);
     assert(!errors.length, errors.join(' | '));
@@ -457,6 +460,54 @@ const tests = {
       assert(!errors.length, errors.join(' | '));
       await ctx.close();
     }
+  },
+  async 'photos du lieu sous l’en-tête (avis, site), sans clic ; photo jointe à un avis, sans sa position (01/11)'() {
+    // bandeau comme Plans (capture du porteur, 01/11) : photos d'avis copiées chez nous (review_photos.py), photo du site
+    // chargée depuis le site (build_sitehours.py) ; plein écran au toucher, crédit de chaque photo
+    const { ctx } = await page({ bypassCSP: true });
+    const ID = 31940133271;   // Deux Fois Plus de Piment (tuiles locales)
+    await ctx.route('**/data/places/**', async (route) => {
+      if (/\/photos\//.test(route.request().url())) return route.fulfill({ status: 200, contentType: 'image/png', body: png });
+      const r = await route.fetch();
+      const j = await tileJson(r);
+      if (!j?.t) return route.fulfill({ response: r });
+      for (const it of j.t) if (it[0] === ID) {
+        Object.assign(it[3], { _photo: 'https://photos.restaurant.test/salle.jpg', website: 'https://deuxfoisplusdepiment.test/' });
+        it[3]._rev.ph = [['salleAAAAAAAA1', 'Lou', 1700000000]];
+      }
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(j) });
+    });
+    let ref = null;
+    const png = readFileSync(new URL('../../static/icon-512.png', import.meta.url));
+    await ctx.route('https://photos.restaurant.test/**', (route) => { ref = route.request().headers().referer || ''; route.fulfill({ status: 200, contentType: 'image/png', body: png }); });
+    let uploaded = null, submitted = null;
+    await ctx.route('https://upload.mangrove.reviews/**', (route) => { uploaded = route.request().method(); route.fulfill({ status: 200, contentType: 'application/json', body: '["NouvellePhoto_1234"]' }); });
+    await ctx.route('https://api.mangrove.reviews/**', (route) => { submitted = route.request().url(); route.fulfill({ status: 200, body: 'true' }); });
+    // nouvel onglet, ouvert après la pose des interceptions
+    const p = await ctx.newPage(); const errors = []; p.on('pageerror', (e) => errors.push(e.message));
+    await p.goto(`http://localhost:${PORT}/#carte=18/48.861574/2.370638&lieu=node/3194013327`);
+    await p.waitForSelector('.pcard img', { timeout: 15000 });
+    await p.waitForTimeout(1500);
+    const src = await p.$$eval('.pcard .psrc', (es) => es.map((e) => e.textContent));
+    assert(JSON.stringify(src) === JSON.stringify(['Avis Mangrove', 'deuxfoisplusdepiment.test']), `sources : ${src}`);
+    assert(ref === `http://localhost:${PORT}/`, `le site doit savoir d'où vient la demande (pour pouvoir refuser) : ${ref}`);
+    // la rangée de photos vient juste après les informations (pas après les détails)
+    const order = await p.evaluate(() => { const a = document.querySelector('.pstrip'), b = document.querySelector('.rev'); return !!(a && b && a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING); });
+    assert(order, 'photos après les avis');
+    await p.click('.pcard >> nth=1'); await p.waitForSelector('.viewer');
+    assert(/deuxfoisplusdepiment\.test/.test(await p.textContent('.viewer-credit')), 'crédit du site absent en plein écran');
+    await p.click('.viewer-close');
+    // avis avec photo : la photo part chez Mangrove, son adresse est jointe à l'avis signé
+    await p.waitForSelector('.rev .rate', { timeout: 15000 });
+    await p.click('.rev .rate .star >> nth=3'); await p.waitForSelector('.dlg #rev-text');
+    await p.setInputFiles('.dlg .pickph input[type=file]', { name: 'photo.png', mimeType: 'image/png', buffer: png });
+    await p.waitForSelector('.dlg .thumb img', { timeout: 5000 });
+    await p.click('.dlg .go'); await p.waitForSelector('.dlg #rev-text', { state: 'detached', timeout: 10000 });
+    assert(uploaded === 'PUT', 'photo non envoyée');
+    const payload = JSON.parse(Buffer.from(submitted.split('/submit/')[1].split('.')[1], 'base64url').toString());
+    assert(JSON.stringify(payload.images) === JSON.stringify([{ src: 'https://files.mangrove.reviews/NouvellePhoto_1234', label: null }]), `photo non jointe : ${JSON.stringify(payload.images)}`);
+    assert(!errors.length, errors.join(' | '));
+    await ctx.close();
   },
   async 'Photon en panne : la recherche par nom passe par nos données'() {
     const { p, ctx, errors } = await page();
@@ -810,6 +861,21 @@ const tests = {
     assert(await p.$eval('.route-sheet .mode-tabs', (e) => e.getBoundingClientRect().bottom <= 844), 'durées des modes cachées');
     await swipe(low.top + 8, low.top - 250);
     assert((await box()).height > low.height + 60, 'la fiche ne remonte pas');
+    assert(!errors.length, errors.join(' | '));
+    await ctx.close();
+  },
+  async 'toucher une liste : la carte montre tous ses lieux, la fiche réduite en bas (01/11)'() {
+    const { p, ctx, errors } = await page();
+    // deux lieux loin l'un de l'autre (Paris, Lyon) dans « Favoris »
+    await p.evaluate(() => {
+      localStorage.setItem('lieux-favoris', JSON.stringify([{ id: 'a', name: 'Lieu A', lat: 48.8566, lon: 2.3522, lists: ['fav'] }, { id: 'b', name: 'Lieu B', lat: 45.764, lon: 4.8357, lists: ['fav'] }]));
+    });
+    await p.reload(); await p.waitForTimeout(2500);
+    await p.click('.chip:has-text("Mes lieux")'); await p.waitForTimeout(1200);
+    await p.click('.hub-lists > li > button:has-text("Favoris")'); await p.waitForTimeout(2000);
+    const r = await p.evaluate(() => { const b = window.__map.getBounds(); return { snap: document.querySelector('.app > section.sheet')?.dataset.snap, a: b.contains([2.3522, 48.8566]), b: b.contains([4.8357, 45.764]) }; });
+    assert(r.a && r.b, `tous les lieux ne sont pas à l'écran : ${JSON.stringify(r)}`);
+    assert(r.snap === 'peek', `fiche pas réduite : ${r.snap}`);
     assert(!errors.length, errors.join(' | '));
     await ctx.close();
   },

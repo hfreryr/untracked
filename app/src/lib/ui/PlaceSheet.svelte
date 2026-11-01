@@ -1,4 +1,6 @@
 <script>
+  import PhotoStrip from './PhotoStrip.svelte';
+  import { placePhotos } from '#lib/placephotos.js';
   import { tx } from '#lib/i18n/index.js';
   import { getContext } from 'svelte';
   import { draggable } from '#lib/sheet.js';
@@ -38,6 +40,7 @@
   ].filter(Boolean).join(' · '));
   const savedAny = $derived(!!(app.isFav || app.placeShortcut || app.placeCustom));
   const reviewCount = $derived(app.info?.reviews?.count || 0);
+  const photos = $derived(placePhotos(app.wiki, app.info));
   const glance = $derived(glanceItems({ status: app.status, reviews: app.info?.reviews, me: app.me, place: app.place, info: app.info }));
   const reviewable = $derived(!!(app.place?.osmType && app.place?.name && !app.isAddress && !app.isStation));
   // sur place (moins de 100 m) et pas encore d'avis de ma part : « Votre avis sur ce lieu » en haut de la fiche
@@ -91,20 +94,7 @@
       {/if}
 
 {/snippet}
-{#snippet photoBlock()}
-
-      {#if app.wiki?.photos?.length}
-        <div class="photos" class:single={app.wiki.photos.length === 1}>
-          {#each app.wiki.photos as ph, i (ph.src)}
-            <button class="ph" onclick={() => (app.viewer = i)} aria-label={tx('fiche.voir_la_photo_sur_en_plein_ecran', { i: i + 1, n: app.wiki.photos.length })}>
-              <img src={ph.src} alt={i === 0 ? app.title : ''} loading="lazy" crossorigin="anonymous" referrerpolicy="no-referrer" />
-              {#if i === 0 && app.wiki.photos.length > 1}<span class="ph-count">{tx('fiche.photos', { n: app.wiki.photos.length })}</span>{/if}
-            </button>
-          {/each}
-        </div>
-        <p class="ph-credit"><a href={app.wiki.photos[0].page} target="_blank" rel="noopener">{tx('fiche.photos_wikimedia_commons', { auteurs: app.wiki.photos[0].credit ? ` · ${app.wiki.photos[0].credit}` : '' })}</a></p>
-      {/if}
-{/snippet}
+{#snippet photoBlock()}{/snippet}
 {#snippet aboutBlock()}
       {#if app.wiki?.extract}
         <div class="about">
@@ -278,6 +268,9 @@
         </dl>
       {/if}
 
+      <!-- photos, juste sous l'en-tête (comme Plans) : avis, Wikimedia, site du lieu -->
+      <PhotoStrip photos={photos} />
+
       <!-- Lire les avis (s'il y en a), signaler une erreur sur OpenStreetMap, copier l'adresse (31/10/2026 : « Raccourci » et
            « Maison / Travail » rejoignent « Enregistrer » ; « Partager » reste en haut) -->
       <div class="sec-row">
@@ -326,18 +319,6 @@
   .close svg { width: 16px; height: 16px; stroke-width: 2.4; }
   /* Zone de toucher d'au moins 44 px autour des petits boutons ronds */
   .close::after, .share::after { content: ''; position: absolute; inset: -6px; }
-  /* ——— Photos ——— */
-  .photos { display: flex; gap: 6px; overflow-x: auto; scroll-snap-type: x mandatory; margin: 16px calc(-1 * var(--gutter)) 0; padding: 0 var(--gutter); scrollbar-width: none; }
-  .photos::-webkit-scrollbar { display: none; }
-  .ph { flex: none; position: relative; width: 72%; aspect-ratio: 4 / 3; border: 0; padding: 0; border-radius: 14px; overflow: hidden;
-    background: var(--fill); cursor: zoom-in; scroll-snap-align: start; scroll-margin-left: var(--gutter); }
-  .ph:not(:first-child) { width: 46%; }
-  .photos.single .ph { width: 100%; aspect-ratio: 16 / 10; }
-  .ph img { width: 100%; height: 100%; object-fit: cover; display: block; }
-  .ph-count { position: absolute; left: 8px; bottom: 8px; background: rgb(0 0 0 / 0.6); color: #fff; font-size: 12.5px; font-weight: 600;
-    padding: 4px 9px; border-radius: 10px; }
-  .ph-credit { font-size: 11.5px; color: var(--muted); margin: 5px 0 0; }
-  .ph-credit a { color: inherit; text-decoration: none; }
   .share {
     position: absolute; top: 14px; right: 54px; width: 32px; height: 32px; border-radius: 50%;
     border: 0; background: var(--fill); cursor: pointer; display: grid; place-items: center; color: var(--muted);

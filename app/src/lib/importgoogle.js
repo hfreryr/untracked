@@ -1,6 +1,6 @@
 // Import des lieux enregistrés dans Google Maps, depuis l'export Google Takeout
 // (« Maps (vos adresses) »). Le fichier est lu sur le téléphone : rien n'est envoyé,
-// sauf, pour les lieux dont l'export ne donne pas la position, leur nom au moteur de recherche
+// sauf, pour les rares lieux dont l'export ne donne pas la position, leur nom au moteur de recherche
 // (comme si on les tapait dans la barre de recherche).
 //
 // Formats acceptés : l'archive .zip telle que Google la fournit, ou les fichiers qu'elle contient
@@ -9,8 +9,10 @@
 //
 // ⚠️ Google range les listes (Favoris, À visiter, vos listes) dans un produit Takeout à part, « Enregistré »
 // (« Saved »), et non dans « Maps (vos adresses) », qui ne contient que les lieux suivis, les adresses
-// avec libellé et les avis. Les listes n'ont pas de position : seulement le nom et un lien Google.
+// avec libellé et les avis. Les listes n'ont que le nom et un lien Google, dont l'identifiant contient la position
+// (s2cell.js, découvert le 01/11/2026).
 import { tx } from '#lib/i18n/index.js';
+import { latLonFromGoogleUrl } from './s2cell.js';
 
 /** Lit une archive .zip (méthodes « stockée » et « deflate ») : [{ name, text() }] */
 async function unzip(buf) {
@@ -48,9 +50,11 @@ async function unzip(buf) {
 
 // Coordonnées cachées dans une adresse Google Maps (…!3d48.85!4d2.33… ou …@48.85,2.33…).
 function coordsFromUrl(url = '') {
-  let m = /!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/.exec(url) || /@(-?\d+\.\d+),(-?\d+\.\d+)/.exec(url)
-    || /[?&](?:q|query|ll)=(-?\d+\.\d+),\s*(-?\d+\.\d+)/.exec(url);
-  return m ? { lat: Number(m[1]), lon: Number(m[2]) } : null;
+  const m = /!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/.exec(url) || /@(-?\d+\.\d+),(-?\d+\.\d+)/.exec(url)
+    || /[?&](?:q|query|ll)=(-?\d+\.\d+),\s*(-?\d+\.\d+)/.exec(url) || /\/maps\/search\/(-?\d+\.\d+),\s*(-?\d+\.\d+)/.exec(url);
+  if (m) return { lat: Number(m[1]), lon: Number(m[2]) };
+  // lien d'un lieu enregistré : sa position est dans son identifiant (s2cell.js)
+  return latLonFromGoogleUrl(url);
 }
 
 function fromGeoJSON(j) {

@@ -23,11 +23,14 @@ from build_overlays import PLACES_FROM, STEPS, spacing_px
 # sur l'étalon, tests/landmarks-rendu.mjs) ; 0,6 / 1,0 en dessinait 27 % de plus. LM_CELL, LM_CELL_PLACE : pour mesurer.
 CELL = {"landmark": float(os.environ.get("LM_CELL", 0.9)), "place": float(os.environ.get("LM_CELL_PLACE", 1.5))}
 PER_CELL = {"landmark": 1, "place": 1}
+LAST_Z = 16.5     # zoom à partir duquel tous les lieux retenus peuvent apparaître (comme Plans, galerie marchande du 01/11)
 
 
 def assign_zoom_cells(items, lat0=48.86, cell=CELL, per_cell=PER_CELL):
     """Donne à chaque lieu « z », le premier zoom où il est parmi les plus connus de son carré (de son genre)."""
-    m_per_px0 = 156543.03 * math.cos(math.radians(lat0))
+    # mètres par pixel au zoom 0 de la carte : MapLibre dessine des tuiles de 512 px (et non 256 comme l'ancien calcul,
+    # build_overlays.assign_zoom, qui doublait sans le dire l'écart à l'écran : carte trop vide, Amsterdam 01/11/2026)
+    m_per_px0 = 78271.52 * math.cos(math.radians(lat0))
     kx = 111320 * math.cos(math.radians(lat0))
     xy = [(i["lon"] * kx, i["lat"] * 111320) for i in items]
     order = sorted(range(len(items)), key=lambda k: -items[k]["score"])
@@ -46,4 +49,9 @@ def assign_zoom_cells(items, lat0=48.86, cell=CELL, per_cell=PER_CELL):
                 seen[key] = n + 1
                 if "z" not in it:
                     it["z"] = z
-    return [i for i in items if "z" in i]
+    # les autres apparaissent tous en zoomant encore, la carte ne gardant que ceux qui ne se chevauchent pas
+    # (avant : jamais affichés, même au plus près ; dans une galerie marchande, la plupart des boutiques manquaient)
+    for it in items:
+        if "z" not in it:
+            it["z"] = LAST_Z
+    return items

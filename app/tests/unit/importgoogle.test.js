@@ -48,3 +48,27 @@ test('fichier seul (pas une archive) : pas d’alerte « listes absentes »', as
   const r = await readGoogleExport(new File([JSON.stringify(geo)], 'Saved Places.json'));
   assert.equal(r.listsMissing, false);
 });
+
+test('liste Google : la position est lue dans le lien du lieu (identifiant S2), et dans les repères placés', async () => {
+  const { readGoogleExport } = await import('#lib/importgoogle.js');
+  const csv = 'Titre,Note,URL,Tags,Commentaire\n,,,,\nColmar,,https://www.google.com/maps/place/Colmar/data=!4m2!3m1!1s0x479165dff670c1cf:0xd7a4b0d6c4f2a8c1,,\n'
+    + 'Repère placé,,"https://www.google.com/maps/search/43.7224713,4.803497",,\n';
+  const r = await readGoogleExport(new File([csv], 'Alsace.csv'));
+  const colmar = r.places.find((p) => p.name === 'Colmar');
+  assert.ok(Math.abs(colmar.lat - 48.0837) < 1e-3 && Math.abs(colmar.lon - 7.3548) < 1e-3, `${colmar.lat}, ${colmar.lon}`);
+  const pin = r.places.find((p) => p.name === 'Repère placé');
+  assert.equal(pin.lat, 43.7224713);
+});
+
+test('lieu sans position : cherché autour de sa liste ; un homonyme lointain est écarté', async () => {
+  const { listCenters, tooFar } = await import('#lib/importcenter.js');
+  const places = [{ listName: 'Bavière', lat: 48.14, lon: 11.58 }, { listName: 'Bavière', lat: 47.56, lon: 10.75 }, { listName: 'Bavière', lat: 48.37, lon: 10.9 },
+    { listName: 'Bavière', name: 'Neuschwanstein' }, { listName: 'Paris', lat: 48.85, lon: 2.35 }];
+  const { centers, all } = listCenters(places);
+  assert.equal(centers.get('Bavière').n, 3);
+  assert.ok(Math.abs(centers.get('Bavière').lat - 48.14) < 0.01);
+  assert.ok(all.n === 4);
+  assert.equal(tooFar({ lat: 48.86, lon: 2.34 }, centers.get('Bavière')), true);     // homonyme parisien
+  assert.equal(tooFar({ lat: 47.56, lon: 10.75 }, centers.get('Bavière')), false);
+  assert.equal(tooFar({ lat: 48.86, lon: 2.34 }, centers.get('Paris')), false);      // un seul lieu placé : pas de jugement
+});

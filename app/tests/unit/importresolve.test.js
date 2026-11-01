@@ -91,3 +91,11 @@ test('import : pas d’attente quand le lieu a été trouvé dans nos données',
   await eachPaced([1, 2, 3], 1000, async (i) => { t += 10; return i === 2; }, () => t, async (ms) => { waits.push(ms); t += ms; });
   assert.deepEqual(waits, [990]);
 });
+
+test('lieu à l’étranger placé par sa position : sa fiche OSM retrouvée par son nom, tout près seulement', async () => {
+  const { linkByName } = await import('#lib/importresolve.js');
+  const p = { name: 'Es Baluard', lat: 39.5707, lon: 2.642 };
+  const ok = await linkByName(p, async () => [{ name: 'Es Baluard', lat: 39.5708, lon: 2.6421, osmType: 'way', osmId: 9 }]);
+  assert.equal(ok.osmId, 9);
+  assert.equal(await linkByName(p, async () => [{ name: 'Es Baluard', lat: 41.4, lon: 2.1, osmType: 'way', osmId: 8 }]), null);   // homonyme lointain
+});

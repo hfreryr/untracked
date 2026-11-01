@@ -114,8 +114,13 @@ export function createMyPlaces(app) {
     app.listEditing = false;
     app.swiped = null;
     refreshSaved();
-    const pts = app.nearby.slice(0, 8).map((n) => n.f.geometry.coordinates);
-    if (pts.length) app.fitTo(app.me ? [[app.me.lon, app.me.lat], ...pts] : pts);
+    // la carte avec tous les lieux de la liste, la fiche réduite en bas (porteur, 01/11/2026) ; la liste se remonte au doigt
+    requestAnimationFrame(showListOnMap);
+  }
+  function showListOnMap() {
+    document.querySelector('.app > section.sheet')?.dispatchEvent(new CustomEvent('sheetsnap', { detail: 'peek' }));
+    const pts = app.nearby.map((n) => n.f.geometry.coordinates);
+    if (pts.length) app.fitTo(pts);
   }
   async function shareList(l) {
     const places = app.favorites.filter((f) => f.lists.includes(l.id));
@@ -215,5 +220,5 @@ export function createMyPlaces(app) {
     }
   }
 
-  return { sameSpot, saveAll, keepOf, saveTap, setMembership, togglePin, removeFromList, createList, renameList, setListStyle, deleteList, refreshSaved, openSavedList, shareList, keepIncomingList, makeTransfer, shareTransfer, applyIncoming, makeBackup, doRestore };
+  return { sameSpot, saveAll, keepOf, saveTap, setMembership, togglePin, removeFromList, createList, renameList, setListStyle, deleteList, refreshSaved, openSavedList, showListOnMap, shareList, keepIncomingList, makeTransfer, shareTransfer, applyIncoming, makeBackup, doRestore };
 }

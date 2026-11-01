@@ -84,7 +84,8 @@ function loadFile({ src, file, ext }) {
       for (const [id, lon, lat, tags, f] of j?.t || []) {
         const k = tileXY(lon, lat, ZOOM).join('/');
         if (!cells.has(k)) cells.set(k, []);
-        cells.get(k).push({ id, lon, lat, tags, facade: f ? facadeOf(f) : null });
+        // base : dossier de la zone, pour les fichiers qui l'accompagnent (photos des avis, review_photos.py)
+        cells.get(k).push({ id, lon, lat, tags, facade: f ? facadeOf(f) : null, base: `${dataBase()}${src.dir}` });
       }
       return cells;
     })().catch(() => new Map()));
