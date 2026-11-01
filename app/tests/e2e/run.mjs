@@ -420,6 +420,27 @@ const tests = {
       await ctx.close();
     }
   },
+  async 'lieux loin d\'ici : trouvés par l\'annuaire national, Photon coupé (01/11)'() {
+    // avant l'annuaire (grille du 31/10, Photon coupé) : 7 lieux sur 54 seulement ; données : scripts/build_directory.py
+    const cases = [
+      ['13/48.8566/2.3522', 'palais des papes', /Palais des Papes/i],   // vu de Paris
+      ['13/48.8566/2.3522', 'gordes', /Gordes/],
+      ['13/43.2965/5.3698', 'rijksmuseum', /Rijksmuseum/],              // vu de Marseille
+      ['13/48.1110/-1.6800', 'gare de rennes', /Rennes/]                 // la gare s'appelle « Rennes » dans OSM
+    ];
+    for (const [at, q, want] of cases) {
+      const { p, ctx, errors } = await page({}, `#carte=${at}`);
+      await p.route('**/photon.komoot.io/**', (r) => r.abort());
+      await p.click('#search'); await p.waitForTimeout(1000);
+      await p.fill('#search', q);
+      await p.waitForFunction(([re, fl]) => new RegExp(re, fl).test(document.querySelector('.results li.opt')?.innerText || ''), [want.source, want.flags], { timeout: 6000 })
+        .catch(() => {});
+      const first = await p.$eval('.results li.opt', (e) => e.innerText.replace(/\s+/g, ' ')).catch(() => '(rien)');
+      assert(want.test(first), `« ${q} » depuis ${at} : premier résultat ${first} (annuaire absent ? python app/scripts/build_directory.py)`);
+      assert(!errors.length, errors.join(' | '));
+      await ctx.close();
+    }
+  },
   async 'Photon en panne : la recherche par nom passe par nos données'() {
     const { p, ctx, errors } = await page();
     await p.route('**/photon.komoot.io/**', (r) => r.abort());

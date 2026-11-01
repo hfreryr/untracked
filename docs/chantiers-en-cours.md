@@ -6,7 +6,7 @@ Liste tenue à jour à chaque étape, pour ne rien perdre entre les sujets mené
 ## À fusionner
 | PR | Sujet | Après fusion |
 |---|---|---|
-| (cette PR) | Recherche : adresses et rues fiables où que l'on soit (grille de mesure : 71 % → 95 %) | Publier |
+| (cette PR) | Recherche : annuaire national des lieux (lieux loin d'ici trouvés sans Photon) | Publier, puis lancer `places-zones.yml` (zone corse) pour créer l'annuaire tout de suite |
 
 ## Décisions attendues du porteur
 | Sujet | Question posée | Où regarder |
@@ -34,9 +34,11 @@ Liste tenue à jour à chaque étape, pour ne rien perdre entre les sujets mené
 Règle : la réponse pertinente d'abord, quelle que soit la distance ; la proximité ne départage que l'ambigu.
 Mesure : `node app/tests/search/grid.mjs` (6 points de départ × 27 recherches, voir `docs/recherche.md`).
 1. ✅ **Index par région et Amsterdam** (#116, fusionnée).
-2. 🔧 **Adresses et rues** (cette PR) : 71 % → 95 % de bonnes réponses en premier ; adresses 42/42, rues 41/42.
-3. **Annuaire national des lieux par début de nom** (≈ 40 Mo, fichiers de 40 Ko au plus) : les lieux loin de sa région
-   (Photon coupé : 7 lieux sur 54 trouvés). À traiter aussi : « gare de rennes » (la gare s'appelle « Rennes » dans OSM).
+2. ✅ **Adresses et rues** (#117, fusionnée, publiée le 01/11) : 71 % → 95 % de bonnes réponses en premier.
+3. 🔧 **Annuaire national des lieux** (cette PR) : ≈ 90 000 lieux, 6,7 Mo, découpé par début de mot. Photon coupé, lieux
+   7/54 → 42/54. Complet quand les 13 régions calculées avant #116 auront leur index (au plus tard le 07/11, calcul
+   hebdomadaire). « gare de rennes » réglé. Restent : « musée Jean Cocteau Menton » (commune absente du nom),
+   « Puy de Dôme » (sommets absents de nos lieux).
 4. **Import Google** par l'annuaire, Photon seulement pour l'étranger.
 - Limite connue : une rue française cherchée depuis l'étranger reste confiée à Photon.
 - Avant tout lancement public : notre propre Photon (règle « zéro pistage »).

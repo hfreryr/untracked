@@ -48,6 +48,18 @@ def norm(s):
     return re.sub(r"[^a-z0-9]+", " ", s).strip()
 
 
+def station_alts(name, kv, alts, station=""):
+    """« gare de rennes » : la gare s'appelle « Rennes » dans OSM (grille du 31/10/2026). Ajoute « Gare de <nom> »
+    aux autres noms d'une gare de train (pas d'une station de métro ou de tram : « Rennes » à Paris est une station de
+    métro), s'il n'y est pas déjà ; renvoie les autres noms (séparés par « ; »)."""
+    if kv not in ("railway=station", "public_transport=station") or station in ("subway", "light_rail", "tram", "monorail") \
+            or norm(name).startswith("gare"):
+        return alts
+    extra = f"Gare de {name}"
+    have = [a for a in (alts or "").split(";") if a]
+    return alts if any(norm(a) == norm(extra) for a in have) else ";".join(sorted(have + [extra]))
+
+
 def main_tag(t):
     for k in MAIN:
         if k in t:
@@ -82,7 +94,7 @@ def build(items, qrank):
             continue
         alts = sorted({a.strip() for k in ALT for a in (t.get(k) or "").split(";") if a.strip() and norm(a) != norm(name)})
         rows.append({"name": name, "lon": round(lon, 5), "lat": round(lat, 5), "id": oid, "kv": kv,
-                     "rank": notoriety(t, qrank), "alts": ";".join(alts), "x": extra_of(t), "wd": t.get("wikidata"),
+                     "rank": notoriety(t, qrank), "alts": station_alts(name, kv, ";".join(alts), t.get("station", "")), "x": extra_of(t), "wd": t.get("wikidata"),
                      # sans adresse : la rue la plus proche (« _rue », build_places.py), marquée « ~ » : l'app affiche « près de … »
                      # (mesuré le 21/10 sur 3 000 lieux à adresse connue : bonne rue 78 %, rue voisine 19 %, aucune 3 %)
                      "num": t.get("addr:housenumber", "") if t.get("addr:street") else ("~" if t.get("_rue") else ""),
