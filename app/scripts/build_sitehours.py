@@ -17,11 +17,17 @@ Politesse : une seule page par site (la page indiquée), robots.txt respecté, i
 Prudence : le nom publié par le site doit ressembler au nom du lieu (sinon ce sont peut-être les horaires du
 siège d'une chaîne ou d'un autre établissement) ; les horaires doivent être au format OSM valide.
 
+Photo du lieu (décision du porteur, 01/11/2026) : sur la même page, l'image que le site publie pour se présenter
+(og:image, schema.org « image »). On n'en garde que l'ADRESSE : l'app l'affiche en la chargeant depuis le site du lieu,
+sans la copier (docs/photos-lieux.md, « Qui voit quoi »). Retenue seulement si : pas un logo, assez grande, aucun
+traceur (cookie) déposé, et affichable depuis untrackedmaps.app (un site qui la réserve à lui-même est respecté).
+
 Entrée : l'extrait OSM et extras.json (build_extras.py, pour les sites trouvés ailleurs qu'OSM).
-Sortie : extras.json complété en place : "opening_hours": [horaires, "site"] (relu chaque semaine).
+Sortie : extras.json complété en place : "opening_hours": [horaires, "site"], "_photo": [adresse de l'image, "site"]
+(relu chaque semaine).
 Usage :  python app/scripts/build_sitehours.py paris.osm.pbf --extras out/extras.json [--limit 200]
 """
-import argparse, concurrent.futures as cf, datetime, gzip, json, re, ssl, sys, time, urllib.request, urllib.robotparser
+import argparse, concurrent.futures as cf, datetime, gzip, json, re, ssl, sys, time, urllib.parse, urllib.request, urllib.robotparser
 from collections import Counter, defaultdict
 from pathlib import Path
 from urllib.parse import urlparse
@@ -41,7 +47,84 @@ HM = re.compile(r"^(\d{1,2}):(\d{2})")
 
 def wanted(tags):
     """Lieux dont on cherche les horaires sur leur site : restauration et commerces de bouche ou de quartier."""
-    return "opening_hours" not in tags and (tags.get("amenity") in FOOD or tags.get("shop") in SHOPS)
+    return "opening_hours" not in tags and wanted_photo(tags)
+
+
+def wanted_photo(tags):
+    """Lieux dont on cherche la photo sur leur site (qu'OSM ait leurs horaires ou non)."""
+    return tags.get("amenity") in FOOD or tags.get("shop") in SHOPS
+
+
+# ——— Photo publiée par le site ———
+META_IMG = re.compile(r'<meta\b[^>]*>', re.I)
+NOT_PHOTO = re.compile(r"logo|favicon|icon|sprite|placeholder|default|blank|\.svg(\?|$)|^data:", re.I)
+REFERER = "https://untrackedmaps.app/"
+MIN_W, MIN_H = 600, 300
+
+
+def photo_candidates(html, base):
+    """Images que la page publie pour se présenter : og:image, twitter:image, puis schema.org « image »."""
+    out = []
+    for tag in META_IMG.findall(html):
+        if re.search(r'(property|name)\s*=\s*["\'](og:image(:secure_url|:url)?|twitter:image)["\']', tag, re.I):
+            m = re.search(r'content\s*=\s*["\']([^"\']+)', tag, re.I)
+            if m:
+                out.append(m.group(1).strip())
+    for block in LDJSON.findall(html):
+        try:
+            data = json.loads(block.strip())
+        except ValueError:
+            continue
+        stack = [data]
+        while stack:
+            d = stack.pop()
+            if isinstance(d, list):
+                stack += d
+            elif isinstance(d, dict):
+                stack += [d["@graph"]] if "@graph" in d else []
+                for im in (d.get("image") if isinstance(d.get("image"), list) else [d.get("image")]):
+                    u = im if isinstance(im, str) else im.get("url") if isinstance(im, dict) else None
+                    if u:
+                        out.append(u.strip())
+    seen, urls = set(), []
+    for u in out:
+        u = urllib.parse.urljoin(base, u.replace("&amp;", "&"))
+        if u.startswith("https://") and not NOT_PHOTO.search(u) and u not in seen:
+            seen.add(u)
+            urls.append(u)
+    return urls
+
+
+def photo_ok(url):
+    """L'image est-elle affichable dans l'app ? Lue comme le ferait l'app (depuis untrackedmaps.app), non gardée.
+    Refusée si : réponse autre qu'une image, traceur (cookie) déposé, trop petite, bandeau (trop allongée)."""
+    req = urllib.request.Request(url, headers={"User-Agent": UA, "Referer": REFERER})
+    try:
+        with urllib.request.urlopen(req, timeout=12, context=ssl.create_default_context()) as r:
+            if not (r.headers.get("Content-Type") or "").startswith("image/") or r.headers.get_all("Set-Cookie"):
+                return False
+            raw = r.read(6_000_000)
+    except Exception:
+        return False
+    w, h = image_size(raw)
+    return bool(w) and w >= MIN_W and h >= MIN_H and 0.5 <= w / h <= 2.6
+
+
+def image_size(raw):
+    try:
+        from PIL import Image
+        import io
+        return Image.open(io.BytesIO(raw)).size
+    except Exception:
+        return 0, 0
+
+
+def photo_in(html, base, check=photo_ok):
+    """Première image de présentation affichable, ou None."""
+    for u in photo_candidates(html, base)[:3]:
+        if check(u):
+            return u
+    return None
 
 
 def week_to_osm(week):
@@ -177,7 +260,7 @@ RECHECK_WITHOUT = 90       # jours avant de relire un site qui n'en a jamais pub
 
 def due(entry, today):
     """Faut-il relire ce site aujourd'hui ? (entry : état de la dernière lecture, ou None)"""
-    if not entry or not entry.get("checked"):
+    if not entry or not entry.get("checked") or "photo" not in entry:   # (photo cherchée depuis le 01/11/2026)
         return True
     age = (datetime.date.fromisoformat(today) - datetime.date.fromisoformat(entry["checked"])).days
     # site injoignable ou refusé : on réessaie au bout de 28 jours (panne passagère possible)
@@ -329,11 +412,11 @@ def main():
     todo = []
     for oid, lon, lat, tags in (it for tile in h.tiles.values() for it in tile):
         ex = extras.get(str(oid), {})
-        if not wanted(tags) or "opening_hours" in ex:
+        if not wanted_photo(tags):
             continue
         site = tags.get("website") or tags.get("contact:website") or (ex.get("website") or [None])[0]
         if site and tags.get("name") and not NOT_A_SITE.search(site):
-            todo.append((str(oid), tags["name"], site, lon, lat))
+            todo.append((str(oid), tags["name"], site, lon, lat, wanted(tags) and "opening_hours" not in ex))
     if args.limit:
         todo = todo[: args.limit]
     stats = Counter()
@@ -356,7 +439,8 @@ def main():
         if site in archived:
             date, html = archived[site]
             oh = hours_in(html, name)
-            state[site] = {**state.get(site, {}), "checked": today, "hours": oh, "via": "commoncrawl", "page": date}
+            state[site] = {**state.get(site, {}), "checked": today, "hours": oh, "via": "commoncrawl", "page": date,
+                           "photo": photo_in(html, site if "://" in site else "http://" + site)}
             stats["archive Common Crawl"] += 1
         else:
             live.append((oid, name, site))
@@ -366,14 +450,18 @@ def main():
         oid, name, site = job
         prev = state.get(site, {})
         try:
-            html, etag, lastmod = fetch(site, prev.get("etag"), prev.get("lastmod"))
+            # (une page lue avant le 01/11 est relue en entier une fois, pour y chercher la photo)
+            known = "photo" in prev
+            html, etag, lastmod = fetch(site, prev.get("etag") if known else None, prev.get("lastmod") if known else None)
         except Exception:
             return site, "injoignable", {**prev, "checked": today, "via": "échec", "hours": prev.get("hours")}
         if html is None:
             return site, "refusé ou pas une page", {**prev, "checked": today, "via": "échec", "hours": prev.get("hours")}
         if html == "":
             return site, "page inchangée", {**prev, "checked": today}
-        return site, "visite", {"checked": today, "hours": hours_in(html, name), "via": "site", "etag": etag, "lastmod": lastmod}
+        base = site if "://" in site else "http://" + site
+        return site, "visite", {"checked": today, "hours": hours_in(html, name), "via": "site", "etag": etag, "lastmod": lastmod,
+                                "photo": photo_in(html, base)}
 
     with cf.ThreadPoolExecutor(16) as ex:
         for site, status, entry in ex.map(one, live):
@@ -382,11 +470,15 @@ def main():
                 state[site] = entry
 
     # 3. horaires connus (de cette semaine ou des précédentes) → compléments
-    for oid, name, site, *_ in todo:
-        oh = (state.get(site) or {}).get("hours")
-        if oh and valid_hours(oh):
+    for oid, name, site, lon, lat, want_hours in todo:
+        st = state.get(site) or {}
+        oh = st.get("hours")
+        if want_hours and oh and valid_hours(oh):
             extras.setdefault(oid, {})["opening_hours"] = [oh, "site"]
             stats["lieux avec horaires"] += 1
+        if st.get("photo"):
+            extras.setdefault(oid, {})["_photo"] = [st["photo"], "site"]
+            stats["lieux avec photo du site"] += 1
     Path(args.extras).write_text(json.dumps(data, ensure_ascii=False, separators=(",", ":")))
     Path(args.state).write_text(json.dumps({"v": 1, "updated": today, "sites": state}, ensure_ascii=False, separators=(",", ":")))
     print("sites : " + ", ".join(f"{k} {v}" for k, v in stats.most_common()) + f", en {time.time() - t0:.0f} s")
