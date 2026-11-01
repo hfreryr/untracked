@@ -8,6 +8,12 @@ on:
     # Secours : GitHub ne garantit pas l'heure des lancements programmés (retard de plusieurs heures ou lancement
     # sauté, constaté les 14 et 15/10/2026). Ce second lancement ne recalcule rien si les données du jour existent déjà.
     - cron: '15 5 * * *'
+  # Enchaînement automatique (porteur, 02/11/2026 : « on relance des calculs de manière désordonnée ») : dès que les
+  # compléments (lundi) ou les devantures (dimanche) sont publiés, les lieux sont recalculés avec eux, sans attendre la
+  # nuit suivante ni lancement à la main. Calendrier complet : docs/calendrier-calculs.md
+  workflow_run:
+    workflows: ["Compléments des lieux (hebdo)", "Devantures Panoramax (hebdo)"]
+    types: [completed]
   workflow_dispatch:
 concurrency:
   group: places
@@ -16,6 +22,8 @@ permissions:
   contents: write
 jobs:
   build:
+    # après les compléments ou les devantures : seulement s'ils ont réussi (sinon rien de neuf à assembler)
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     steps:
       - name: "Déjà fait aujourd'hui ? (lancements programmés seulement)"
