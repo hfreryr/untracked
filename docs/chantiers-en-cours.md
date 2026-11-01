@@ -6,6 +6,7 @@ Liste tenue à jour à chaque étape, pour ne rien perdre entre les sujets mené
 ## À fusionner
 | PR | Sujet | Après fusion |
 |---|---|---|
+| (cette PR) | Carte en vue large : villes avec un point, grandes villes plus grandes ; mode sombre sans jaune | Publier |
 | #122 | Import Google par l'annuaire national et l'adresse (Photon en dernier recours) | Publier |
 
 ## Décisions attendues du porteur
