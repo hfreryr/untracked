@@ -37,13 +37,17 @@ jobs:
         run: |
           curl -sSfL -o out/sitehours.json https://untrackedmaps.app/data/sitehours.json || echo '{}' > out/sitehours.json
           python app/scripts/build_sitehours.py idf.osm.pbf --extras out/extras.json --state out/sitehours.json --max-new "${SITES:-4000}" || echo "sites ignorés (le reste est publié)"
+      - name: Photos Wikimedia des lieux, préparées à l'avance (une demande à la fois, résultats gardés 90 jours)
+        run: |
+          curl -sSfL -o out/wikiphotos.json https://untrackedmaps.app/data/wikiphotos.json || echo '{}' > out/wikiphotos.json
+          python app/scripts/build_wikiphotos.py idf.osm.pbf --extras out/extras.json --state out/wikiphotos.json || echo "photos Wikimedia ignorées (le reste est publié)"
       - name: "Garde-fou : pas de publication si les compléments paraissent vides"
         run: python -c "import json,sys; n=len(json.load(open('out/extras.json'))['places']); print(n,'lieux complétés'); sys.exit(0 if n >= 1000 else 1)"
       - name: Publier dans gh-pages/data/extras.json
         run: |
           git fetch --depth=1 origin gh-pages
           git worktree add pages origin/gh-pages
-          mkdir -p pages/data && cp out/extras.json pages/data/extras.json && cp out/sitehours.json pages/data/sitehours.json
-          cd pages && git add -A data/extras.json data/sitehours.json
+          mkdir -p pages/data && cp out/extras.json pages/data/extras.json && cp out/sitehours.json pages/data/sitehours.json && cp out/wikiphotos.json pages/data/wikiphotos.json
+          cd pages && git add -A data/extras.json data/sitehours.json data/wikiphotos.json
           git -c user.name=untracked-bot -c user.email=bot@untrackedmaps.app commit -qm "Compléments des lieux du $(date -u +%F)" || exit 0
           git push origin HEAD:gh-pages

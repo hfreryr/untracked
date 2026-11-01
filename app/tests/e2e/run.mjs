@@ -461,6 +461,31 @@ const tests = {
       await ctx.close();
     }
   },
+  async 'photos Wikimedia préparées à l\'avance : tout de suite, sans interroger Wikidata ni Commons (01/11)'() {
+    const { ctx } = await page({ bypassCSP: true });
+    const ID = 31940133271;   // Deux Fois Plus de Piment (tuiles locales)
+    const png = readFileSync(new URL('../../static/icon-512.png', import.meta.url));
+    await ctx.route('**/data/places/**', async (route) => {
+      const r = await route.fetch();
+      const j = await tileJson(r);
+      if (!j?.t) return route.fulfill({ response: r });
+      for (const it of j.t) if (it[0] === ID) Object.assign(it[3], { wikidata: 'Q1', _wt: 'Piment', _wph: [['a/ab/Salle.jpg/960px-Salle.jpg', 'Lou · CC BY-SA 4.0'], ['c/cd/Plat.jpg/960px-Plat.jpg', 'Lou · CC BY-SA 4.0']] });
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(j) });
+    });
+    const asked = [];
+    await ctx.route('https://upload.wikimedia.org/**', (route) => route.fulfill({ status: 200, contentType: 'image/png', body: png }));
+    await ctx.route(/wikidata\.org|commons\.wikimedia\.org\/w\/api/, (route) => { asked.push(route.request().url()); route.abort(); });
+    await ctx.route('https://fr.wikipedia.org/**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ extract: 'Un restaurant.', content_urls: { mobile: { page: 'https://fr.m.wikipedia.org/wiki/Piment' } } }) }));
+    const p = await ctx.newPage(); const errors = []; p.on('pageerror', (e) => errors.push(e.message));
+    await p.goto(`http://localhost:${PORT}/#carte=18/48.861574/2.370638&lieu=node/3194013327`);
+    await p.waitForSelector('.pcard img', { timeout: 15000 });
+    const srcs = await p.$$eval('.pcard img', (es) => es.map((e) => e.src));
+    assert(srcs.some((u) => u.endsWith('/thumb/a/ab/Salle.jpg/960px-Salle.jpg')) && srcs.length >= 2, `photos : ${srcs}`);
+    await p.waitForSelector('text=Un restaurant.', { timeout: 10000 });
+    assert(!asked.length, `Wikidata ou Commons interrogés à l'ouverture : ${asked}`);
+    assert(!errors.length, errors.join(' | '));
+    await ctx.close();
+  },
   async 'photos du lieu sous l’en-tête (avis, site), sans clic ; photo jointe à un avis, sans sa position (01/11)'() {
     // bandeau comme Plans (capture du porteur, 01/11) : photos d'avis copiées chez nous (review_photos.py), photo du site
     // chargée depuis le site (build_sitehours.py) ; plein écran au toucher, crédit de chaque photo

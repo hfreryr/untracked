@@ -5,6 +5,7 @@ import { departures } from '#lib/routing.js';
 import { details } from '#lib/places.js';
 import { sortExits, stationExits } from '#lib/exits.js';
 import { wikiInfo } from '#lib/placeinfo.js';
+import { preparedPhotos, wikiSummary } from '#lib/wikiprepared.js';
 
 /** @param {any} app */
 export function createPlace(app) {
@@ -53,7 +54,14 @@ export function createPlace(app) {
     if (app.place?.id !== p.id) return;
     // Lien partagé : on ne connaissait que l'identifiant du lieu, on récupère son nom.
     if (!p.name && app.info.name) { app.place = { ...app.place, name: app.info.name, type: app.info.kind || app.info.type || app.place.type }; remember(app.place); app.showSelection(app.place); }
-    if (app.info.wikidata || app.info.wikipedia) {
+    if (app.info.wikiPhotos || app.info.wikiTitle) {
+      // préparé à l'avance (wikiprepared.js) : les photos tout de suite, le texte quand il arrive
+      const photos = preparedPhotos(app.info.wikiPhotos);
+      app.wiki = photos.length ? { photos, photo: photos[0] } : null;
+      const title = app.info.wikiTitle || /^fr:(.+)$/.exec(app.info.wikipedia || '')?.[1];
+      const s = await wikiSummary(title).catch(() => null);
+      if (app.place?.id === p.id && s) app.wiki = { ...(app.wiki || {}), ...s };
+    } else if (app.info.wikidata || app.info.wikipedia) {
       app.wiki = { pending: true };   // le bandeau de photos réserve leur place pendant la recherche (PhotoStrip.svelte)
       const w = await wikiInfo(app.info).catch(() => null);
       if (app.place?.id === p.id) app.wiki = w;
