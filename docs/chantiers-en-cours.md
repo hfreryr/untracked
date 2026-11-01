@@ -6,8 +6,7 @@ Liste tenue à jour à chaque étape, pour ne rien perdre entre les sujets mené
 ## À fusionner
 | PR | Sujet | Après fusion |
 |---|---|---|
-| #120 | Le faisceau d'orientation prend la couleur du point | Publier |
-| #121 | Classement des lieux sur la carte : rang dans le quartier | Recalculer l'Île-de-France et les régions (lieux mis en avant) |
+| #122 | Import Google par l'annuaire national et l'adresse (Photon en dernier recours) | Publier |
 
 ## Décisions attendues du porteur
 | Sujet | Question posée | Où regarder |
@@ -19,7 +18,7 @@ Liste tenue à jour à chaque étape, pour ne rien perdre entre les sujets mené
 
 ## Chantiers ouverts
 ### Classement des lieux sur la carte
-- 01/11 : rang dans le quartier (#121, `docs/villes.md`) : Rijksmuseum dès le zoom 14, même nombre de bons lieux
+- 01/11 : rang dans le quartier (#121, fusionnée, `docs/villes.md`) ; appliqué à chaque zone à son prochain calcul : Île-de-France la nuit suivante, régions au fil de la semaine (toutes au 08/11) : Rijksmuseum dès le zoom 14, même nombre de bons lieux
   avec 18 % d'étiquettes en moins.
 - Reste : la notoriété (« Marché Saint-Germain » devant l'église) ; les restaurants réputés (aucune donnée libre).
 
@@ -32,7 +31,7 @@ Mesure : `node app/tests/search/grid.mjs` (6 points de départ × 27 recherches,
    7/54 → 42/54. Complet quand les 13 régions calculées avant #116 auront leur index (au plus tard le 07/11, calcul
    hebdomadaire). « gare de rennes » réglé. Restent : « musée Jean Cocteau Menton » (commune absente du nom),
    « Puy de Dôme » (sommets absents de nos lieux).
-4. **Import Google** par l'annuaire, Photon seulement pour l'étranger.
+4. 🔧 **Import Google** par l’annuaire (#122) : lieux sûrs 44 → 63 sur un vrai export, 142 → 100 s.
 - Limite connue : une rue française cherchée depuis l'étranger reste confiée à Photon.
 - Avant tout lancement public : notre propre Photon (règle « zéro pistage »).
 

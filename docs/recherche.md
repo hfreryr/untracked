@@ -113,6 +113,26 @@ Pour trouver « Gordes », le Palais des Papes ou le Rijksmuseum depuis n'import
 parisien, défaut antérieur. Photon coupé, échouent seulement « musée Jean Cocteau Menton » et « Puy de Dôme » (et,
 depuis Amsterdam, les adresses françaises, confiées à Photon).
 
+## Import des listes Google (01/11/2026)
+
+Les listes exportées de Google n'ont que des noms. Chaque lieu est cherché, dans l'ordre (`importresolve.js`) :
+nos lieux autour de Paris, puis l'**annuaire national**, puis son adresse s'il y en a une (géocodeur de l'État, et le
+lieu du même nom tout près), et seulement à défaut Photon (surtout l'étranger). Seul Photon impose d'attendre ≈ 1 s
+entre deux lieux.
+
+Mesuré sur un vrai export (137 lieux de 9 listes, dont l'étranger) :
+
+| | Avant | Après |
+|---|---|---|
+| Lieux sûrs | 44 | **63** |
+| « Position à vérifier » | 85 | 66 |
+| Introuvables | 6 | 6 |
+| Durée | 142 s | **100 s** |
+
+Les villages du Luberon, d'Alsace, du Gers sont désormais sûrs ; « Les Jardins de la Fontaine » est placé à Nîmes (avant :
+un homonyme dans le Loiret). Restent « à vérifier » surtout les lieux à l'étranger (Baléares, Norvège, Forêt-Noire) et
+les restaurants homonymes.
+
 ## Adresse dans la liste des résultats
 
 Comme Google Maps, chaque lieu de la liste montre sa rue.

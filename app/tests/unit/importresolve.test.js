@@ -25,7 +25,7 @@ test('nos données d’abord : rien n’est envoyé si le nom est unique chez no
 test('absent de nos données (lieu hors de Paris) : le moteur de recherche, sans limite de zone', async () => {
   const lyon = { name: 'Les Halles de Lyon Paul Bocuse', lat: 45.76, lon: 4.85 };
   const r = await resolvePlace({ name: lyon.name }, at, { local: async () => [], remote: async () => [lyon] });
-  assert.deepEqual(r, { place: lyon, sure: true });
+  assert.deepEqual(r, { place: lyon, sure: true, remote: true });
 });
 test('quelques recherches à la fois, toutes faites', async () => {
   let live = 0, max = 0;
@@ -65,4 +65,29 @@ test('import : Photon refuse puis répond — nouvel essai après 2 s, 4 s', asy
   assert.deepEqual(waits, [2000, 4000]);
   n = 0;
   await assert.rejects(searchForImport('X', at, { tries: 2, call: async () => { throw new Error('503'); }, wait: async () => {} }));
+});
+
+test('import : l’annuaire national avant Photon ; l’adresse par le géocodeur de l’État', async () => {
+  const at = { lat: 48.85, lon: 2.35 };
+  let remote = 0;
+  const gordes = { name: 'Gordes', lat: 43.91, lon: 5.2, osmType: 'relation', osmId: 1 };
+  const r = await resolvePlace({ name: 'Gordes' }, at, { local: async () => [], directory: async () => [gordes], remote: async () => { remote++; return []; } });
+  assert.equal(r.place, gordes); assert.equal(r.sure, true); assert.equal(remote, 0);
+  // adresse : position du géocodeur, et le lieu OSM du même nom s'il est tout près
+  const cafe = { name: 'Le Pick-Clops', lat: 48.8571, lon: 2.3555, osmType: 'node', osmId: 7 };
+  const a = await resolvePlace({ name: 'Le Pick-Clops', address: '16 Rue Vieille du Temple, 75004 Paris' }, at,
+    { local: async () => [cafe], address: async () => ({ lat: 48.8572, lon: 2.3556 }), remote: async () => { remote++; return []; } });
+  assert.equal(a.place, cafe); assert.equal(remote, 0);
+  const b = await resolvePlace({ name: 'Chez Moi', address: '3 rue X, 35000 Rennes' }, at,
+    { local: async () => [], address: async () => ({ lat: 48.11, lon: -1.68 }), remote: async () => { remote++; return []; } });
+  assert.equal(b.place.lat, 48.11); assert.equal(b.sure, true); assert.equal(remote, 0);
+  // rien chez nous : Photon, marqué comme tel (l'import attend alors ≈ 1 s avant le suivant)
+  const c = await resolvePlace({ name: 'Es Baluard' }, at, { local: async () => [], directory: async () => [], remote: async () => [{ name: 'Es Baluard', lat: 39.57, lon: 2.64 }] });
+  assert.equal(c.remote, true);
+});
+
+test('import : pas d’attente quand le lieu a été trouvé dans nos données', async () => {
+  let t = 0; const waits = [];
+  await eachPaced([1, 2, 3], 1000, async (i) => { t += 10; return i === 2; }, () => t, async (ms) => { waits.push(ms); t += ms; });
+  assert.deepEqual(waits, [990]);
 });

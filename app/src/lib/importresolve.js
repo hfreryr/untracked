@@ -1,8 +1,11 @@
 // Retrouver la position d'un lieu importé de Google Maps dont l'export ne donne que le nom
-// (les listes Google n'ont pas de coordonnées). On cherche d'abord dans nos propres données
-// (sur le téléphone, rien n'est envoyé), puis, à défaut, le nom seul part au moteur de recherche.
+// (les listes Google n'ont pas de coordonnées). Dans l'ordre (01/11/2026, étape 4 de la recherche « où que l'on soit ») :
+// 1. nos lieux autour du point de départ (sur le téléphone, rien n'est envoyé) ;
+// 2. l'annuaire national des lieux (directory.js : communes, gares, musées, lieux connus de toutes nos régions) ;
+// 3. l'adresse, s'il y en a une, par le géocodeur de l'État (France), puis le lieu de ce nom à cette adresse ;
+// 4. à défaut seulement, Photon (service partagé, ≈ 1 demande par seconde) : surtout les lieux hors de France.
 import { searchLocal } from './localsearch.js';
-import { searchForImport } from './geocode.js';
+import { searchForImport, searchDirectory, geocodeAddress } from './geocode.js';
 import { normName } from './myplaces.js';
 
 const norm = (s) => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
@@ -27,19 +30,32 @@ export function pick(name, results) {
  * @returns {Promise<{place, sure}|null>} null : introuvable ; lève une erreur si le moteur de recherche n'a pas répondu
  * (le lieu est alors gardé pour « Réessayer », au lieu d'être compté introuvable)
  */
-export async function resolvePlace(p, at, deps = { local: searchLocal, remote: searchForImport }) {
+export async function resolvePlace(p, at, deps = {}) {
+  const { local = searchLocal, directory = searchDirectory, address = geocodeAddress, remote = searchForImport } = deps;
   if (!p.address) {
-    const local = pick(p.name, await deps.local(p.name, at).catch(() => []));
-    if (local?.sure) return local;
+    const near = pick(p.name, await local(p.name, at).catch(() => []));
+    if (near?.sure) return near;
+    const far = pick(p.name, await directory(p.name, at).catch(() => []));
+    if (far?.sure) return far;
+  } else {
+    // l'adresse donne la position ; le lieu du même nom tout près donne la fiche (identifiant OSM)
+    const a = await address(p.address).catch(() => null);
+    if (a) {
+      const same = (await local(p.name, a).catch(() => [])).find((r) => norm(r.name) === norm(p.name)
+        && Math.abs(r.lat - a.lat) < 0.0015 && Math.abs(r.lon - a.lon) < 0.002);
+      return { place: same || { name: p.name, lat: a.lat, lon: a.lon, address: p.address }, sure: true };
+    }
   }
-  return pick(p.name, await deps.remote(p.address || p.name, at));
+  const r = pick(p.name, await remote(p.address || p.name, at));
+  return r ? { ...r, remote: true } : null;
 }
 
-/** Comme eachLimited, un à la fois, avec au moins `gap` ms entre deux départs (service partagé : ≈ 1 demande/s). */
+/** Comme eachLimited, un à la fois, avec au moins `gap` ms entre deux départs (service partagé : ≈ 1 demande/s).
+ *  fn peut renvoyer false : rien n'a été demandé au service partagé, pas d'attente. */
 export async function eachPaced(items, gap, fn, now = () => Date.now(), wait = (ms) => new Promise((r) => setTimeout(r, ms))) {
   for (let i = 0; i < items.length; i++) {
     const t0 = now();
-    await fn(items[i], i);
+    if ((await fn(items[i], i)) === false) continue;
     const left = gap - (now() - t0);
     if (left > 0 && i < items.length - 1) await wait(left);
   }
