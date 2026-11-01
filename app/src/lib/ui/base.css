@@ -188,10 +188,12 @@ button { font: inherit; color: inherit; }
   position: absolute; inset: 0; border-radius: 50%; background: var(--me-color, var(--accent)); box-sizing: border-box;
   border: 2.5px solid #fff; box-shadow: 0 0 0 7px color-mix(in srgb, var(--me-color, #2a5bd7) 14%, transparent), 0 1px 3px rgb(0 0 0 / 0.3);
 }
-/* Faisceau de direction : un éventail bleu dégradé qui part du point (comme Plans et Maps) */
+/* Faisceau de direction : un éventail dégradé de la couleur du point, qui part du point (comme Plans et Maps) */
 .me .me-beam {
   position: absolute; left: 50%; bottom: 50%; width: 60px; height: 50px; margin-left: -30px; display: none;
-  background: radial-gradient(ellipse 50% 100% at 50% 100%, rgb(42 91 215 / 0.55), rgb(42 91 215 / 0) 100%);
+  /* même couleur que le point (choisie dans Mes contributions, --me-color) ; bleu par défaut */
+  background: radial-gradient(ellipse 50% 100% at 50% 100%, color-mix(in srgb, var(--me-color, #2a5bd7) 55%, transparent),
+    color-mix(in srgb, var(--me-color, #2a5bd7) 0%, transparent) 100%);
   clip-path: polygon(50% 100%, 6% 0, 94% 0);
 }
 .me.has-heading .me-beam { display: block; }
