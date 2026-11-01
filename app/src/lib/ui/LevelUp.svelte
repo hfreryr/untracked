@@ -47,6 +47,7 @@
     box-shadow: 0 0 0 10px color-mix(in srgb, var(--c) 18%, transparent), 0 2px 6px rgb(0 0 0 / 0.3); }
   .icon { display: grid; place-items: center; margin: 4px 0 10px; }
   p { margin: 0 0 8px; font-size: 15px; line-height: 1.4; }
-  .go { width: 100%; height: 46px; border: 0; border-radius: 14px; background: var(--accent-btn); color: #fff; font: inherit; font-weight: 650; cursor: pointer; margin-top: 8px; }
-  .later { width: 100%; height: 44px; border: 0; background: none; color: var(--accent); font: inherit; font-weight: 600; cursor: pointer; margin-top: 4px; }
+  .go { width: 100%; height: 46px; border: 0; border-radius: 14px; background: var(--accent-btn); color: #fff; font: inherit; font-weight: 650; cursor: pointer; margin-top: 8px;
+    display: grid; place-items: center; text-align: center; }   /* centré aussi sur iPhone (capture du 01/11) */
+  .later { width: 100%; height: 44px; border: 0; background: none; color: var(--accent); font: inherit; font-weight: 600; cursor: pointer; margin-top: 4px; text-align: center; }
 </style>
