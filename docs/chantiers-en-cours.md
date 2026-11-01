@@ -6,6 +6,7 @@ Liste tenue à jour à chaque étape, pour ne rien perdre entre les sujets mené
 ## À fusionner
 | PR | Sujet | Après fusion |
 |---|---|---|
+| (cette PR) | Photo publiée par le site des restaurants et commerces, affichée depuis leur site | Lancer `extras.yml` (Île-de-France), puis la nuit suivante les tuiles la portent |
 | #122 | Import Google par l'annuaire national et l'adresse (Photon en dernier recours) | Publier |
 
 ## Décisions attendues du porteur
@@ -55,6 +56,11 @@ Mesure : `node app/tests/search/grid.mjs` (6 points de départ × 27 recherches,
   (données locales) ; info trafic (contraste de `.badge` signalé par axe — **vrai défaut d'accessibilité à corriger**) ;
   autres passages et station de métro (services en temps réel, instables).
 - Import Google : beaucoup de lieux « position à vérifier » quand le nom Google diffère du nom OSM.
+
+### Photos des lieux (01/11)
+- Décision : photo du site du lieu, affichée depuis son site, sans clic (cette PR) ; Île-de-France d'abord (relevé avec les
+  horaires, `extras.yml`), régions ensuite.
+- Ensuite : photos des avis Mangrove (vérifier la licence), devantures Panoramax dans les régions, « ajouter une photo ».
 
 ### Marque
 - INPI : marque verbale « Untracked », classes 9, 38, 42 ; avis d'un conseil en propriété industrielle recommandé

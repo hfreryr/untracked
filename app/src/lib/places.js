@@ -79,7 +79,9 @@ export function fromTags(t, at = null) {
     hours: t.opening_hours,
     phone: t.phone || t['contact:phone'],
     website: t.website || t['contact:website'],
-    menu: t['website:menu'] || null,      // carte du restaurant (P6), quand OSM la connaît
+    menu: t['website:menu'] || null,
+    // photo publiée par le site du lieu (build_sitehours.py) : seulement son adresse ; chargée depuis le site, jamais copiée
+    sitePhoto: typeof t._photo === 'string' && t._photo.startsWith('https://') ? t._photo : null,      // carte du restaurant (P6), quand OSM la connaît
     // compléments hors OSM (sites, téléphones…) : leur source, affichée sous l'information (docs/sources-donnees.md)
     sources: t._src || {},
     wheelchair: t.wheelchair,

@@ -458,6 +458,32 @@ const tests = {
       await ctx.close();
     }
   },
+  async 'photo publiée par le site du restaurant : affichée sans clic, depuis le site, créditée (01/11)'() {
+    // build_sitehours.py ne garde que l'adresse de l'image (« _photo ») ; la fiche la charge depuis le site, sans la copier
+    const { ctx } = await page();
+    const ID = 31940133271;   // Deux Fois Plus de Piment (tuiles locales)
+    await ctx.route('**/data/places/**', async (route) => {
+      const r = await route.fetch();
+      const j = await tileJson(r);
+      if (!j?.t) return route.fulfill({ response: r });
+      for (const it of j.t) if (it[0] === ID) Object.assign(it[3], { _photo: 'https://photos.restaurant.test/salle.jpg', website: 'https://deuxfoisplusdepiment.test/' });
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(j) });
+    });
+    let ref = null;
+    const jpg = readFileSync(new URL('../../static/icon-512.png', import.meta.url));
+    await ctx.route('https://photos.restaurant.test/**', (route) => { ref = route.request().headers().referer || ''; route.fulfill({ status: 200, contentType: 'image/png', body: jpg }); });
+    // nouvel onglet, ouvert après la pose des interceptions
+    const p = await ctx.newPage(); const errors = []; p.on('pageerror', (e) => errors.push(e.message));
+    await p.goto(`http://localhost:${PORT}/#carte=18/48.861574/2.370638&lieu=node/3194013327`);
+    await p.waitForSelector('.site-photo.loaded img', { timeout: 15000 }).catch(async () => {
+      throw new Error(`photo absente : ${await p.evaluate(() => document.querySelector('.site-photo')?.outerHTML?.slice(0, 200) || document.querySelector('section.sheet')?.innerText?.slice(0, 120) || 'pas de fiche')}`);
+    });
+    const cap = await p.textContent('.site-photo figcaption');
+    assert(/Photo : deuxfoisplusdepiment\.test/.test(cap), `crédit : ${cap}`);
+    assert(ref === `http://localhost:${PORT}/`, `le site doit savoir d'où vient la demande (pour pouvoir refuser) : ${ref}`);
+    assert(!errors.length, errors.join(' | '));
+    await ctx.close();
+  },
   async 'Photon en panne : la recherche par nom passe par nos données'() {
     const { p, ctx, errors } = await page();
     await p.route('**/photon.komoot.io/**', (r) => r.abort());

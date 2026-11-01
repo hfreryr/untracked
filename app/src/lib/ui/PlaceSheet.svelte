@@ -1,4 +1,5 @@
 <script>
+  import SitePhoto from './SitePhoto.svelte';
   import { tx } from '#lib/i18n/index.js';
   import { getContext } from 'svelte';
   import { draggable } from '#lib/sheet.js';
@@ -103,6 +104,8 @@
           {/each}
         </div>
         <p class="ph-credit"><a href={app.wiki.photos[0].page} target="_blank" rel="noopener">{tx('fiche.photos_wikimedia_commons', { auteurs: app.wiki.photos[0].credit ? ` · ${app.wiki.photos[0].credit}` : '' })}</a></p>
+      {:else if app.info?.sitePhoto}
+        {#key app.info.sitePhoto}<SitePhoto src={app.info.sitePhoto} site={app.info.website} alt={app.title} />{/key}
       {/if}
 {/snippet}
 {#snippet aboutBlock()}
