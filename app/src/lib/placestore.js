@@ -4,6 +4,7 @@
 import { tx } from '#lib/i18n/index.js';
 import { dataBase } from './config.js';
 import { readJson } from './gzjson.js';
+import { pictureUrls } from './panoramax.js';
 
 import ZONES from './cities/zones.json' with { type: 'json' };
 
@@ -159,10 +160,8 @@ export async function dataDate(lat, lon) {
  * [idPhoto, hôte, azimut de la photo, cap vers le lieu, distance, licence, auteur, date]
  */
 function facadeOf([id, host, az, bearing, d, lic, by, date]) {
-  // l'image complète (2048 × 1024, équirectangulaire) ; le recadrage se fait à l'affichage
-  const src = `https://${host}/api/pictures/${id}/sd.jpg`;
-  // tuiles haute définition (16 × 8 de 768 px) pour le plein écran
-  const tile = (col, row) => `https://${host}/api/pictures/${id}/tiled/${col}_${row}.jpg`;
+  // l'image complète (équirectangulaire, recadrée à l'affichage) et ses tuiles HD pour le plein écran
+  const { src, tile } = pictureUrls(id, host);
   const rel = ((bearing - az + 540) % 360) - 180;     // où regarder, en degrés depuis le centre de la photo
   const credit = lic.startsWith('etalab') ? tx('photos.ville_de_paris_ign_panoramax') : tx('photos.panoramax_2', { auteur: by || 'contributeur', lic });
   return { id, src, tile, rel, d, credit, lic, date, page: `https://api.panoramax.xyz/#focus=pic&pic=${id}` };
