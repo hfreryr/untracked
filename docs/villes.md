@@ -97,3 +97,27 @@ contre ≈ 0,65 à 0,8 Go et 180 000 fichiers avec l'ancien format.
   l'écran (`landmarkstore.js`). Le fond de carte ne sert plus qu'hors de nos zones, ou dans une zone pas encore construite.
 - Mesuré : Amsterdam 3 243 lieux, 116 Ko, 2 min 20 de calcul ; Bretagne 17 759 lieux, 64 carrés, 4 min ; Paris (extrait
   local) 7 480 lieux, 32 s. ≈ +1 h de calcul par semaine pour toute la France.
+
+### Zoom d'apparition par rang dans le quartier (01/11/2026, `landmark_rank.py`)
+- **Défaut corrigé** : les lieux étaient placés un par un, zoom après zoom, et gardaient leur place ; un lieu moins connu,
+  placé à un zoom plus large, bloquait un lieu célèbre (le Rijksmuseum seulement au zoom 15,5).
+- **Maintenant** : carte découpée en carrés à la taille de l'écart voulu à l'écran ; dans chaque carré, le monument le
+  plus connu et le commerce le plus connu (deux classements séparés) ; les chevauchements restants sont réglés par la
+  carte à l'affichage, le plus connu gagnant.
+- **Mesure sur la carte dessinée** (`app/tests/landmarks-rendu.mjs`, étalon de 3 quartiers `docs/mesures/etalon-classement.json`,
+  zooms 14, 15, 16, écran de téléphone) :
+
+| | Avant | Après |
+|---|---|---|
+| Lieux de l'étalon « à voir » visibles | 23 | 22 |
+| Lieux de l'étalon « où manger » visibles | 7 | 8 |
+| Étiquettes dessinées (densité) | 164 | 135 |
+
+  Même nombre de bons lieux avec 18 % d'étiquettes en moins : carte plus calme. Le Rijksmuseum apparaît dès le zoom 14 ;
+  à Paris 6e, l'église Saint-Germain-des-Prés, le musée Delacroix et le Procope apparaissent au zoom 15 (au lieu de la
+  galerie Seine 55, de Vagenende). Une version plus dense (carrés plus petits) trouvait 37 lieux sur 208 étiquettes :
+  le gain venait de la densité, pas de la méthode.
+- **Limite** : ce qui reste mal classé vient de la notoriété, pas du placement (« Marché Saint-Germain » passe devant
+  l'église, à cause de sa surface). Les restaurants des guides restent rares sur la carte : aucune donnée libre ne dit
+  qu'un restaurant est réputé.
+- Poids : +17 à +30 % pour les fichiers de lieux mis en avant (Île-de-France 892 → 1 160 Ko).

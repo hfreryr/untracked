@@ -6,12 +6,12 @@ Liste tenue à jour à chaque étape, pour ne rien perdre entre les sujets mené
 ## À fusionner
 | PR | Sujet | Après fusion |
 |---|---|---|
-| #119 | Récompenses : badges, carte de mes avis, couleur de sa position ; pop-up de niveau seulement après un avis | Publier |
+| #120 | Le faisceau d'orientation prend la couleur du point | Publier |
+| #121 | Classement des lieux sur la carte : rang dans le quartier | Recalculer l'Île-de-France et les régions (lieux mis en avant) |
 
 ## Décisions attendues du porteur
 | Sujet | Question posée | Où regarder |
 |---|---|---|
-| Classement des lieux | Lancer la nouvelle méthode de placement (rang dans le quartier, la carte arbitre les chevauchements) + deux classements séparés | Résultats ci-dessous |
 
 ## En cours (tourne seul)
 - **Index de recherche des 13 régions qui n'en ont pas** (pour l'annuaire national) : recalcul lancé le 01/11, une
@@ -19,14 +19,9 @@ Liste tenue à jour à chaque étape, pour ne rien perdre entre les sujets mené
 
 ## Chantiers ouverts
 ### Classement des lieux sur la carte
-- Mesuré le 31/10 (`app/scripts/eval_landmarks.py`, étalon `docs/mesures/etalon-classement.json`, branche
-  `mesure-classement`) : 9 variantes, aucune nettement meilleure ; QRank aide Rennes, dégrade Paris ; aucun signal ouvert ne
-  classe bien les restaurants ; deux classements séparés = gain modeste pour les restaurants.
-- Cause du Rijksmuseum au zoom 15,5 : la méthode de placement (une place voisine moins connue, placée plus tôt, le bloque),
-  pas seulement la notoriété. Même famille de défaut : « Musée du chocolat » visible avant le Panthéon à Paris.
-- Prochaine action : méthode à la Google (zoom selon le rang dans le quartier, collisions arbitrées par la carte), remesurer.
-- Densité à Amsterdam autour du zoom 15,5 : la moitié des lieux prévus pas dessinés (chevauchements) — à revoir avec la
-  nouvelle méthode.
+- 01/11 : rang dans le quartier (#121, `docs/villes.md`) : Rijksmuseum dès le zoom 14, même nombre de bons lieux
+  avec 18 % d'étiquettes en moins.
+- Reste : la notoriété (« Marché Saint-Germain » devant l'église) ; les restaurants réputés (aucune donnée libre).
 
 ### Recherche : la bonne réponse où que l'on soit (règle du porteur, 31/10)
 Règle : la réponse pertinente d'abord, quelle que soit la distance ; la proximité ne départage que l'ambigu.
@@ -41,7 +36,7 @@ Mesure : `node app/tests/search/grid.mjs` (6 points de départ × 27 recherches,
 - Limite connue : une rue française cherchée depuis l'étranger reste confiée à Photon.
 - Avant tout lancement public : notre propre Photon (règle « zéro pistage »).
 
-### Récompenses (développées le 01/11, #119)
+### Récompenses (#119, fusionnée et publiée le 01/11)
 - Badges (Gourmet 10 restaurants, Explorateur 5 villes, Du quartier 5 avis dans un même quartier, Culture, Pause café,
   Oiseau de nuit : 5 chacun), carte de mes avis, couleur du point « vous êtes ici » (et de la flèche du guidage).
 - Annonce (niveau ou badge) seulement juste après l'avis qui la donne ; sinon « Nouveau » sur Mes contributions

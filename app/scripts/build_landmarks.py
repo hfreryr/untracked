@@ -20,6 +20,7 @@ import time
 from collections import defaultdict
 
 from build_overlays import Landmarks, assign_zoom, classify, fame
+from landmark_rank import assign_zoom_cells
 from tileio import cell_of
 
 ZOOM = 10
@@ -57,7 +58,7 @@ class ZoneLandmarks(Landmarks):
                            "lon": round(pt.x, 6), "lat": round(pt.y, 6)}
 
 
-def select(landmarks, places, bbox=None, n_landmarks=N_LANDMARKS):
+def select(landmarks, places, bbox=None, n_landmarks=N_LANDMARKS, method="quartier"):
     """Monuments les plus connus + commerces, dédoublonnés, avec leur zoom d'apparition."""
     inside = (lambda i: bbox[0] <= i["lon"] <= bbox[2] and bbox[1] <= i["lat"] <= bbox[3]) if bbox else (lambda i: True)
     lms = sorted((i for i in landmarks if inside(i)), key=lambda x: -x["score"])[:n_landmarks]
@@ -74,8 +75,13 @@ def select(landmarks, places, bbox=None, n_landmarks=N_LANDMARKS):
     if not items:
         return []
     lat0 = sorted(i["lat"] for i in items)[len(items) // 2]
-    out = assign_zoom(items, lat0=lat0)
-    out.sort(key=lambda i: (i["z"], -i["score"]))
+    if method == "ancienne":
+        out = assign_zoom(items, lat0=lat0)
+        out.sort(key=lambda i: (i["z"], -i["score"]))
+        return out
+    # rang dans le quartier (landmark_rank.py) ; ordre = importance : la carte fait gagner le plus connu en cas de chevauchement
+    out = assign_zoom_cells(items, lat0=lat0)
+    out.sort(key=lambda i: -i["score"])
     return out
 
 
@@ -101,12 +107,14 @@ def main():
     ap.add_argument("pbf")
     ap.add_argument("--out", required=True, help="dossier des tuiles de lieux de la zone (out/places, out/<zone>)")
     ap.add_argument("--bbox", help="ouest,sud,est,nord : comme build_places.py")
+    ap.add_argument("--methode", choices=["quartier", "ancienne"], default="quartier",
+                    help="zoom d'apparition : rang dans le quartier (landmark_rank.py) ou ancienne méthode (pour comparer)")
     a = ap.parse_args()
     t0 = time.time()
     h = ZoneLandmarks()
     h.apply_file(a.pbf, locations=True)
     bbox = tuple(map(float, a.bbox.split(","))) if a.bbox else None
-    items = select(list(h.items.values()), h.places, bbox)
+    items = select(list(h.items.values()), h.places, bbox, method=a.methode)
     n = write(a.out, items)
     by_z = defaultdict(int)
     for i in items:
