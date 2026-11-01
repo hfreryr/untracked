@@ -269,7 +269,7 @@
       {/if}
 
       <!-- photos, juste sous l'en-tête (comme Plans) : avis, Wikimedia, site du lieu -->
-      <PhotoStrip photos={photos} />
+      <PhotoStrip pending={!!app.wiki?.pending} photos={photos} />
 
       <!-- Lire les avis (s'il y en a), signaler une erreur sur OpenStreetMap, copier l'adresse (31/10/2026 : « Raccourci » et
            « Maison / Travail » rejoignent « Enregistrer » ; « Partager » reste en haut) -->
