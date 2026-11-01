@@ -98,6 +98,9 @@ Point d'attention 🔶 : le commerçant n'est pas toujours titulaire des droits 
 - **Écartés** : Google (iframe gratuite mais sans galerie, traceurs soumis à consentement, règle du projet), Instagram et
   Facebook (traceurs : consentement obligatoire, donc un clic), Tripadvisor (contrat payant, photos non stockables,
   interdiction à côté d'autres avis), relais par notre serveur (zone grise juridique ; décision : inutile).
+- **Couverture** (01/11/2026) : Île-de-France, 4 000 sites lus par semaine (première semaine : 799 lieux avec photo sur 4 000
+  sites) ; rattrapage ponctuel possible (« Compléments des lieux », champ « Sites à lire »). Régions et villes : même lecture,
+  chaque zone le jour de son calcul hebdomadaire (`places-zones.yml`), état dans `data/zones/<zone>/sitehours.json`.
 - **À venir** : photos des avis Mangrove (licence à vérifier), devantures Panoramax dans toutes les régions, « ajouter une
   photo » avec un avis.
 

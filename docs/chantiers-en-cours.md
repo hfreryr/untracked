@@ -6,7 +6,8 @@ Liste tenue à jour à chaque étape, pour ne rien perdre entre les sujets mené
 ## À fusionner
 | PR | Sujet | Après fusion |
 |---|---|---|
-| (cette PR) | Liens Google Maps et Plans reçus : collés dans la recherche, ou « Partager → Untracked » (Android) | Publier |
+| (cette PR) | Photos et horaires des sites : régions et villes, chaque zone le jour de son calcul | Rattrapage zone par zone (« Sites à lire ») |
+| #133 | Liens Google Maps et Plans reçus : collés dans la recherche, ou « Partager → Untracked » (Android) | Publier |
 
 ## Décisions attendues du porteur
 | Sujet | Question posée | Où regarder |

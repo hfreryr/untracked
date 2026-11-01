@@ -26,6 +26,7 @@ Entrée : l'extrait OSM et extras.json (build_extras.py, pour les sites trouvés
 Sortie : extras.json complété en place : "opening_hours": [horaires, "site"], "_photo": [adresse de l'image, "site"]
 (relu chaque semaine).
 Usage :  python app/scripts/build_sitehours.py paris.osm.pbf --extras out/extras.json [--limit 200]
+         régions et villes (places-zones.yml) : --centre lon,lat --max-new N, état dans data/zones/<zone>/sitehours.json
 """
 import argparse, concurrent.futures as cf, datetime, gzip, json, re, ssl, sys, time, urllib.parse, urllib.request, urllib.robotparser
 from collections import Counter, defaultdict
@@ -382,9 +383,10 @@ def cc_pages(sites, crawls=2):
     return out
 
 
-def pick_fresh(fresh, state, n):
-    """Au plus n sites : ceux déjà connus (relecture) d'abord, puis les nouveaux du centre de Paris vers l'extérieur."""
-    return sorted(fresh, key=lambda j: (j[2] not in state, (j[3] - 2.3488) ** 2 * 0.43 + (j[4] - 48.8534) ** 2))[:n]
+def pick_fresh(fresh, state, n, centre=(2.3488, 48.8534)):
+    """Au plus n sites : ceux déjà connus (relecture) d'abord, puis les nouveaux du centre de la zone vers l'extérieur."""
+    lon0, lat0 = centre
+    return sorted(fresh, key=lambda j: (j[2] not in state, (j[3] - lon0) ** 2 * 0.43 + (j[4] - lat0) ** 2))[:n]
 
 
 def main():
@@ -397,6 +399,8 @@ def main():
     ap.add_argument("--max-new", type=int, default=0,
                     help="au plus N sites à lire par passage, les plus proches de Paris d'abord (Île-de-France, 23/10/2026 :"
                          " la première lecture de la région s'étale sur plusieurs semaines au lieu d'allonger une seule tâche)")
+    ap.add_argument("--centre", default="2.3488,48.8534",
+                    help="lon,lat : les nouveaux sites sont lus du centre vers l'extérieur (Paris par défaut ; régions, 01/11/2026)")
     args = ap.parse_args()
     t0 = time.time()
     today = time.strftime("%Y-%m-%d")
@@ -424,7 +428,7 @@ def main():
     stats["déjà lus récemment"] = len(todo) - len(fresh)
     if args.max_new and len(fresh) > args.max_new:
         stats["remis à une prochaine semaine"] = len(fresh) - args.max_new
-        fresh = pick_fresh(fresh, state, args.max_new)
+        fresh = pick_fresh(fresh, state, args.max_new, tuple(map(float, args.centre.split(","))))
     print(f"{len(todo)} sites, dont {len(fresh)} à lire", file=sys.stderr)
 
     # 1. Common Crawl
