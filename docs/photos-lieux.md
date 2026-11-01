@@ -81,3 +81,36 @@ Point d'attention 🔶 : le commerçant n'est pas toujours titulaire des droits 
 1. Afficher une image chargée directement depuis le serveur d'un tiers, est-ce une « transclusion » au sens de VG Bild-Kunst ? *(utile seulement si nos règles changent)*
 2. Un modèle de licence commerçant conforme à L.131-3 : étendue, destination (l'app et ses repreneurs), durée, territoire, garantie de titularité, retrait.
 3. Pouvons-nous accepter une licence libre (CC BY-SA, Licence Ouverte) déclarée par le commerçant via un simple formulaire, ou faut-il une preuve d'identité ?
+
+## 5. Décision du 01/11/2026 : la photo publiée par le site du lieu, affichée depuis son site
+
+- **Décision du porteur** : afficher sans clic l'image que le site d'un restaurant ou d'un commerce publie pour se présenter
+  (`og:image`, schema.org `image`), en la chargeant **depuis son site**, jamais copiée chez nous (VG Bild-Kunst ; Renckhoff
+  interdit la copie). Acceptable « même à long terme », expliqué dans « Qui voit quoi ».
+- **Ce que voit le site** : l'IP, le type d'appareil et de navigateur, la langue, l'heure, et « untrackedmaps.app ». Pas de nom,
+  pas de compte, pas de traceur. L'IP est une donnée personnelle (CJUE, Breyer, 2016) : d'où la ligne dans « Qui voit quoi ».
+- **Garde-fous** (`build_sitehours.py`, chaque semaine, avec les horaires) : on ne garde que l'adresse de l'image ; robots.txt
+  respecté ; logos, petites images et bandeaux écartés ; image refusée si elle dépose un cookie ; refusée si le site ne la
+  laisse pas afficher depuis untrackedmaps.app (l'app s'annonce, on ne contourne pas un refus).
+- **Mesure** (120 restaurants, cafés, bars du centre de Paris dont le site est connu) : 47 images utilisables, 29 d'au moins
+  800 px ; sur 44 images, 1 dépose un cookie (écartée), 1 refuse l'affichage ailleurs (respecté). Site connu pour 53 % des
+  lieux de ce type au centre de Paris (OSM + compléments) : ≈ 20 à 30 % de ces lieux auraient une photo.
+- **Écartés** : Google (iframe gratuite mais sans galerie, traceurs soumis à consentement, règle du projet), Instagram et
+  Facebook (traceurs : consentement obligatoire, donc un clic), Tripadvisor (contrat payant, photos non stockables,
+  interdiction à côté d'autres avis), relais par notre serveur (zone grise juridique ; décision : inutile).
+- **À venir** : photos des avis Mangrove (licence à vérifier), devantures Panoramax dans toutes les régions, « ajouter une
+  photo » avec un avis.
+
+## 6. Bandeau de photos et photos des avis (01/11/2026)
+
+- **Bandeau sous l'en-tête de la fiche**, comme Plans (capture du porteur) : toutes les photos du lieu, deux grandes
+  vignettes visibles, la source écrite sur chacune, plein écran au toucher (`placephotos.js`, `PhotoStrip.svelte`).
+  Un commerce montre d'abord ses propres photos (avis, site), un monument d'abord Wikimedia.
+- **Photos des avis Mangrove** : licence CC BY 4.0 (conditions de Mangrove : le contenu soumis, texte ou non, est placé
+  sous CC BY 4.0, vérifié le 01/11/2026). Copiées chaque nuit chez nous en deux tailles (480 et 1 400 px), recompressées
+  (métadonnées effacées) : `review_photos.py`. Le téléphone ne contacte pas Mangrove pour les voir. Auteur (pseudo) affiché.
+- **« Ajouter une photo » dans la fenêtre d'avis** : réduite à 1 600 px et recompressée sur le téléphone (la position GPS de
+  la prise de vue et le modèle de l'appareil disparaissent), envoyée à Mangrove (upload.mangrove.reviews) seulement en
+  publiant, jointe à l'avis signé. Consigne affichée : publique, licence libre, sans visages.
+- **IP de l'auteur vue par Mangrove** à l'envoi (comme pour le texte de l'avis). La masquer demanderait un relais par
+  notre serveur : prévu avec nos propres serveurs sans journaux, avant tout lancement public (règle « zéro pistage »).

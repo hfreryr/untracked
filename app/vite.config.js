@@ -23,6 +23,7 @@ const csp = {
       'https://valhalla1.openstreetmap.de',                     // itinéraires à pied, vélo, voiture
       'https://api.transitous.org',                             // transports en commun
       'https://api.mangrove.reviews',                           // publier un avis (seulement quand on touche « Publier »)
+      'https://upload.mangrove.reviews',                        // et sa photo, s'il y en a une (photoupload.js)
       'https://www.wikidata.org', 'https://fr.wikipedia.org', 'https://commons.wikimedia.org'],
     'manifest-src': ['self'],
     'object-src': ['none'],

@@ -37,12 +37,15 @@ export function subjectOf(place) {
 }
 
 /** Contenu de l'avis. stars : 1 à 5 (Mangrove note sur 100). */
-export function payloadOf({ place, stars, text, nick, now = Date.now() }) {
+export function payloadOf({ place, stars, text, nick, images = [], now = Date.now() }) {
   const metadata = { client_id: CLIENT_ID, is_personal_experience: true };
   if (nick?.trim()) metadata.nickname = nick.trim().slice(0, 40);
   if (place.osmType && place.osmId) metadata.osm_id = `${place.osmType}/${place.osmId}`;
   const p = { sub: subjectOf(place), rating: Math.max(1, Math.min(5, Math.round(stars))) * 20, iat: Math.floor(now / 1000), metadata };
   if (text?.trim()) p.opinion = text.trim().slice(0, 1000);
+  // photos jointes (photoupload.js) : hébergées par Mangrove, CC BY 4.0
+  const imgs = images.filter((u) => /^https:\/\/files\.mangrove\.reviews\/[\w-]+$/.test(u)).slice(0, 4);
+  if (imgs.length) p.images = imgs.map((src) => ({ src, label: null }));
   return p;
 }
 

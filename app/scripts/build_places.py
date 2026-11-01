@@ -248,7 +248,7 @@ def _plain(s):
 def attach_reviews(tiles, reviews, zoom, max_m=40):
     """Avis Mangrove (fetch_reviews.py) rangés dans les lieux : par identifiant OSM, sinon le lieu du même nom le plus
     proche (moins de 40 m). Étiquette « _rev » : {"n": nombre, "a": note moyenne sur 100, "l": 3 plus récents
-    [note, texte, pseudo, date, signature, photos]}. Renvoie le nombre d'avis placés."""
+    [note, texte, pseudo, date, signature, photos], "ph": photos [identifiant, pseudo, date]}. Renvoie le nombre d'avis placés."""
     by_id = {it[0]: it for items in tiles.values() for it in items}
     found = {}
     for rv in reviews:
@@ -270,6 +270,11 @@ def attach_reviews(tiles, reviews, zoom, max_m=40):
         rvs.sort(key=lambda r: -r["t"])
         it[3]["_rev"] = {"n": len(rvs), "a": round(sum(r["r"] for r in rvs) / len(rvs)),
                          "l": [[r["r"], r["o"][:600], r["n"][:40], r["t"], r["s"], r.get("img", 0)] for r in rvs[:3]]}
+        # photos des avis (les 8 plus récentes du lieu, tous avis confondus) : [identifiant, pseudo, date] ; copiées
+        # dans <dossier>/photos/ par review_photos.py (le téléphone ne contacte pas Mangrove pour les voir)
+        ph = [[pid, r["n"][:40], r["t"]] for r in rvs for pid in r.get("ph") or []][:8]
+        if ph:
+            it[3]["_rev"]["ph"] = ph
     return sum(len(v[1]) for v in found.values())
 
 
@@ -338,6 +343,12 @@ def main():
     if out.exists():
         for p in sorted(out.rglob("*"), reverse=True):
             p.unlink() if p.is_file() else p.rmdir()
+    if args.reviews:
+        try:
+            from review_photos import copy_photos
+            print(copy_photos(h.tiles, args.out), "photos d'avis copiées", flush=True)
+        except Exception as e:
+            print("photos d'avis ignorées :", e, file=sys.stderr)
     nf = ne = nr = 0
     for (x, y), items in h.tiles.items():
         items.sort(key=lambda it: it[0])

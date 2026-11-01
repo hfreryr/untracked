@@ -173,13 +173,14 @@ from build_sitehours import due, norm_path, reg_candidates, host_of
 
 
 def test_rythme_des_lectures():
+    # (« photo » : clé présente dès qu'on a cherché la photo du site, depuis le 01/11/2026)
     assert due(None, "2026-10-15")
-    assert not due({"checked": "2026-10-01", "hours": "Mo-Fr 09:00-18:00"}, "2026-10-15")   # 14 jours : trop tôt
-    assert due({"checked": "2026-09-10", "hours": "Mo-Fr 09:00-18:00"}, "2026-10-15")       # 35 jours : on relit
-    assert not due({"checked": "2026-08-01", "hours": None}, "2026-10-15")                  # sans horaires : 75 jours, trop tôt
-    assert due({"checked": "2026-07-01", "hours": None}, "2026-10-15")                      # 106 jours : on relit
-    assert due({"checked": "2026-09-10", "hours": None, "via": "échec"}, "2026-10-15")      # injoignable : réessai à 28 jours
-    assert not due({"checked": "2026-10-08", "hours": None, "via": "échec"}, "2026-10-15")
+    assert not due({"checked": "2026-10-01", "hours": "Mo-Fr 09:00-18:00", "photo": None}, "2026-10-15")   # 14 jours : trop tôt
+    assert due({"checked": "2026-09-10", "hours": "Mo-Fr 09:00-18:00", "photo": None}, "2026-10-15")       # 35 jours : on relit
+    assert not due({"checked": "2026-08-01", "hours": None, "photo": None}, "2026-10-15")                  # sans horaires : 75 jours
+    assert due({"checked": "2026-07-01", "hours": None, "photo": None}, "2026-10-15")                      # 106 jours : on relit
+    assert due({"checked": "2026-09-10", "hours": None, "via": "échec", "photo": None}, "2026-10-15")      # injoignable : 28 jours
+    assert not due({"checked": "2026-10-08", "hours": None, "via": "échec", "photo": None}, "2026-10-15")
 
 
 def test_adresses_archive():

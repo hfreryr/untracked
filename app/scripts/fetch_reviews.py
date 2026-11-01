@@ -5,7 +5,7 @@ L'app ne contacte pas Mangrove pour lire : les avis sont rangés dans les tuiles
 
 Usage :  python app/scripts/fetch_reviews.py --bbox 1.44,48.12,3.56,49.24 --out reviews.json
 Sortie : [{"osm": "node/123" | null, "lat", "lon", "name", "r" (0-100), "o" (texte), "n" (pseudo), "t" (date unix),
-           "s" (signature), "img" (nombre de photos)}, …]
+           "s" (signature), "img" (nombre de photos), "ph" (identifiants des photos sur files.mangrove.reviews)}, …]
 """
 import argparse
 import json
@@ -33,6 +33,9 @@ def normalize(raw):
         out.append({"osm": osm, "lat": float(m.group(1)), "lon": float(m.group(2)), "name": (q.get("q") or [""])[0],
                     "r": int(p["rating"]), "o": (p.get("opinion") or "").strip(), "n": (meta.get("nickname") or "").strip(),
                     "t": int(p.get("iat") or 0), "s": rv.get("signature"), "img": len(p.get("images") or []),
+                    # photos jointes (hébergées par Mangrove, CC BY 4.0) : identifiants, copiées ensuite chez nous (review_photos.py)
+                    "ph": [m.group(1) for im in (p.get("images") or []) if isinstance(im, dict)
+                           for m in [re.match(r"^https://files\.mangrove\.reviews/([\w-]{10,100})$", str(im.get("src") or ""))] if m][:6],
                     "_k": (rv.get("kid") or rv.get("signature"), osm or p["sub"])})
     # une même personne qui a réécrit son avis sur le même lieu : seul le plus récent compte
     latest = {}
