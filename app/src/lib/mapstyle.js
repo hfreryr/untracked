@@ -117,7 +117,7 @@ const PLACE_FAMILIES = { ...FAMILIES, train: { color: '#2B4793', icon: 'train', 
 // MapLibre ne sait pas comparer une donnée au zoom directement : on énumère les paliers de 0,25.
 const VISIBLE_AT_ZOOM = (() => {
   const e = ['step', ['zoom'], ['<=', ['get', 'z'], 11.5]];
-  for (let z = 11.75; z <= 16.75; z += 0.25) e.push(z, ['<=', ['get', 'z'], z]);
+  for (let z = 11.75; z <= 17; z += 0.25) e.push(z, ['<=', ['get', 'z'], z]);   // 17 : tous les lieux (landmark_rank.py)
   return e;
 })();
 

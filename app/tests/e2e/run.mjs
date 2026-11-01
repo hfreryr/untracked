@@ -107,7 +107,10 @@ const tests = {
     assert(got.some((f) => ['culture', 'sight'].includes(f)), `aucun monument : ${got}`);
     assert(!(await p.evaluate(() => window.__map.queryRenderedFeatures({ layers: ['poi-outside'] }).length)), 'lieux du fond de carte encore utilisés dans une zone couverte');
     // toucher un lieu mis en avant ouvre sa fiche
-    const pt = await p.evaluate(() => { const f = window.__map.queryRenderedFeatures({ layers: ['landmark'] })[0]; const q = window.__map.project(f.geometry.coordinates); return { x: q.x, y: q.y, name: f.properties.name }; });
+    // un lieu au milieu de l'écran (pas sous la barre de recherche ni les catégories, plus nombreux depuis le 01/11)
+    const pt = await p.evaluate(() => { const fs = window.__map.queryRenderedFeatures({ layers: ['landmark'] }).map((f) => ({ f, q: window.__map.project(f.geometry.coordinates) }));
+      const { f, q } = fs.find(({ q }) => q.y > 260 && q.y < innerHeight - 260 && q.x > 40 && q.x < innerWidth - 120) || fs[0];
+      return { x: q.x, y: q.y, name: f.properties.name }; });
     await p.mouse.click(pt.x, pt.y); await p.waitForSelector('section.sheet h1', { timeout: 15000 });
     assert((await p.textContent('section.sheet h1')).includes(pt.name.split(' ')[0]), `fiche ouverte : ${await p.textContent('section.sheet h1')} au lieu de ${pt.name}`);
     assert(!errors.length, errors.join(' | '));

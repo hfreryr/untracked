@@ -6,8 +6,9 @@ Liste tenue à jour à chaque étape, pour ne rien perdre entre les sujets mené
 ## À fusionner
 | PR | Sujet | Après fusion |
 |---|---|---|
-| (cette PR) | Bandeau de photos sous l'en-tête, photos des avis, « Ajouter une photo » (contient #127) | Publier ; photos des avis à la nuit suivante |
-| (cette PR) | Photo publiée par le site des restaurants et commerces, affichée depuis leur site | Lancer `extras.yml` (Île-de-France), puis la nuit suivante les tuiles la portent |
+| (cette PR) | Carte plus dense (comme Plans) : échelle corrigée, tous les lieux visibles de près | Publier ; les zones se recalculent au fil de la semaine |
+| #129 | Bandeau de photos sous l'en-tête, photos des avis, « Ajouter une photo » (contient #127) | Publier ; photos des avis à la nuit suivante |
+| #129 | Photo publiée par le site des restaurants et commerces, affichée depuis leur site | Lancer `extras.yml` (Île-de-France), puis la nuit suivante les tuiles la portent |
 | #122 | Import Google par l'annuaire national et l'adresse (Photon en dernier recours) | Publier |
 
 ## Décisions attendues du porteur
@@ -22,7 +23,8 @@ Liste tenue à jour à chaque étape, pour ne rien perdre entre les sujets mené
 ### Classement des lieux sur la carte
 - 01/11 : rang dans le quartier (#121, fusionnée, `docs/villes.md`) ; appliqué à chaque zone à son prochain calcul : Île-de-France la nuit suivante, régions au fil de la semaine (toutes au 08/11) : Rijksmuseum dès le zoom 14, même nombre de bons lieux
   avec 18 % d'étiquettes en moins.
-- Reste : la notoriété (« Marché Saint-Germain » devant l'église) ; les restaurants réputés (aucune donnée libre).
+- 01/11 : carte trop vide à Amsterdam (porteur) → échelle corrigée (×2), tous les lieux visibles dès le zoom 16,5 (cette PR).
+- Reste : la notoriété (« Marché Saint-Germain » devant l'église ; Plans privilégie les enseignes connues) ; les restaurants réputés.
 
 ### Recherche : la bonne réponse où que l'on soit (règle du porteur, 31/10)
 Règle : la réponse pertinente d'abord, quelle que soit la distance ; la proximité ne départage que l'ambigu.
