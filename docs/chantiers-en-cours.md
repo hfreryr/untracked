@@ -6,6 +6,7 @@ Liste tenue à jour à chaque étape, pour ne rien perdre entre les sujets mené
 ## À fusionner
 | PR | Sujet | Après fusion |
 |---|---|---|
+| #131 | Carte en vue large : villes avec un point, grandes villes plus grandes ; mode sombre sans jaune | Publier |
 | #130 | Import Google : position lue dans le lien de chaque lieu (52 → 1 lieu mal placé) ; une liste s'ouvre en carte | Publier |
 | #128 | Carte plus dense (comme Plans) : échelle corrigée, tous les lieux visibles de près | Publier ; les zones se recalculent au fil de la semaine |
 | #129 | Bandeau de photos sous l'en-tête, photos des avis, « Ajouter une photo » (contient #127) | Publier ; photos des avis à la nuit suivante |

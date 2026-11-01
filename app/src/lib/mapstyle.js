@@ -150,10 +150,11 @@ const DARK = {
   // palette claire du 14/10 (rues grises sans contour, îlots crème) : le mode sombre garde ses couleurs
   '#F4EFDF': DARK_LAND, '#EFEADA': '#22262B', '#EAEAEA': '#262A30', '#EFE8D3': '#2A2E34', '#E6DEC6': '#33373E',
   '#CBD1D1': '#3A3F47', '#CCD1D1': '#2B2F35', '#CDD2D2': '#31353C', '#F1EEE8': '#22262B', '#FBFAF7': '#262A30',
-  '#D4EBCB': '#1F3326', '#C7E3BC': '#1C3022', '#ABD4F2': '#16304A',
+  '#D4EBCB': '#1F2D26', '#C7E3BC': '#1D2A23', '#ABD4F2': '#14304C',   // parcs et bois plus sourds (01/11/2026)
   '#E8E5DF': '#2A2E34', '#E3DFD9': '#33373E',
   '#D3CEC6': '#4A4F57', '#EEEBE6': '#2B2F35', '#E9E5DF': '#31353C',
-  '#EDC060': '#5E4C22', '#FAD98A': '#7A6430', '#CCC8C1': '#474B52', '#C9C3BA': '#4A4E55',
+  // voies rapides : bleu-gris froid, comme Plans (le brun-jaune était jugé laid par le porteur, 01/11/2026)
+  '#EDC060': '#33435A', '#FAD98A': '#465A78', '#CCC8C1': '#474B52', '#C9C3BA': '#4A4E55',
   '#4A84B5': '#7DB0DA', '#8C9096': '#9AA0A6', '#6A6E73': '#A3A8AE', '#5F656C': '#AEB3B9',
   '#2B4793': '#9DB2F2', '#7C8187': '#8A9097', '#2E3135': '#E6E8EB', '#A2A6AB': '#6F757C',
   '#62666C': '#B0B5BB',
@@ -340,9 +341,24 @@ function lightStyle(base) {
         layout: { 'text-field': NAME, 'text-font': FONT.bold, 'text-size': zoom([12, 10.5, 16, 13]),
                   'text-transform': 'uppercase', 'text-letter-spacing': 0.06, 'text-max-width': 7 },
         paint: { 'text-color': C.labelSoft, 'text-halo-color': 'rgba(255,255,255,0.8)', 'text-halo-width': 1.4 } },
+      // villes en vue large (porteur, 01/11/2026, d'après Plans) : grandes villes d'abord (rang OpenMapTiles), plus grosses,
+      // avec un point blanc tant qu'on voit le pays ou la région ; les petites villes seulement à partir de la région
+      { id: 'place-town', type: 'symbol', source: 'omt', 'source-layer': 'place', minzoom: 7.5, maxzoom: 13,
+        filter: ['==', ['get', 'class'], 'town'],
+        layout: { 'text-field': NAME, 'text-font': FONT.semibold, 'text-size': zoom([7.5, 11, 10, 13.5, 12, 16]),
+                  'icon-image': ['step', ['zoom'], 'city-dot', 9.5, ''], 'icon-size': 0.8,
+                  'text-anchor': ['step', ['zoom'], 'left', 9.5, 'center'], 'text-offset': ['step', ['zoom'], ['literal', [0.55, 0]], 9.5, ['literal', [0, 0]]],
+                  'symbol-sort-key': ['coalesce', ['get', 'rank'], 99] },
+        paint: { 'text-color': C.label, 'text-halo-color': C.halo, 'text-halo-width': 1.6 } },
       { id: 'place-city', type: 'symbol', source: 'omt', 'source-layer': 'place', maxzoom: 13,
-        filter: ['match', ['get', 'class'], ['city', 'town'], true, false],
-        layout: { 'text-field': NAME, 'text-font': FONT.bold, 'text-size': zoom([6, 13, 12, 22]) },
+        filter: ['==', ['get', 'class'], 'city'],
+        // grande ville (capitale, rang 1 à 3) : un cran plus grande (sinon Saint-Denis s'écrivait comme Paris)
+        layout: { 'text-field': NAME, 'text-font': FONT.bold,
+                  'text-size': ['interpolate', ['linear'], ['zoom'], ...[[4, 13, 11], [6, 16, 13], [9, 19, 15], [12, 23, 18]].flatMap(([z, big, std]) =>
+                    [z, ['case', ['any', ['==', ['get', 'capital'], 2], ['<=', ['coalesce', ['get', 'rank'], 99], 3]], big, std]])],
+                  'icon-image': ['step', ['zoom'], 'city-dot', 9.5, ''],
+                  'text-anchor': ['step', ['zoom'], 'left', 9.5, 'center'], 'text-offset': ['step', ['zoom'], ['literal', [0.55, 0]], 9.5, ['literal', [0, 0]]],
+                  'symbol-sort-key': ['coalesce', ['get', 'rank'], 99] },
         paint: { 'text-color': C.label, 'text-halo-color': C.halo, 'text-halo-width': 2 } },
       // Lieux en dernier : ils sont placés en premier et passent devant métro et noms de quartier.
       // À partir du zoom 17 : les autres lieux du fond de carte (manger, boire, culture, hôtels),
@@ -550,6 +566,13 @@ export function provideImage(map, id) {
     g.strokeStyle = '#FFFFFF'; g.lineWidth = 2.6; g.lineCap = 'round'; g.lineJoin = 'round';
     g.beginPath(); g.moveTo(9, 19); g.lineTo(19, 9); g.moveTo(12, 9); g.lineTo(19, 9); g.lineTo(19, 16); g.stroke();
     return map.addImage(id, g.getImageData(0, 0, 28, 28), { pixelRatio: 2 });
+  }
+  if (id === 'city-dot') {        // ville en vue large : point blanc cerclé de gris (lisible en clair comme en sombre)
+    const c = document.createElement('canvas'); c.width = c.height = 20;
+    const g = c.getContext('2d');
+    g.fillStyle = '#5F656C'; g.beginPath(); g.arc(10, 10, 7, 0, 2 * Math.PI); g.fill();
+    g.fillStyle = '#FFFFFF'; g.beginPath(); g.arc(10, 10, 5, 0, 2 * Math.PI); g.fill();
+    return map.addImage(id, g.getImageData(0, 0, 20, 20), { pixelRatio: 2 });
   }
   if (id === 'fav') {             // lieux enregistrés : pastille rose à cœur blanc
     const { data, pixelRatio } = poiImage(FAV_COLOR, 'heart', 20);
