@@ -14,6 +14,10 @@ on:
         description: "Ville à refaire tout de suite (ex. lyon), ou « toutes »"
         required: true
         default: toutes
+      sites:
+        description: "Sites des lieux à lire par zone (4000 par semaine ; jusqu'à 25000 pour le premier rattrapage d'UNE zone)"
+        required: true
+        default: '4000'
 concurrency:
   group: places          # jamais en même temps que la publication de nuit ni le ménage de l'historique
   cancel-in-progress: false
@@ -48,6 +52,7 @@ jobs:
         name: Construire, contrôler et publier
         env:
           ZONES: ${{ steps.due.outputs.zones }}
+          SITES: ${{ inputs.sites }}   # vide la nuit (programmé) : 4000
         run: |
           set -euo pipefail
           git fetch --depth=1 origin gh-pages
@@ -61,11 +66,18 @@ jobs:
             # l'administration, comme à Paris (build_extras.py) ; All The Places téléchargé une seule fois par passage
             python app/scripts/build_extras.py "$id.osm.pbf" --out "$id-extras.json" --no-paris --pays "$country" $([ -f atp.zip ] && echo --atp atp.zip) \
               || echo '{"places":{}}' > "$id-extras.json"
+            # horaires et photo publiés par le site des lieux, comme en Île-de-France (porteur, 01/11/2026) ; état de la zone
+            # gardé d'une semaine à l'autre dans data/zones/<zone>/sitehours.json ; une panne ici ne bloque pas la zone
+            curl -sSfL -o "$id-sitehours.json" "https://untrackedmaps.app/data/zones/$id/sitehours.json" || echo '{}' > "$id-sitehours.json"
+            centre=$(python3 -c "b=[float(x) for x in '$bbox'.split(',')]; print(f'{(b[0]+b[2])/2},{(b[1]+b[3])/2}')")
+            python app/scripts/build_sitehours.py "$id.osm.pbf" --extras "$id-extras.json" --state "$id-sitehours.json" \
+              --max-new "${SITES:-4000}" --centre "$centre" || echo "::warning::$id : sites des lieux non lus (le reste est publié)"
             python app/scripts/build_places.py "$id.osm.pbf" --out "out/$id" --bbox="$bbox" --reviews "$id-reviews.json" --extras "$id-extras.json"
             python app/scripts/build_landmarks.py "$id.osm.pbf" --out "out/$id" --bbox="$bbox"   # lieux mis en avant sur la carte
             python app/scripts/build_search.py "out/$id" --extras "$id-extras.json"   # recherche sur le téléphone
             if python app/scripts/check_publish.py "out/$id/index.json" "https://untrackedmaps.app/data/zones/$id/places/index.json"; then
               rm -rf "pages/data/zones/$id/places" && mkdir -p "pages/data/zones/$id" && cp -r "out/$id" "pages/data/zones/$id/places"
+              cp "$id-sitehours.json" "pages/data/zones/$id/sitehours.json"
             else
               echo "::warning::$id non publiée (baisse anormale)"; failed=1
             fi

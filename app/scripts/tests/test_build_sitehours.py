@@ -47,3 +47,10 @@ def test_photo_ok_refuse_cookie_et_petite(monkeypatch):
     for raw, cookie, ok in ((img(1200, 800), False, True), (img(1200, 800), True, False), (img(300, 200), False, False), (img(1600, 300), False, False)):
         monkeypatch.setattr(b.urllib.request, "urlopen", lambda *a, **k: R(raw, cookie))
         assert b.photo_ok("https://cdn.resto.fr/x.jpg") is ok
+
+
+def test_regions_du_centre_de_la_zone_vers_l_exterieur():
+    # Brest et Rennes : autour de Brest, Brest d'abord ; avec le centre par défaut (Paris), Rennes passerait devant
+    fresh = [("1", "Brest", "brest.fr", -4.49, 48.39, True), ("2", "Rennes", "rennes.fr", -1.68, 48.11, True)]
+    assert [j[0] for j in pick_fresh(fresh, {}, 1, centre=(-4.4, 48.4))] == ["1"]
+    assert [j[0] for j in pick_fresh(fresh, {}, 1)] == ["2"]
