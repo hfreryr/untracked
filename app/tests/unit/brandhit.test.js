@@ -16,3 +16,8 @@ test('même nom, lieux sans rapport : pas de ligne', () => {
 test('zones et adresses ignorées', () => {
   assert.equal(brandOf([{ name: '8e Arrondissement', subclass: 'suburb', area: true }, { name: '8e Arrondissement', subclass: 'suburb', area: true }]), null);
 });
+test('l\'enseigne n\'est proposée que si elle est la meilleure réponse (31/10)', () => {
+  const street = { name: 'Rue paradis, 13001 Marseille', subclass: null };
+  assert.equal(brandOf([street, shop('Rue de Marseille', 'bus_stop'), shop('Rue de Marseille', 'bus_stop')]), null);
+  assert.deepEqual(brandOf([shop('Rue de Marseille', 'bus_stop'), street, shop('Rue de Marseille', 'bus_stop')]), { name: 'Rue de Marseille' });
+});

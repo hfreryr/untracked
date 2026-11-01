@@ -1,0 +1,40 @@
+{
+  "_": "Grille « d'où je cherche × ce que je cherche » (porteur, 31/10/2026) : la bonne réponse en premier, où que l'on soit. expect : motif du premier résultat ; from : ne vaut que depuis ces points (requête ambiguë : la plus proche).",
+  "starts": {
+    "Paris": "13/48.8566/2.3522",
+    "Marseille": "13/43.2965/5.3698",
+    "Lyon": "13/45.7600/4.8350",
+    "Rennes": "13/48.1120/-1.6790",
+    "Felletin": "14/45.8830/2.1740",
+    "Amsterdam": "13/52.3730/4.8920"
+  },
+  "queries": [
+    { "kind": "adresse", "q": "2 place du château Gordes", "expect": "84220 Gordes" },
+    { "kind": "adresse", "q": "12 rue de la République Marseille", "expect": "1300\\d Marseille" },
+    { "kind": "adresse", "q": "5 rue Paradis 13001", "expect": "13001 Marseille" },
+    { "kind": "adresse", "q": "20 rue Sainte-Catherine Bordeaux", "expect": "Sainte-Catherine.*Bordeaux" },
+    { "kind": "adresse", "q": "8 place Bellecour Lyon", "expect": "Bellecour.*6900\\d Lyon" },
+    { "kind": "adresse", "q": "1 rue de la Monnaie Lille", "expect": "Monnaie.*Lille" },
+    { "kind": "adresse", "q": "10 avenue des Champs-Élysées Paris", "expect": "Champs.*75008 Paris" },
+    { "kind": "rue", "q": "rue paradis marseille", "expect": "Paradis.*Marseille" },
+    { "kind": "rue", "q": "boulevard de la croisette cannes", "expect": "Croisette.*Cannes" },
+    { "kind": "rue", "q": "place Kléber Strasbourg", "expect": "Kléber.*Strasbourg" },
+    { "kind": "rue", "q": "rue de Siam Brest", "expect": "Siam.*Brest" },
+    { "kind": "rue", "q": "quai des Chartrons Bordeaux", "expect": "Chartrons.*Bordeaux" },
+    { "kind": "rue", "q": "avenue Jean Médecin Nice", "expect": "Médecin.*Nice" },
+    { "kind": "rue", "q": "rue du Gros-Horloge Rouen", "expect": "Gros.Horloge.*Rouen" },
+    { "kind": "proche", "q": "10 rue de la République", "from": ["Lyon"], "expect": "6900\\d Lyon" },
+    { "kind": "proche", "q": "10 rue de la République", "from": ["Marseille"], "expect": "1300\\d Marseille" },
+    { "kind": "proche", "q": "12 rue de la Paix", "from": ["Paris"], "expect": "75002 Paris" },
+    { "kind": "proche", "q": "3 grande rue", "from": ["Felletin"], "expect": "Felletin" },
+    { "kind": "lieu", "q": "Gordes", "expect": "Gordes" },
+    { "kind": "lieu", "q": "Carcassonne", "expect": "Carcassonne" },
+    { "kind": "lieu", "q": "musée Jean Cocteau Menton", "expect": "Cocteau" },
+    { "kind": "lieu", "q": "Mont-Saint-Michel", "expect": "Mont.Saint.Michel" },
+    { "kind": "lieu", "q": "Parlement de Bretagne", "expect": "Parlement de Bretagne" },
+    { "kind": "lieu", "q": "Palais des Papes", "expect": "Palais des Papes" },
+    { "kind": "lieu", "q": "Puy de Dôme", "expect": "Puy.de.Dôme" },
+    { "kind": "lieu", "q": "tour Eiffel", "expect": "Tour Eiffel" },
+    { "kind": "lieu", "q": "Rijksmuseum", "expect": "Rijksmuseum" }
+  ]
+}

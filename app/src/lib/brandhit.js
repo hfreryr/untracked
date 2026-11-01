@@ -18,8 +18,13 @@ export function brandOf(results) {
     g.types.set(r.subclass, (g.types.get(r.subclass) || 0) + 1);
     groups.set(k, g);
   }
+  // seulement si l'enseigne est la meilleure réponse : « rue Paradis Marseille » vu de Paris ne doit pas commencer par
+  // « Rue de Marseille · Afficher les lieux » (deux arrêts de bus plus bas dans la liste, grille du 31/10/2026)
+  const head = (results || []).find((r) => r?.name);
+  const top = head && !head.area && head.subclass ? norm(head.name) : null;
   let best = null;
-  for (const g of groups.values()) {
+  for (const [k, g] of groups) {
+    if (k !== top) continue;
     if (g.n < 2) continue;
     // des lieux sans rapport qui portent le même nom (« Saint-Germain » : église, café…) ne font pas une enseigne
     if (Math.max(...g.types.values()) * 2 < g.n + 1) continue;

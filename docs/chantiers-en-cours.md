@@ -6,9 +6,7 @@ Liste tenue à jour à chaque étape, pour ne rien perdre entre les sujets mené
 ## À fusionner
 | PR | Sujet | Après fusion |
 |---|---|---|
-| #113 | Import Google : un lieu par seconde, essais espacés, toutes les listes créées, « Réessayer » (129 lieux sur 137 au lieu de 5) | Publier ; le porteur supprime puis réimporte son fichier |
-| #114 | Nouveau niveau de contribution annoncé une fois, avec la flèche à choisir (empilée sur #113) | Publier |
-| #116 | Recherche par nom sur le téléphone dans toutes les régions et à Amsterdam (étape 1 de 3) | Publier ; les régions ont leur index à leur prochain calcul |
+| (cette PR) | Recherche : adresses et rues fiables où que l'on soit (grille de mesure : 71 % → 95 %) | Publier |
 
 ## Décisions attendues du porteur
 | Sujet | Question posée | Où regarder |
@@ -16,10 +14,10 @@ Liste tenue à jour à chaque étape, pour ne rien perdre entre les sujets mené
 | Récompenses | Valider la maquette : badges à collectionner, carte de mes avis, couleur du point « vous êtes ici » | maquette-recompenses.png (conversation du 31/10) |
 | Classement des lieux | Lancer la nouvelle méthode de placement (rang dans le quartier, la carte arbitre les chevauchements) + deux classements séparés | Résultats ci-dessous |
 
-## En cours (tourne seul)
-- **Lieux mis en avant des 21 régions et d'Amsterdam** : recalcul région par région (≈ 8 h, relancé à chaque arrêt). En ligne
-  avec leurs lieux : Île-de-France, Rhône-Alpes, Provence-Alpes-Côte d'Azur, Nord-Pas-de-Calais, Midi-Pyrénées, Aquitaine,
-  Pays de la Loire (31/10, 21 h). Les autres gardent le fond de carte en attendant.
+## Fait récemment
+- **Lieux mis en avant des 21 régions et d'Amsterdam** : recalcul terminé le 01/11 (dernières : Poitou-Charentes,
+  Champagne-Ardenne, Franche-Comté, Auvergne, Limousin, Corse, Amsterdam). Celles calculées après la fusion de #116 ont
+  aussi leur index de recherche ; les autres l'auront à leur calcul hebdomadaire.
 
 ## Chantiers ouverts
 ### Classement des lieux sur la carte
@@ -32,12 +30,15 @@ Liste tenue à jour à chaque étape, pour ne rien perdre entre les sujets mené
 - Densité à Amsterdam autour du zoom 15,5 : la moitié des lieux prévus pas dessinés (chevauchements) — à revoir avec la
   nouvelle méthode.
 
-### Recherche par nom dans toute la France (plan validé le 31/10, 3 étapes)
-1. **Index par région et Amsterdam** (branche `recherche-regions`) : compressé, essentiel sans hameaux (Bretagne :
-   5,7 Mo → 146 Ko ; index complet 4,4 Mo), construit chaque semaine. Rennes : résultats en moins de 20 ms.
-2. **Annuaire national par début de nom** (≈ 40 Mo pour la France, fichiers de 40 Ko au plus) : chercher loin de sa région
-   sans Photon. À traiter aussi : « gare de rennes » (la gare s'appelle « Rennes » dans OSM).
-3. **Import Google** par l'annuaire, Photon seulement pour l'étranger.
+### Recherche : la bonne réponse où que l'on soit (règle du porteur, 31/10)
+Règle : la réponse pertinente d'abord, quelle que soit la distance ; la proximité ne départage que l'ambigu.
+Mesure : `node app/tests/search/grid.mjs` (6 points de départ × 27 recherches, voir `docs/recherche.md`).
+1. ✅ **Index par région et Amsterdam** (#116, fusionnée).
+2. 🔧 **Adresses et rues** (cette PR) : 71 % → 95 % de bonnes réponses en premier ; adresses 42/42, rues 41/42.
+3. **Annuaire national des lieux par début de nom** (≈ 40 Mo, fichiers de 40 Ko au plus) : les lieux loin de sa région
+   (Photon coupé : 7 lieux sur 54 trouvés). À traiter aussi : « gare de rennes » (la gare s'appelle « Rennes » dans OSM).
+4. **Import Google** par l'annuaire, Photon seulement pour l'étranger.
+- Limite connue : une rue française cherchée depuis l'étranger reste confiée à Photon.
 - Avant tout lancement public : notre propre Photon (règle « zéro pistage »).
 
 ### Récompenses (validées 1, 2, 3 le 31/10, maquette à confirmer)

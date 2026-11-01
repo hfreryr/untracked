@@ -7,7 +7,7 @@
 //
 // Ce qui est envoyé : le texte tapé et un point de référence (centre de la carte ou position), rien d'autre.
 import { covered, hasPlaces, inFrance, streetLine } from '#lib/searchscope.js';
-import { mergeAddresses, townAt, withTown } from '#lib/addressnear.js';
+import { looksLikeStreet, matchesQuery, rankAddresses, townAt, withTown } from '#lib/addressnear.js';
 import { tx } from '#lib/i18n/index.js';
 import { city } from './cities/index.js';
 import { typeLabel, typeOfTags } from './places.js';
@@ -114,17 +114,13 @@ async function townOf(lat, lon) {
 }
 
 async function geopf(query, near, signal, limit = 5) {
-  if (!covered(near)) {
-    // ailleurs en France : aussi « texte + commune de la carte », car le géocodeur tient peu compte du point (addressnear.js)
-    const town = await townAt(near, townOf);
-    const q2 = withTown(query, town);
-    const [plain, inTown] = await Promise.all([geopfRaw(query, near, signal, limit), q2 ? geopfRaw(q2, near, signal, limit).catch(() => []) : []]);
-    return mergeAddresses(inTown, plain, town).slice(0, limit);
-  }
-  const all = await geopfRaw(query, near, signal, limit);
-  // la zone de la ville d'abord (le géocodeur est national) ; ailleurs seulement si rien ici
-  const here = all.filter(covered);
-  return here.length ? here : all;
+  // partout en France, Île-de-France comprise : le texte seul et « texte + commune de la carte », puis classement
+  // par pertinence, la proximité ne départageant que des réponses équivalentes (addressnear.js)
+  const plainP = geopfRaw(query, near, signal, 10);
+  const town = await townAt(near, townOf);
+  const q2 = withTown(query, town);
+  const [plain, inTown] = await Promise.all([plainP, q2 ? geopfRaw(q2, near, signal, limit).catch(() => []) : []]);
+  return rankAddresses(query, plain, inTown, town, near).slice(0, limit);
 }
 
 const near = (a, b) => Math.hypot((a.lon - b.lon) * 0.66, a.lat - b.lat) * 111320 < 40;
@@ -193,12 +189,35 @@ export async function search(query, at = city.center, signal, onEarly = null) {
   if (inFrance(at) && looksLikeAddress(q)) {
     // l'adresse d'abord (rapide) ; Photon n'est consulté que si l'adresse n'est pas nette (un nom de commerce avec un chiffre…)
     const a = await geopf(q, at, signal).catch(() => []);
-    if (a[0]?.type === 'Adresse' && a[0].score > 0.8) return a.slice(0, 5);
+    // nette : l'adresse exacte, ou une rue qui contient tout ce qui a été tapé (« 2 place du château Gordes » : la place)
+    const top = a[0];
+    if (top && !top.area && ((top.type === tx('fiche.adresse') && top.score > 0.8) || matchesQuery(q, top))) return a.slice(0, 5);
     const p = await findByName(q, at, signal, 5).catch(() => []);
-    const places = p.filter((r) => r.type !== 'Adresse' && !a.some((x) => near(x, r)));
+    const places = p.filter((r) => r.type !== tx('fiche.adresse') && !a.some((x) => near(x, r)));
     return [...a.slice(0, 1), ...places.slice(0, 3), ...a.slice(1)].slice(0, 7);
   }
+  if (inFrance(at) && looksLikeStreet(q)) return streetOrPlaces(q, at, signal, onEarly);
   return findByName(q, at, signal, 7, onEarly);
+}
+
+/**
+ * « rue Paradis Marseille », « place des Vosges » : la rue, par le géocodeur de l'État (rapide et complet en France),
+ * montrée dès qu'elle arrive, avec les lieux de même nom ; Photon complète sans être attendu pour la rue.
+ * Une rue n'est retenue que si elle contient tout ce qui a été tapé (« café de la place » reste un café).
+ */
+async function streetOrPlaces(q, at, signal, onEarly) {
+  let streets = [], mine = [];
+  const show = () => onEarly?.([...streets, ...mine.filter((r) => !streets.some((s) => near(s, r)))].slice(0, 7));
+  const aP = geopf(q, at, signal).catch(() => []).then((a) => {
+    streets = a.filter((r) => !r.area && r.score > 0.5 && matchesQuery(q, r));
+    if (streets.length) show();
+    return a;
+  });
+  const p = await findByName(q, at, signal, 7, (r) => { mine = r; if (streets.length) show(); else onEarly?.(r); }).catch(() => []);
+  const a = await aP;
+  const extra = a.filter((x) => !x.area && !streets.includes(x));
+  const others = p.filter((r) => ![...streets, ...extra].some((s) => near(s, r)));
+  return (streets.length ? [...streets.slice(0, 3), ...others, ...extra] : [...others, ...extra]).slice(0, 7);
 }
 
 /** Lieux portant ce nom, partout (proches de « at » d'abord) : pour retrouver un lieu importé dont on n'a que le nom. */

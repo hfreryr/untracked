@@ -57,6 +57,27 @@ Le jeu de référence compte 144 recherches (`app/tests/search/reference.json`) 
   - les recherches des tests utilisateurs : 6 sur 6 contre 4 sur 6 ;
   - la vitesse.
 
+## Où que l'on soit, la bonne réponse d'abord (31/10/2026)
+
+Règle du porteur : la recherche propose la réponse pertinente **quelle que soit la distance**. La proximité ne sert qu'à départager une requête ambiguë (« 10 rue de la République » : celle de la ville où l'on est).
+
+- **Adresses** (`addressnear.js`) : partout en France, Île-de-France comprise, le géocodeur de l'État reçoit le texte seul et le texte suivi de la commune où l'on est. Une réponse de cette commune passe devant **seulement si elle contient tout ce qui a été tapé** (le numéro peut manquer, le code postal non). Ensuite, la note du géocodeur ; à note égale (écart ≤ 0,03), la plus proche. Avant : hors Île-de-France, la commune où l'on est passait toujours devant (« 2 place du château Gordes » vu de Marseille donnait « 2 Rue gorde, 13010 Marseille » ; « 12 rue de la République Marseille » vu de Lyon, la rue de Lyon) ; en Île-de-France, une seule réponse francilienne écartait les autres.
+- **Rues sans numéro** (« rue Paradis Marseille ») : envoyées aussi au géocodeur de l'État, affichées dès qu'il répond, sans attendre Photon.
+- **Ligne « enseigne »** (« Afficher les lieux ») : seulement si l'enseigne est la meilleure réponse. Elle s'affichait en tête dès que deux lieux du même nom figuraient plus bas (deux arrêts « Rue de Marseille » devant la rue Paradis).
+
+**Grille de mesure** : `node app/tests/search/grid.mjs` (après `npm run build`, option `--sans-photon`). 6 points de départ (Paris, Marseille, Lyon, Rennes, Felletin, Amsterdam) × 27 recherches (`grid.json`), avec les vrais services : le taux peut varier d'un jour à l'autre.
+
+| Bonne réponse en premier (31/10) | Avant | Après |
+|---|---|---|
+| Adresses avec numéro | 32/42 | 42/42 |
+| Rues sans numéro | 24/42 | 41/42 |
+| Requêtes ambiguës (la plus proche) | 3/4 | 4/4 |
+| Lieux par leur nom | 42/54 | 48/54 |
+| **Total** | **71 %** | **95 %** |
+| Lieux par leur nom, Photon coupé | — | 7/54 |
+
+Sans Photon, adresses et rues tiennent (seul Amsterdam échoue) ; les lieux s'effondrent. Restent : les lieux loin d'ici que notre index ne couvre pas (« Gordes », « Palais des Papes », « Parlement de Bretagne » vus de Paris : étape suivante, l'annuaire national) ; une rue française cherchée depuis l'étranger, laissée à Photon pour ne pas confondre une rue de Bruxelles avec son homonyme française.
+
 ## Adresse dans la liste des résultats
 
 Comme Google Maps, chaque lieu de la liste montre sa rue.
