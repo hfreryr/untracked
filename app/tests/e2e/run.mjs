@@ -813,6 +813,21 @@ const tests = {
     assert(!errors.length, errors.join(' | '));
     await ctx.close();
   },
+  async 'toucher une liste : la carte montre tous ses lieux, la fiche réduite en bas (01/11)'() {
+    const { p, ctx, errors } = await page();
+    // deux lieux loin l'un de l'autre (Paris, Lyon) dans « Favoris »
+    await p.evaluate(() => {
+      localStorage.setItem('lieux-favoris', JSON.stringify([{ id: 'a', name: 'Lieu A', lat: 48.8566, lon: 2.3522, lists: ['fav'] }, { id: 'b', name: 'Lieu B', lat: 45.764, lon: 4.8357, lists: ['fav'] }]));
+    });
+    await p.reload(); await p.waitForTimeout(2500);
+    await p.click('.chip:has-text("Mes lieux")'); await p.waitForTimeout(1200);
+    await p.click('.hub-lists > li > button:has-text("Favoris")'); await p.waitForTimeout(2000);
+    const r = await p.evaluate(() => { const b = window.__map.getBounds(); return { snap: document.querySelector('.app > section.sheet')?.dataset.snap, a: b.contains([2.3522, 48.8566]), b: b.contains([4.8357, 45.764]) }; });
+    assert(r.a && r.b, `tous les lieux ne sont pas à l'écran : ${JSON.stringify(r)}`);
+    assert(r.snap === 'peek', `fiche pas réduite : ${r.snap}`);
+    assert(!errors.length, errors.join(' | '));
+    await ctx.close();
+  },
   async 'liste : choisir son pictogramme et sa couleur'() {
     const { p, ctx, errors } = await page();
     await p.click('.chip:has-text("Restaurants")'); await p.waitForTimeout(6000);

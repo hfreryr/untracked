@@ -614,7 +614,7 @@
     get onKeyDown() { return onKeyDown; }, get onMapClick() { return onMapClick; }, get onPopState() { return onPopState; },
     get openAt() { return openAt; }, set openAt(v) { openAt = v; }, get openCategoryFromSearch() { return openCategoryFromSearch; },
     get openCounts() { return openCounts; }, set openCounts(v) { openCounts = v; }, get openFeature() { return openFeature; },
-    get openPlace() { return openPlace; }, get openPoint() { return openPoint; }, get openSavedList() { return openSavedList; },
+    get openPlace() { return openPlace; }, get openPoint() { return openPoint; }, get openSavedList() { return openSavedList; }, get showListOnMap() { return showListOnMap; },
     get osmDate() { return osmDate; }, set osmDate(v) { osmDate = v; }, get osmEditUrl() { return osmEditUrl; },
     get osmNoteUrl() { return osmNoteUrl; }, get panoScroll() { return panoScroll; }, get pickCategory() { return pickCategory; },
     get pickOnMap() { return pickOnMap; }, get pickResult() { return pickResult; }, get pickStreet() { return pickStreet; },
@@ -689,7 +689,7 @@
   const { favData, addCustomLayers, drawRoute, syncBike, bikeOn, line, shade, dimPlaces, setMapMode, fitOptions, boundsOf, fitTo, onMapClick, openPoint, openFeature, frame, placeMarker, labelColor, clearSelPhoto, clearPhotoPins, clearSelection, showSelection } = createMapDraw(app);
   const { saveFavorites, setShortcut, useShortcut, saveCustoms, shortcutName, askAddress, assignTo, openShortcutDlg, saveShortcutDlg, deleteCustom, useCustom } = createShortcuts(app);
   const { saveChips, moveChip, toggleChip, renameChip, resetChips, catOf } = createChips(app);
-  const { sameSpot, saveAll, keepOf, saveTap, setMembership, togglePin, removeFromList, createList, renameList, setListStyle, deleteList, refreshSaved, openSavedList, shareList, keepIncomingList, makeTransfer, shareTransfer, applyIncoming, makeBackup, doRestore } = createMyPlaces(app);
+  const { sameSpot, saveAll, keepOf, saveTap, setMembership, togglePin, removeFromList, createList, renameList, setListStyle, deleteList, refreshSaved, openSavedList, showListOnMap, shareList, keepIncomingList, makeTransfer, shareTransfer, applyIncoming, makeBackup, doRestore } = createMyPlaces(app);
   const { remember, forgetRecents, openPlace, sharePlace, loadDepartures, closePlace } = createPlace(app);
   const { clearSearch, hitFilter, catIcon, applyHit, displayName, collectCategory, applyOpenFilter, setOpenAt, momentFrom, quickMoment, nearView, reloadCategoryHere, pickCategory, clearCategory, dist, openCategoryFromSearch, onKey, pickResult, openResult, showAllResults, showBrand, toggleFilter } = createSearch(app);
   const { say, isolate, closeTop, onPopState, onKeyDown, undoToast, showMe } = createScreen(app);
