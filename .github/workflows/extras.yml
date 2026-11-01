@@ -6,6 +6,11 @@ on:
   schedule:
     - cron: '40 3 * * 1'
   workflow_dispatch:
+    inputs:
+      sites:
+        description: "Sites à lire (4000 par semaine ; 16000 pour un rattrapage, ≈ 1 h 30)"
+        required: true
+        default: '4000'
 concurrency:
   group: extras
   cancel-in-progress: false
@@ -14,7 +19,7 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 240   # (rattrapage à 16 000 sites : ≈ 1 h 30 de lecture)
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1 (désigné par empreinte : un outil tiers modifié ne passerait pas)
         with: { ref: main }
@@ -27,9 +32,11 @@ jobs:
       # mesuré le 23/10 en local : 41 600 lieux complétés (Overture, All The Places, annuaire) en 18 min
       - run: python app/scripts/build_extras.py idf.osm.pbf --out out/extras.json
       - name: Horaires et photo publiés par les sites des lieux (Common Crawl d'abord, visites espacées, robots.txt respecté)
+        env:
+          SITES: ${{ inputs.sites }}   # vide la nuit (programmé) : 4000
         run: |
           curl -sSfL -o out/sitehours.json https://untrackedmaps.app/data/sitehours.json || echo '{}' > out/sitehours.json
-          python app/scripts/build_sitehours.py idf.osm.pbf --extras out/extras.json --state out/sitehours.json --max-new 4000 || echo "sites ignorés (le reste est publié)"
+          python app/scripts/build_sitehours.py idf.osm.pbf --extras out/extras.json --state out/sitehours.json --max-new "${SITES:-4000}" || echo "sites ignorés (le reste est publié)"
       - name: "Garde-fou : pas de publication si les compléments paraissent vides"
         run: python -c "import json,sys; n=len(json.load(open('out/extras.json'))['places']); print(n,'lieux complétés'); sys.exit(0 if n >= 1000 else 1)"
       - name: Publier dans gh-pages/data/extras.json
