@@ -79,3 +79,13 @@ export async function snapToOsm(p, deps = { local: searchLocal }) {
   return near.find((r) => r.osmType && normName(r.name) === normName(p.name)
     && Math.abs(r.lat - p.lat) < 0.0007 && Math.abs(r.lon - p.lon) < 0.001) || null;
 }
+
+/**
+ * Lieu placé par sa position mais hors de nos données (à l'étranger) : son identifiant OSM par le moteur de recherche,
+ * cherché par son nom autour de sa position, retenu seulement s'il porte ce nom à moins de ~300 m (pour ouvrir sa fiche).
+ */
+export async function linkByName(p, search) {
+  const near = (await search(p.name, p).catch(() => [])) || [];
+  return near.find((r) => r.osmType && normName(r.name) === normName(p.name)
+    && Math.abs(r.lat - p.lat) < 0.003 && Math.abs(r.lon - p.lon) < 0.0045) || null;
+}

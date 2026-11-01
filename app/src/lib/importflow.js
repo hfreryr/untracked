@@ -6,7 +6,9 @@ import { PARIS } from '#lib/places.js';
 import { mergeInto } from '#lib/myplaces.js';
 import { readGoogleExport } from '#lib/importgoogle.js';
 import { search, searchForImport } from '#lib/geocode.js';
-import { resolvePlace, eachLimited, eachPaced, snapToOsm } from '#lib/importresolve.js';
+import { resolvePlace, eachLimited, eachPaced, snapToOsm, linkByName } from '#lib/importresolve.js';
+import { hasPlaces } from '#lib/searchscope.js';
+import { listCenters, tooFar } from '#lib/importcenter.js';
 
 const pickIds = (o) => (o?.osmType && o?.osmId ? { osmType: o.osmType, osmId: o.osmId, subclass: o.subclass || undefined } : {});
 
@@ -33,10 +35,11 @@ export function createImport(app) {
       // apparaissait sur 9)
       const ids = new Map();
       for (const p of places) if (!ids.has(p.listName)) ids.set(p.listName, listFor(p.listName));
+      // la position de presque tous les lieux est dans leur lien (s2cell.js) ; les autres sont cherchés par leur nom,
+      // autour des lieux de leur liste (importcenter.js), un par seconde au plus quand il faut Photon
       const lost = places.filter((p) => !p.lat || !p.lon);
-      // Les listes Google n'ont pas de position : on retrouve chaque lieu par son nom (nos données d'abord), un par
-      // seconde au plus, avec plusieurs essais (Photon refusait la moitié des demandes envoyées 4 par 4).
-      const { found, missed: nMissed, unsure: nUnsure, failed } = await resolveAll(lost);
+      const where = (lastWhere = listCenters(places));
+      const { found, missed: nMissed, unsure: nUnsure, failed } = await resolveAll(lost, where);
       missed = nMissed; unsure = nUnsure;
       // Lieux qui ont déjà une position : on leur retrouve leur identifiant OSM dans nos données (quatre à la fois)
       const snapped = new Map();
@@ -51,12 +54,13 @@ export function createImport(app) {
       for (const [k, v] of [['home', home], ['work', work]]) {
         if (!v || app.shortcuts[k]) continue;
         let { lat, lon } = v;
-        if (!lat || !lon) { const r = (await search(v.address || v.name, PARIS).catch(() => []))[0]; if (!r) continue; ({ lat, lon } = r); }
+        if (!lat || !lon) { const r = (await search(v.address || v.name, where.all || startPoint()).catch(() => []))[0]; if (!r) continue; ({ lat, lon } = r); }
         app.setShortcut(k, { id: `${k}${lat}`, name: v.address || v.name, type: app.SHORT_NAMES[k], address: v.address || '', lat, lon });
         extra += tx('import.defini', { nom: app.SHORT_NAMES[k] });
       }
       app.importing = '';
       app.importOpen = false;
+      linkAbroad(kept);
       const later = failed.length ? tx('import.non_cherches', { n: failed.length }) : '';
       const retry = failed.length ? { label: tx('import.reessayer'), run: () => retryFailed(failed, ids) } : undefined;
       if (!added && !extra && !failed.length) app.say((places.length ? tx('import.ces_lieux_sont_deja_dans_vos_favoris') : tx('import.aucun_lieu_trouve_dans_ce_fichier')) + (listsMissing ? tx('import.listes_absentes') : ''));
@@ -67,14 +71,34 @@ export function createImport(app) {
     }
   }
 
+  /** Après l'import, sans faire attendre : les lieux hors de nos données (étranger) reçoivent leur identifiant OSM par le
+   *  moteur de recherche, un par seconde, pour ouvrir leur vraie fiche. Leur position, elle, est déjà juste. */
+  async function linkAbroad(kept) {
+    const todo = kept.filter((k) => !k.osmId && k.name && !hasPlaces(k));
+    await eachPaced(todo, 1000, async (k) => {
+      const o = await linkByName(k, searchForImport);
+      if (!o) return;
+      app.favorites = app.favorites.map((f) => (f.id === k.id && !f.osmId ? { ...f, ...pickIds(o) } : f));
+      app.saveAll();
+    }).catch(() => {});
+  }
+
   /** Retrouve les lieux sans position, un par seconde ; ceux pour lesquels le moteur n'a pas répondu sont gardés à part. */
-  async function resolveAll(lost) {
+  let lastWhere = null;     // centres des listes du dernier import (pour « Réessayer »)
+  // point de départ quand l'export n'a aucune position : là où est l'utilisateur, sinon le centre de la carte
+  const startPoint = () => app.me || (app.map ? { lat: app.map.getCenter().lat, lon: app.map.getCenter().lng } : PARIS);
+
+  async function resolveAll(lost, where = listCenters([])) {
     const found = new Map(), failed = [];
     let missed = 0, unsure = 0, done = 0;
     await eachPaced(lost, 1000, async (p) => {
       try {
         let usedRemote = false;
-        const r = await resolvePlace(p, PARIS, { remote: (q, at) => { usedRemote = true; return searchForImport(q, at); } });
+        const center = where.centers.get(p.listName) || null;
+        const at = center || where.all || startPoint();
+        let r = await resolvePlace(p, at, { remote: (q, a) => { usedRemote = true; return searchForImport(q, a); } });
+        // homonyme lointain (« Baden-Baden » à Paris) : pas de point plutôt qu'un faux point
+        if (r && tooFar(r.place, center)) r = null;
         if (r) { found.set(p, r); if (!r.sure) unsure++; } else missed++;
         done++;
         app.importing = tx('import.recherche_des_lieux_sans_position', { i: done, n: lost.length, min: Math.ceil((lost.length - done) / 60) });
@@ -105,7 +129,7 @@ export function createImport(app) {
   /** « Réessayer » : les lieux que le moteur de recherche n'avait pas traités. */
   async function retryFailed(places, ids) {
     app.importing = tx('import.lecture_du_fichier');
-    const { found, missed, unsure, failed } = await resolveAll(places);
+    const { found, missed, unsure, failed } = await resolveAll(places, lastWhere || undefined);
     const m = mergeInto({ lists: app.lists, places: app.favorites }, { lists: [], places: keep(places, found, new Map(), ids) }, app.sameSpot);
     app.favorites = m.places;
     app.saveAll();
