@@ -298,7 +298,7 @@
       } catch (e) {
         if (e.name !== 'AbortError') {
           results = [];
-          searchError = tx('ecran.la_recherche_ne_repond_pas_verifiez');
+          searchError = e.say || tx('ecran.la_recherche_ne_repond_pas_verifiez');
         }
       } finally {
         searching = false;

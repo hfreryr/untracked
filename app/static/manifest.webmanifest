@@ -31,5 +31,14 @@
       "type": "image/png",
       "purpose": "maskable"
     }
-  ]
+  ],
+  "share_target": {
+    "action": "./",
+    "method": "GET",
+    "params": {
+      "title": "titre",
+      "text": "texte",
+      "url": "lien"
+    }
+  }
 }
