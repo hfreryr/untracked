@@ -6,7 +6,7 @@ Liste tenue à jour à chaque étape, pour ne rien perdre entre les sujets mené
 ## À fusionner
 | PR | Sujet | Après fusion |
 |---|---|---|
-| (cette PR) | Import Google par l'annuaire national et l'adresse (Photon en dernier recours) | Publier |
+| #122 | Import Google par l'annuaire national et l'adresse (Photon en dernier recours) | Publier |
 
 ## Décisions attendues du porteur
 | Sujet | Question posée | Où regarder |
@@ -31,7 +31,7 @@ Mesure : `node app/tests/search/grid.mjs` (6 points de départ × 27 recherches,
    7/54 → 42/54. Complet quand les 13 régions calculées avant #116 auront leur index (au plus tard le 07/11, calcul
    hebdomadaire). « gare de rennes » réglé. Restent : « musée Jean Cocteau Menton » (commune absente du nom),
    « Puy de Dôme » (sommets absents de nos lieux).
-4. 🔧 **Import Google** par l'annuaire (cette PR) : lieux sûrs 44 → 63 sur un vrai export, 142 → 100 s.
+4. 🔧 **Import Google** par l’annuaire (#122) : lieux sûrs 44 → 63 sur un vrai export, 142 → 100 s.
 - Limite connue : une rue française cherchée depuis l'étranger reste confiée à Photon.
 - Avant tout lancement public : notre propre Photon (règle « zéro pistage »).
 
