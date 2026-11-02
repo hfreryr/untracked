@@ -7,7 +7,8 @@
 // (localStorage « osm-serveur-essai » : { clientId, web, api }), qui ne touche pas la vraie carte.
 
 const KEY = 'osm-acces', PENDING = 'osm-connexion';
-export const OSM_CLIENT_ID = import.meta.env?.VITE_OSM_CLIENT_ID || '';
+// identifiant public de l'app chez OSM (enregistrée par le porteur le 02/11/2026 avec le compte du projet ; pas un secret)
+export const OSM_CLIENT_ID = import.meta.env?.VITE_OSM_CLIENT_ID || '7b-9qe41CkpMp93Lr8Qjrp_Lk1h3BADyrvssCrkt3Gg';
 const PROD = { clientId: OSM_CLIENT_ID, web: 'https://www.openstreetmap.org', api: 'https://api.openstreetmap.org' };
 
 const store = () => { try { return globalThis.localStorage; } catch { return null; } };
