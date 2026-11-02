@@ -5,6 +5,7 @@ import { fromPins, mergeCustoms } from '#lib/customshortcuts.js';
 import { tx } from '#lib/i18n/index.js';
 import { LIST_COLORS, backupFile, mergeInto, newListId, pack, packList, readBackup, restore, sameSpot, snapshot } from '#lib/myplaces.js';
 import { PARIS } from '#lib/places.js';
+import { savedIcon } from '#lib/savedpin.js';
 import { markUsed } from '#lib/listorder.js';
 import qrcode from 'qrcode-generator';
 
@@ -107,7 +108,7 @@ export function createMyPlaces(app) {
     app.nearby = src.map((f, i) => {
       const l = app.category.shared ? app.category : app.listOf(f.lists?.[0]);
       return { f: { id: `s${i}`, properties: { name: f.name, subclass: f.subclass }, geometry: { coordinates: [f.lon, f.lat] } },
-        d: app.dist(o.lat, o.lon, f.lat, f.lon), saved: f, icon: `cat|${l.icon}|${l.color}`, tc: app.labelColor(l.color) };
+        d: app.dist(o.lat, o.lon, f.lat, f.lon), saved: f, icon: savedIcon(l), tc: app.labelColor(l.color) };
     }).sort((a, b) => a.d - b.d);
     app.nearbyFromMe = !!app.me;
     app.nearbyDone = true;

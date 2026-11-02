@@ -4,6 +4,7 @@
 // signalés par une pastille colorée à pictogramme blanc. Police : Inter (SIL OFL), hébergée avec l'app.
 import { isDark } from '#lib/theme.js';
 import { city } from '#lib/cities/index.js';
+import { savedPinImage } from '#lib/savedpin.js';
 
 export const C = {
   land: '#F4EFDF',
@@ -593,6 +594,11 @@ export function provideImage(map, id) {
   if (id === 'sel-metro' || id.startsWith('sel|')) {
     const [, glyph, colour] = id === 'sel-metro' ? [null, 'M', '#2B4793'] : id.split('|');
     const { data, pixelRatio } = bigPin(colour, glyph);
+    return map.addImage(id, data, { pixelRatio });
+  }
+  if (id.startsWith('fav|')) {        // lieu d'une de vos listes : pastille « autocollant » (savedpin.js)
+    const [, glyph, colour] = id.split('|');
+    const { data, pixelRatio } = savedPinImage(colour, GLYPHS[glyph] || GLYPHS.dot);
     return map.addImage(id, data, { pixelRatio });
   }
   if (id.startsWith('cat|')) {        // raccourci de catégorie : pictogramme et couleur propres

@@ -30,7 +30,7 @@
   import { FAMILIES, GLYPHS } from '#lib/mapstyle.js';
   import { streetRoute, MODE_NAMES, fmtDuration, fmtTime, fmtDistance } from '#lib/routing.js';
   import { bestExit } from '#lib/exits.js';
-  import { DEFAULT_LISTS, migratePlaces, restore, uniqueListIds } from '#lib/myplaces.js'; import { dropEmptyTodo } from '#lib/listorder.js';
+  import { DEFAULT_LISTS, migratePlaces, restore, uniqueListIds } from '#lib/myplaces.js'; import { savedIcon } from '#lib/savedpin.js'; import { dropEmptyTodo } from '#lib/listorder.js';
   import { exitForQuay, placeForTransfer } from '#lib/rame.js';
   import { ALL_CATEGORIES, CATEGORY_WORDS, FILLER, loadChipPrefs, categoryFor as catFor } from '#lib/categories.js';
   import { createImport } from '#lib/importflow.js';
@@ -119,7 +119,7 @@
   const savedEntry = $derived(place ? favorites.find((f) => sameSpot(f, place)) : null);
   const isFav = $derived(!!savedEntry);
   const listOf = (id) => lists.find((l) => l.id === id) || DEFAULT_LISTS[0];
-  const listIcon = (l) => `cat|${l.icon}|${l.color}`;
+  const listIcon = (l) => savedIcon(l);   // pastille des lieux de vos listes (savedpin.js)
   // pictogramme blanc (mêmes dessins que la carte) en image, pour les listes dans les fiches
   const glyphUrl = (g) => `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="#fff" fill-rule="evenodd" d="${GLYPHS[g] || GLYPHS.dot}"/></svg>`)}`;
   const placeKey = (p) => (p.osmType ? `${p.osmType}/${p.osmId}` : `${(+p.lat).toFixed(5)},${(+p.lon).toFixed(5)}`);
