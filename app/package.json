@@ -14,14 +14,14 @@
     "search-eval": "node tests/search/eval.mjs"
   },
   "devDependencies": {
-    "@sveltejs/adapter-static": "^4.0.0",
+    "@sveltejs/adapter-static": "^4.0.1",
     "@sveltejs/kit": "^3.1.1",
     "@sveltejs/vite-plugin-svelte": "^7.3.1",
     "axe-core": "^4.14.0",
     "playwright": "^1.56.0",
     "svelte": "^5.57.3",
     "svelte-check": "^4.7.8",
-    "typescript": "^6.0.3",
+    "typescript": "^7.0.2",
     "vite": "^8.3.5"
   },
   "dependencies": {
