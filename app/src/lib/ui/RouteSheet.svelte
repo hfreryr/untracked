@@ -37,8 +37,9 @@
   <div class="mode-tabs" data-min-end role="tablist" aria-label={tx('itin.mode_de_deplacement')}>
     {#each MODES as m}
       {@const r = routes[m.id]}
-      <button class="mode-tab" class:on={mode === m.id} role="tab" aria-selected={mode === m.id} onclick={() => chooseMode(m.id)} aria-label={m.label}>
-        <ModeIcon id={m.id} />
+      <!-- nom lu : le mode puis la durée affichée (WCAG 2.5.3 : le texte visible fait partie du nom, axe-core 4.14) -->
+      <button class="mode-tab" class:on={mode === m.id} role="tab" aria-selected={mode === m.id} onclick={() => chooseMode(m.id)}>
+        <ModeIcon id={m.id} />{#if r}<span class="sr">{m.label}</span>{/if}
         <span class="mode-time">
           {#if !r}{m.label}
           {:else if r.status === 'loading'}<span class="dots" aria-label={tx('itin.calcul_en_cours')}></span>
@@ -179,6 +180,7 @@
 </section>
 
 <style>
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   /* info trafic sous une proposition (trafic.js) : une seule ligne, la plus grave */
   .t-alert { display: flex; gap: 6px; align-items: flex-start; margin-top: 6px; font-size: var(--fs-meta); font-weight: 600; line-height: 1.3; text-align: left; }
   .t-alert.orange { color: var(--warn); }
