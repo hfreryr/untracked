@@ -3,6 +3,7 @@
 import { tx } from '#lib/i18n/index.js';
 import { osmReturn } from '#lib/osmauth.js';
 import { openHoursEdit } from '#lib/hourseditstate.svelte.js';
+import { openPlaceEdit } from '#lib/placeeditstate.svelte.js';
 
 export async function resumeOsm(app, ret = osmReturn) {
   const r = await ret().catch(() => ({ error: 'reseau' }));
@@ -10,7 +11,8 @@ export async function resumeOsm(app, ret = osmReturn) {
   const p = r.resume?.place;
   if (p) {
     app.openPlace({ id: `${p.osmType}${p.osmId}`, osmType: p.osmType, osmId: p.osmId, name: p.name, type: '', address: '', lat: p.lat, lon: p.lon });
-    openHoursEdit(p, r.resume.oh || '', 'confirm');
+    if (r.resume.changes) openPlaceEdit(p, r.resume.changes, 'confirm');   // page « Corriger » (PlaceEditor.svelte)
+    else openHoursEdit(p, r.resume.oh || '', 'confirm');
   }
   if (r.error) app.say(r.error === 'access_denied' ? tx('horaires_edit.connexion_refusee') : tx('horaires_edit.connexion_echouee'));
 }

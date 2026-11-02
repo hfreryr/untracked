@@ -1,6 +1,8 @@
 <script>
   import HoursEditor from './HoursEditor.svelte';
   import { hoursEdit, openHoursEdit } from '#lib/hourseditstate.svelte.js';
+  import PlaceEditor from './PlaceEditor.svelte';
+  import { placeEdit, openPlaceEdit } from '#lib/placeeditstate.svelte.js';
   import { parseHours } from '#lib/hoursedit.js';
   import { osmServer } from '#lib/osmauth.js';
   import PhotoStrip from './PhotoStrip.svelte';
@@ -184,7 +186,7 @@
       {/if}
       <p class="contrib">
         {#if placeDate}{tx('fiche.donnees_openstreetmap_du', { osmDate: placeDate })}{' '}{/if}{tx('fiche.une_info_manque_ou_est_fausse')}
-        {#if app.osmEditUrl}<a href={app.osmEditUrl} target="_blank" rel="noopener">{tx('fiche.completez_la_sur_openstreetmap')}</a>{:else}<a href={app.osmNoteUrl} target="_blank" rel="noopener">{tx('fiche.signalez_la_sur_openstreetmap')}</a>{/if}{tx('fiche.la_carte_libre_que_nous_utilisons')}
+        {#if canEdit}<button class="link inline" onclick={() => openPlaceEdit(app.place)}>{tx('fiche.corrigez_la_ici')}</button>{:else if app.osmEditUrl}<a href={app.osmEditUrl} target="_blank" rel="noopener">{tx('fiche.completez_la_sur_openstreetmap')}</a>{:else}<a href={app.osmNoteUrl} target="_blank" rel="noopener">{tx('fiche.signalez_la_sur_openstreetmap')}</a>{/if}{canEdit ? tx('fiche.corriger_suite') : tx('fiche.la_carte_libre_que_nous_utilisons')}
       </p>
 {/snippet}
 
@@ -288,10 +290,18 @@
             <span>{tx('fiche.avis_n', { n: reviewCount })}</span>
           </button>
         {/if}
+        {#if canEdit}
+          <!-- « Corriger » remplace « Signaler » : toutes les infos du lieu, dans l'app, avec son compte OSM (PlaceEditor.svelte) -->
+          <button class="sec-btn" onclick={() => openPlaceEdit(app.place)}>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16zM13.5 6.5l4 4" /></svg>
+            <span>{tx('corriger.bouton')}</span>
+          </button>
+        {:else}
         <a class="sec-btn" href={app.osmNoteUrl} target="_blank" rel="noopener" aria-label={tx('fiche.signaler_un_probleme_sur')}>
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4 21 19.5H3z" /><path d="M12 10v4.5M12 17v.3" /></svg>
           <span>{tx('fiche.signaler')}</span>
         </a>
+        {/if}
         {#if app.address}
           <button class="sec-btn" onclick={copyAddressOnly}>
             <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="11" height="12" rx="2" /><path d="M5 15V6a2 2 0 0 1 2-2h8" /></svg>
@@ -315,9 +325,11 @@
     </section>
 
 {#if hoursEdit.open}<HoursEditor />{/if}
+{#if placeEdit.open}<PlaceEditor />{/if}
 
 <style>
   .edit-h { margin-top: 6px; }
+  .link.inline { padding: 0; font-size: inherit; }
   svg { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
   svg .solid { fill: currentColor; stroke: none; }
   .link { border: 0; background: none; color: var(--accent); font: inherit; font-weight: 500; cursor: pointer; padding: 4px 0; }

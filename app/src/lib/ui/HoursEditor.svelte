@@ -6,13 +6,13 @@
   import { tx } from '#lib/i18n/index.js';
   import { getContext } from 'svelte';
   import Dialog from './Dialog.svelte';
+  import WeekEditor from './WeekEditor.svelte';
   import { hoursEdit, closeHoursEdit } from '#lib/hourseditstate.svelte.js';
   import { parseHours, formatHours, previewHours, checkWeek, emptyWeek } from '#lib/hoursedit.js';
   import { osmServer, osmAccount, osmLogin, osmLogout } from '#lib/osmauth.js';
   import { sendTags } from '#lib/osmedit.js';
   import { recordEdit } from '#lib/osmcontrib.js';
   const app = getContext('app');
-  const NAMES = () => [tx('horaires_edit.lun'), tx('horaires_edit.mar'), tx('horaires_edit.mer'), tx('horaires_edit.jeu'), tx('horaires_edit.ven'), tx('horaires_edit.sam'), tx('horaires_edit.dim')];
   let week = $state(parseHours(hoursEdit.oh) || emptyWeek());
   let error = $state('');
   let account = $state(osmAccount());
@@ -20,10 +20,6 @@
   const preview = $derived(previewHours(week));
   const place = hoursEdit.place;
 
-  function toggleDay(i) { week.days[i] = week.days[i].length ? [] : [['09:00', '19:00']]; week.allDay = false; error = ''; }
-  function addBreak(i) { const [a, b] = week.days[i][0]; week.days[i] = [[a, '12:00'], ['14:00', b]]; }
-  function dropBreak(i) { const d = week.days[i]; week.days[i] = [[d[0][0], d[d.length - 1][1]]]; }
-  function copyMonday() { for (let i = 1; i <= 4; i++) week.days[i] = week.days[0].map((s) => [...s]); }
   function next() { error = checkWeek(week) || ''; if (!error) hoursEdit.step = 'confirm'; }
   async function send() {
     const s = osmServer();
@@ -47,32 +43,7 @@
 <Dialog title={hoursEdit.step === 'done' ? tx('horaires_edit.merci') : hoursEdit.step === 'edit' ? tx('horaires_edit.titre', { nom: place.name }) : tx('horaires_edit.envoyer_titre')}
   sub={hoursEdit.step === 'edit' ? tx('horaires_edit.sous_titre') : hoursEdit.step === 'done' ? '' : tx('horaires_edit.osm_explication')} onclose={closeHoursEdit}>
   {#if hoursEdit.step === 'edit'}
-    <ul class="days">
-      {#each week.days as d, i}
-        <li>
-          <button class="d" class:on={d.length || week.allDay} aria-pressed={!!d.length} onclick={() => toggleDay(i)} aria-label={tx('horaires_edit.ouvrir_fermer', { jour: NAMES()[i] })}>{NAMES()[i].slice(0, 1)}</button>
-          {#if week.allDay}<span class="closed">{tx('horaires_edit.ouvert_24_24')}</span>
-          {:else if !d.length}<span class="closed">{tx('horaires_edit.ferme_maj')}</span>
-          {:else}
-            <span class="slots">
-              {#each d as s, k}
-                <span class="slot">
-                  <input type="time" bind:value={s[0]} aria-label={tx('horaires_edit.ouverture', { jour: NAMES()[i] })} />
-                  <span aria-hidden="true">–</span>
-                  <input type="time" bind:value={s[1]} aria-label={tx('horaires_edit.fermeture', { jour: NAMES()[i] })} />
-                </span>
-              {/each}
-              {#if d.length === 1}<button class="lnk" onclick={() => addBreak(i)}>{tx('horaires_edit.plus_pause')}</button>
-              {:else}<button class="lnk" onclick={() => dropBreak(i)}>{tx('horaires_edit.sans_pause')}</button>{/if}
-            </span>
-          {/if}
-        </li>
-      {/each}
-    </ul>
-    <div class="tools">
-      <button class="chip" onclick={copyMonday} disabled={!week.days[0].length || week.allDay}>{tx('horaires_edit.copier_lundi')}</button>
-      <button class="chip" class:on={week.allDay} aria-pressed={week.allDay} onclick={() => { week.allDay = !week.allDay; error = ''; }}>{tx('horaires_edit.ouvert_24_24_court')}</button>
-    </div>
+    <WeekEditor bind:week onchange={() => (error = '')} />
     <div class="prev"><small>{tx('horaires_edit.apercu')}</small>{preview}</div>
     {#if error}<p class="err" role="alert">{error}</p>{/if}
     <button class="go" onclick={next}>{tx('horaires_edit.continuer')}</button>
@@ -98,26 +69,12 @@
 </Dialog>
 
 <style>
-  .days { list-style: none; margin: 0; padding: 0; }
-  .days li { display: grid; grid-template-columns: 44px 1fr; gap: 10px; align-items: center; padding: 7px 0; border-bottom: 1px solid var(--line); min-height: 50px; }
-  .d { width: 40px; height: 34px; border-radius: 10px; border: 0; background: var(--fill); color: var(--ink); font: inherit; font-weight: 650; cursor: pointer; }
-  .d.on { background: var(--accent-btn); color: #fff; }
-  .slots { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
-  .slot { display: inline-flex; align-items: center; gap: 4px; }
-  .slot input { font: inherit; font-size: 15px; color: var(--ink); background: var(--fill); border: 0; border-radius: 9px; padding: 6px 8px; font-variant-numeric: tabular-nums; min-width: 0; width: 6.2em; }
-  /* téléphone : on touche l'heure pour ouvrir la roue ; la petite horloge ne sert qu'à la souris */
-  @media (pointer: coarse) { .slot input::-webkit-calendar-picker-indicator { display: none; } }
-  .closed { color: var(--muted); font-size: 15px; }
-  .lnk { border: 0; background: none; color: var(--accent); font: inherit; font-size: 14px; cursor: pointer; padding: 6px 2px; }
-  .tools { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 4px; }
-  .chip { border: 1px solid var(--line); background: none; color: var(--ink); border-radius: 999px; padding: 8px 12px; font: inherit; font-size: 14px; cursor: pointer; }
-  .chip.on { background: var(--accent-btn); border-color: var(--accent-btn); color: #fff; }
-  .chip:disabled { opacity: 0.45; }
   .prev { background: var(--fill); border-radius: 14px; padding: 12px 14px; margin: 12px 0; font-size: 15px; line-height: 1.45; }
   .prev small { display: block; color: var(--muted); font-size: 12.5px; margin-bottom: 2px; }
   .acct { display: grid; grid-template-columns: 34px 1fr auto; gap: 10px; align-items: center; background: var(--fill); border-radius: 14px; padding: 10px 12px; font-size: 14.5px; }
   .acct b { display: block; }
   .av { width: 34px; height: 34px; border-radius: 50%; background: #3f7d32; color: #fff; display: grid; place-items: center; font-weight: 700; }
+  .lnk { border: 0; background: none; color: var(--accent); font: inherit; font-size: 14px; cursor: pointer; padding: 6px 2px; }
   .out { font-size: 13px; }
   .note { font-size: 13.5px; color: var(--muted); line-height: 1.4; margin: 10px 2px; }
   .err { color: var(--closed); font-size: 14px; margin: 8px 2px; }
