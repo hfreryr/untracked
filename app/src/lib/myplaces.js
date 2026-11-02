@@ -6,9 +6,8 @@ import { cleanCustoms, NAME_MAX } from '#lib/customshortcuts.js';
 import { tx } from '#lib/i18n/index.js';
 
 export const DEFAULT_LISTS = [
-  { id: 'fav', name: tx('meslieux.favoris'), icon: 'heart', color: '#D63A7A' },
-  { id: 'todo', name: tx('meslieux.a_tester'), icon: 'flag', color: '#E0862F' }
-];
+  { id: 'fav', name: tx('meslieux.favoris'), icon: 'heart', color: '#D63A7A' }
+];   // (« À tester » retirée le 02/11/2026 : pas une liste par défaut de Plans ; listorder.js, dropEmptyTodo)
 // Pictogrammes et couleurs proposés pour une nouvelle liste
 export const LIST_ICONS = ['heart', 'flag', 'star', 'utensils', 'cup', 'bed', 'tree', 'bag', 'ticket', 'book'];
 export const LIST_COLORS = ['#D63A7A', '#E0862F', '#2A5BD7', '#1E8E3E', '#7A4FC4', '#0E8A94', '#C7972B', '#5F6B7A'];

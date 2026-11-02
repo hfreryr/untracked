@@ -3,6 +3,7 @@
 // Glisser vers le bas depuis l'aperçu ferme la fiche ; toucher la poignée agrandit ou réduit.
 import { tx } from '#lib/i18n/index.js';
 import { shouldClose } from '#lib/swipeclose.js';
+import { sheetIntent, startsSideways } from './sheetintent.js';
 
 const PEEK = 150;          // hauteur de l'aperçu, en pixels
 const TOP_GAP = 64;        // marge laissée en haut en plein écran, pour voir qu'on est sur une carte
@@ -77,13 +78,16 @@ export function draggable(node, params = {}) {
 
   function onStart(e) {
     if (!mobile.matches || e.touches.length !== 1) return;
-    drag = { y0: e.touches[0].clientY, t0: performance.now(), h0: node.getBoundingClientRect().height, active: false, dy: 0 };
+    drag = { x0: e.touches[0].clientX, y0: e.touches[0].clientY, t0: performance.now(), h0: node.getBoundingClientRect().height, active: false, dy: 0,
+      sideways: startsSideways(e.target) };
   }
   function onMove(e) {
     if (!drag) return;
     const dy = e.touches[0].clientY - drag.y0;
     if (!drag.active) {
-      if (Math.abs(dy) < 6) return;
+      const intent = sheetIntent(e.touches[0].clientX - drag.x0, dy, drag.sideways);   // (sheetintent.js)
+      if (intent === 'wait') return;
+      if (intent === 'other') { drag = null; return; }
       // En plein écran, le contenu défile normalement ; on ne reprend la main que pour redescendre
       // depuis le haut du contenu.
       if (snap === 'full' && !(dy > 0 && node.scrollTop <= 0)) { drag = null; return; }

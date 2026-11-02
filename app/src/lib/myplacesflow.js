@@ -5,6 +5,7 @@ import { fromPins, mergeCustoms } from '#lib/customshortcuts.js';
 import { tx } from '#lib/i18n/index.js';
 import { LIST_COLORS, backupFile, mergeInto, newListId, pack, packList, readBackup, restore, sameSpot, snapshot } from '#lib/myplaces.js';
 import { PARIS } from '#lib/places.js';
+import { markUsed } from '#lib/listorder.js';
 import qrcode from 'qrcode-generator';
 
 /** @param {any} app */
@@ -25,6 +26,7 @@ export function createMyPlaces(app) {
     if (!p) return;
     if (app.savedEntry) { app.listPicker = true; return; }
     app.favorites = [{ ...keepOf(p), lists: ['fav'] }, ...app.favorites];
+    app.lists = markUsed(app.lists, 'fav', 'a');
     saveAll();
     app.say(tx('meslieux.enregistre_dans', { name: app.listOf('fav').name }), { label: tx('meslieux.changer'), run: () => (app.listPicker = true) });
   }
@@ -42,6 +44,7 @@ export function createMyPlaces(app) {
         app.say(tx('meslieux.retire_de_mes_lieux'), { label: tx('resultats.annuler'), run: () => { app.favorites = before; app.pins = beforePins; saveAll(); } });
       } else app.favorites = app.favorites.map((f) => (f === ex ? { ...f, lists: ls } : f));
     }
+    if (on) app.lists = markUsed(app.lists, listId, 'a');
     saveAll();
   }
   function togglePin(p) {
@@ -75,9 +78,9 @@ export function createMyPlaces(app) {
     then?.(l.id);
     return l;
   }
-  function renameList(l) {
-    const n = prompt(tx('meslieux.nouveau_nom_de_la_liste'), l.name)?.trim();
-    if (!n) return;
+  function renameList(l, name) {
+    const n = (name ?? '').trim().slice(0, 40);   // (nom modifié sur place, ListEditor.svelte, 02/11/2026)
+    if (!n || n === l.name) return;
     app.lists = app.lists.map((x) => (x.id === l.id ? { ...x, name: n } : x));
     saveAll();
   }
@@ -111,6 +114,8 @@ export function createMyPlaces(app) {
   }
   function openSavedList(id) {
     app.savedList = id;
+    app.lists = markUsed(app.lists, id, 'o');
+    saveAll();
     app.listEditing = false;
     app.swiped = null;
     refreshSaved();

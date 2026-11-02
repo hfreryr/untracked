@@ -7,7 +7,8 @@ chaque semaine, pour les lieux qui ont un identifiant Wikidata ou un article Wik
   1. Wikidata (par lots de 50) : l'image du lieu (P18), sa catégorie Commons (P373), le titre de l'article français ;
      un lieu qui n'a qu'un article Wikipédia : son identifiant Wikidata par Wikipédia (par lots de 50) ;
   2. Commons : l'adresse de chaque image à 960 px (taille standard de Wikimedia), son auteur et sa licence ;
-  3. jusqu'à 5 autres images de la catégorie du lieu (une demande par catégorie, 3 000 au plus par semaine).
+  3. jusqu'à 5 autres images de la catégorie du lieu (une demande par catégorie, 3 000 au plus par semaine) ;
+  4. classement « comme Maps » : photos récentes du lieu d'abord, gravures, plans et documents anciens en dernier.
 Politesse (https://www.mediawiki.org/wiki/Wikimedia_APIs/Rate_limits) : identifiant explicite, une demande à la fois,
 pause entre deux demandes, attente quand Wikimedia demande de ralentir ; résultat gardé 90 jours (wikiphotos.json).
 
@@ -53,6 +54,37 @@ def strip_tags(s):
     return re.sub(r"\s+", " ", html.unescape(re.sub(r"<[^>]+>", "", s or ""))).strip()
 
 
+# Classement « comme Maps » (porteur, 02/11/2026 : « parfois Wikimedia propose en premier une gravure, l'utilisateur s'en
+# fiche ») : d'abord des photos récentes du lieu tel qu'il est ; gravures, dessins, plans, cartes postales, blasons et
+# documents anciens en dernier. Indices : titre, description et catégories du fichier, date de la prise de vue, format.
+NOT_A_VIEW = re.compile(r"gravure|engraving|lithograph|etching|eau-forte|drawing|dessin|sketch|croquis|painting|peinture|tableau|"
+                        r"aquarelle|watercolou?r|illustration|\bplan\b|floor ?plan|\bmaps?\b|\bcarte\b|postcard|carte postale|"
+                        r"blason|coat of arms|armoiries|\blogo|diagram|sch[ée]ma|\bscan|manuscri|archives?\b|plaque|inscription|"
+                        r"\b1[0-8]\d\ds?\b|\b19[0-6]\ds?\b", re.I)
+
+
+def photo_score(page):
+    """Plus c'est haut, plus la photo montre le lieu tel qu'il est aujourd'hui. Pure."""
+    ii = (page or {}).get("imageinfo", [{}])[0]
+    meta = ii.get("extmetadata") or {}
+    text = " ".join(strip_tags((meta.get(k) or {}).get("value")) for k in ("ObjectName", "ImageDescription", "Categories"))
+    text += " " + (page or {}).get("title", "")
+    score = 0.0
+    if NOT_A_VIEW.search(text):
+        score -= 10
+    m = re.search(r"(1[89]\d\d|20\d\d)", strip_tags((meta.get("DateTimeOriginal") or {}).get("value")))
+    if m:
+        year = int(m.group(1))
+        score += -8 if year < 1970 else min(4, (year - 2000) / 5) if year >= 2000 else -2
+    w, h = ii.get("width") or 0, ii.get("height") or 0
+    if w and h:
+        score += 1 if 1.2 <= w / h <= 2.0 else -1 if w / h < 0.8 else 0      # paysage, comme le bandeau de la fiche
+        score -= 2 if max(w, h) < 1000 else 0
+    if re.search(r"\.png$", (page or {}).get("title", ""), re.I):
+        score -= 2                                                          # souvent un schéma ou une capture
+    return score
+
+
 def photo_of(page):
     """Page de fichier Commons (réponse imageinfo) → [chemin, crédit], ou None (pas une photo)."""
     ii = (page or {}).get("imageinfo", [{}])[0]
@@ -65,9 +97,20 @@ def photo_of(page):
     return [url[len(THUMB):], " · ".join(x for x in (artist, licence) if x)]
 
 
+def ranked(pages, main_title=None):
+    """Photos d'un lieu, les plus « comme Maps » d'abord ; l'image choisie par Wikidata ne gagne qu'à égalité."""
+    scored = []
+    for p in pages:
+        ph = photo_of(p)
+        if ph:
+            scored.append((photo_score(p) + (0.5 if p.get("title") == main_title else 0), ph))
+    return [ph for _, ph in sorted(scored, key=lambda x: -x[0])]
+
+
 def commons_query(extra):
     return ("https://commons.wikimedia.org/w/api.php?action=query&format=json&prop=imageinfo&iiprop=url|extmetadata"
-            f"&iiextmetadatafilter=Artist|LicenseShortName&iiurlwidth={WIDTH}&{extra}")
+            f"&iiextmetadatafilter=Artist|LicenseShortName|DateTimeOriginal|ObjectName|ImageDescription|Categories"
+            f"&iiurlwidth={WIDTH}&{extra}").replace("iiprop=url|extmetadata", "iiprop=url|size|extmetadata")
 
 
 def entities(qids, get=get_json):
@@ -102,24 +145,22 @@ def qids_of_titles(titles, get=get_json):
 
 
 def files_info(files, get=get_json):
-    """Commons : {nom de fichier: [chemin, crédit]} pour l'image principale de chaque lieu."""
+    """Commons : {nom de fichier: page imageinfo} pour l'image principale de chaque lieu."""
     out = {}
     for batch in chunks(files):
         j = get(commons_query("titles=" + urllib.parse.quote("|".join("File:" + f for f in batch)))) or {}
         q = j.get("query") or {}
         norm = {n["to"]: n["from"] for n in q.get("normalized") or []}
         for p in (q.get("pages") or {}).values():
-            ph = photo_of(p)
-            if ph:
-                out[norm.get(p["title"], p["title"])[5:]] = ph
+            if photo_of(p):
+                out[norm.get(p["title"], p["title"])[5:]] = p
     return out
 
 
-def category_photos(category, get=get_json, n=MAX_PHOTOS - 1):
-    j = get(commons_query("generator=categorymembers&gcmtype=file&gcmlimit=20&gcmtitle="
+def category_pages(category, get=get_json):
+    j = get(commons_query("generator=categorymembers&gcmtype=file&gcmlimit=30&gcmtitle="
                           + urllib.parse.quote("Category:" + category))) or {}
-    pages = sorted(((j.get("query") or {}).get("pages") or {}).values(), key=lambda p: p.get("index", 0))
-    return [ph for ph in map(photo_of, pages) if ph][:n]
+    return sorted(((j.get("query") or {}).get("pages") or {}).values(), key=lambda p: p.get("index", 0))
 
 
 def prepare(wanted, state, today, get=get_json, max_new=0, max_categories=3000):
@@ -136,16 +177,18 @@ def prepare(wanted, state, today, get=get_json, max_new=0, max_categories=3000):
     main = files_info(sorted({e["file"] for e in ents.values() if e["file"]}), get)
     for q in todo:
         e = ents.get(q) or {}
-        state[q] = {"d": today, "t": e.get("title"), "p": [main[e["file"]]] if e.get("file") in main else [],
-                    "k": e.get("category"), "c": False}
+        page = main.get(e.get("file"))
+        state[q] = {"d": today, "t": e.get("title"), "p": ranked([page]) if page else [],
+                    "m": page, "k": e.get("category"), "c": False}
     cats = [q for q in sorted(qids) if (state.get(q) or {}).get("k") and not state[q].get("c")][:max_categories]
     for q in cats:
         s = state[q]
         try:
-            for ph in category_photos(s["k"], get):
-                if len(s["p"]) < MAX_PHOTOS and ph[0] not in {p[0] for p in s["p"]}:
-                    s["p"].append(ph)
+            pages = [s["m"]] if s.get("m") else []
+            pages += [p for p in category_pages(s["k"], get) if not s.get("m") or p.get("title") != s["m"].get("title")]
+            s["p"] = ranked(pages, s["m"].get("title") if s.get("m") else None)[:MAX_PHOTOS]
             s["c"] = True
+            s.pop("m", None)                    # (gardée seulement jusqu'au classement : l'état reste léger)
         except Exception as err:   # une catégorie illisible n'arrête pas les autres ; réessayée la semaine suivante
             print("catégorie ignorée :", s["k"], err, file=sys.stderr)
     return found, len(todo), len(cats)

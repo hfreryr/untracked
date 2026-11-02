@@ -8,7 +8,10 @@
   import { tx } from '#lib/i18n/index.js';
   import { getContext } from 'svelte';
   import ListDot from '#lib/ui/ListDot.svelte';
-  import { LIST_ICONS, LIST_COLORS } from '#lib/myplaces.js';
+  import ListRows from '#lib/ui/ListRows.svelte';
+  import ListEditor from '#lib/ui/ListEditor.svelte';
+  import ConfirmDeleteList from '#lib/ui/ConfirmDeleteList.svelte';
+  import { swipeRow } from '#lib/swiperow.js';
   import PinnedRow from '#lib/ui/PinnedRow.svelte';
   import { draggable } from '#lib/sheet.js';
   import { fmtDistance, fmtWait } from '#lib/routing.js';
@@ -19,6 +22,7 @@
   // État et actions de la page (voir le bloc « app » de +page.svelte)
   const app = getContext('app');
   let momentBtn = $state();
+  let asking = $state(null);   // liste dont on demande confirmation de la suppression (bouton en bas, mode « Modifier »)
   // Filtres utiles pour ces lieux (filters.js) : un filtre actif passe en tête de rangée (maquette du 21/10)
   const LABEL = { terrasse: tx('filtre.terrasse'), vegetarien: tx('filtre.vegetarien'), emporter: tx('filtre.emporter'), fauteuil: tx('filtre.fauteuil') };
   const CRIT = { terrasse: tx('filtre.c_terrasse'), vegetarien: tx('filtre.c_vegetarien'), emporter: tx('filtre.c_emporter'), fauteuil: tx('filtre.c_fauteuil') };
@@ -43,14 +47,7 @@
         <PinnedRow inSearch={false} />
         <h2 class="hub-h">{tx('liste.listes')}</h2>
         <ul class="hub-lists">
-          {#each app.lists as l (l.id)}
-            <li><button onclick={() => app.openSavedList(l.id)}>
-              <ListDot l={l} size={34} />
-              <span class="pl-name">{l.name}</span>
-              <span class="pl-count">{app.favorites.filter((f) => f.lists.includes(l.id)).length}</span>
-              <svg class="chev-r" viewBox="0 0 24 24" aria-hidden="true"><path d="m10 7 5 5-5 5" /></svg>
-            </button></li>
-          {/each}
+          <ListRows />
           <li>
             {#if app.hubPanel === 'newlist'}{:else}
               <form class="new-list" onsubmit={(e) => { e.preventDefault(); app.createList(app.newListName); app.newListName = ''; }}>
@@ -118,6 +115,9 @@
         {/if}
       {:else if app.category.saved}
         {@const l = app.category.shared ? app.category : app.listOf(app.savedList)}
+        {#if app.listEditing && !app.category.shared && !app.category.reviews}
+          <ListEditor l={l} />
+        {:else}
         {#if app.category.reviews}<button class="link back-link" onclick={() => backToContrib(app)}>{tx('contrib.retour')}</button>
         {:else if !app.category.shared}<button class="link back-link" onclick={() => { app.savedList = null; app.refreshSaved(); }}>{tx('liste.mes_lieux')}</button>{/if}
         <h1 class="list-title"><ListDot l={l} size={30} />{l.name || app.category.label}</h1>
@@ -127,28 +127,10 @@
           {:else if app.category.shared}
             <button class="go" onclick={app.keepIncomingList}>{tx('liste.ajouter_a_mes_lieux')}</button>
           {:else}
-            <button class="link" onclick={() => { app.listEditing = !app.listEditing; app.swiped = null; }}>{app.listEditing ? tx('enregistrer.termine') : tx('liste.modifier')}</button>
-            {#if app.nearby.length && !app.listEditing}<button class="link" onclick={() => app.shareList(l)}>{tx('liste.partager')}</button>{/if}
-            <button class="link" onclick={() => app.renameList(l)}>{tx('liste.renommer')}</button>
-            {#if !['fav', 'todo'].includes(l.id)}<button class="link danger" onclick={() => app.deleteList(l)}>{tx('liste.supprimer')}</button>{/if}
+            <button class="link" onclick={(e) => { app.listEditing = true; app.swiped = null; e.currentTarget.closest('section.sheet')?.dispatchEvent(new CustomEvent('sheetsnap', { detail: 'full' })); }}>{tx('liste.modifier')}</button>
+            {#if app.nearby.length}<button class="link" onclick={() => app.shareList(l)}>{tx('liste.partager')}</button>{/if}
           {/if}
         </div>
-        {#if app.listEditing && !app.category.shared}
-          <!-- pictogramme et couleur de la liste -->
-          <div class="list-style" role="group" aria-label={tx('liste.apparence_de_la_liste')}>
-            <div class="ls-row">
-              {#each LIST_ICONS as ic}
-                <button class="ls-btn" class:on={l.icon === ic} aria-pressed={l.icon === ic} aria-label={tx('liste.pictogramme', { nom: ic })}
-                  onclick={() => app.setListStyle(l, { icon: ic })}><ListDot l={{ ...l, icon: ic }} size={30} /></button>
-              {/each}
-            </div>
-            <div class="ls-row">
-              {#each LIST_COLORS as col}
-                <button class="ls-color" class:on={l.color === col} aria-pressed={l.color === col} aria-label={tx('liste.couleur')}
-                  style:background={col} onclick={() => app.setListStyle(l, { color: col })}></button>
-              {/each}
-            </div>
-          </div>
         {/if}
       {:else}
       <h1>{app.chipList.find((c) => c.key === app.category.key)?.label || app.category.label}</h1>
@@ -207,19 +189,16 @@
       {/if}
       <ul class="nearby">
         {#each app.nearby as { f, d, st, deps: sd, saved: sv } (f.id)}
-          <li class:swipe-row={app.category.saved && app.savedList && sv} class:swiped={app.swiped === f.id || (app.listEditing && app.savedList && sv)}
-            ontouchstart={app.category.saved && app.savedList && sv ? (e) => (app.swipeStart = { x: e.touches[0].clientX, y: e.touches[0].clientY, id: f.id }) : undefined}
-            ontouchmove={app.category.saved && app.savedList && sv ? (e) => {
-              if (!app.swipeStart) return;
-              const dx = e.touches[0].clientX - app.swipeStart.x, dy = e.touches[0].clientY - app.swipeStart.y;
-              if (Math.abs(dx) > 30 && Math.abs(dx) > Math.abs(dy) * 1.5) { app.swiped = dx < 0 ? app.swipeStart.id : null; app.swipeStart = null; }
-            } : undefined}>
-            {#if app.category.saved && app.savedList && sv}
-              <button class="swipe-del" onclick={() => app.removeFromList(sv, app.savedList)} aria-label={tx('liste.retirer_de_la_liste', { name: sv.name })}>
+          <li class:swipe-row={app.category.saved && app.savedList && sv && !app.category.shared}
+            use:swipeRow={{ enabled: !!(app.category.saved && app.savedList && sv && !app.category.shared && !app.listEditing), open: app.swiped === f.id,
+              onOpen: (v) => (app.swiped = v ? f.id : null), onDelete: () => app.removeFromList(sv, app.savedList) }}>
+            {#if app.category.saved && app.savedList && sv && !app.category.shared && !app.listEditing}
+              <button class="swipe-act" onclick={() => app.removeFromList(sv, app.savedList)} aria-label={tx('liste.retirer_de_la_liste', { name: sv.name })} tabindex={app.swiped === f.id ? 0 : -1}>
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M10 7V5h4v2M7 7l1 13h8l1-13M10.5 10.5v6M13.5 10.5v6" /></svg>
               </button>
             {/if}
             {#if !(app.category.saved && (app.hubPanel || (!app.savedList && !app.category.shared)))}
+            <div class="swipe-content n-wrap">
             <button class="n-main" onclick={() => { if (app.swiped) { app.swiped = null; return; } app.nearby.find((n) => n.f === f)?.res ? app.openResult(app.nearby.find((n) => n.f === f).res, app.nearby.findIndex((n) => n.f === f)) : app.nearby.find((n) => n.f === f)?.saved ? app.openPlace({ ...app.nearby.find((n) => n.f === f).saved }) : app.openFeature(f); }}>
               <span class="n-dot" style:--fam={app.category.saved ? (app.category.shared ? app.category.color : app.listOf(app.nearby.find((n) => n.f === f)?.saved?.lists?.[0]).color) : app.famColor(app.category)} aria-hidden="true"></span>
               <span class="r-text">
@@ -244,12 +223,22 @@
                 <span class="r-meta">{app.category.results ? [app.nearby.find((n) => n.f === f)?.res?.type, app.nearby.find((n) => n.f === f)?.res?.address].filter(Boolean).join(' · ') : app.category.saved ? [app.nearby.find((n) => n.f === f)?.saved?.type, app.nearby.find((n) => n.f === f)?.saved?.address].filter(Boolean).join(' · ') || tx('liste.lieu_enregistre') : typeLabel('', f.properties.subclass) || app.category.label}{#if st?.open != null}{' · '}<span class:is-open={st.open} class:is-closed={!st.open}>{st.label}</span>{/if}</span>
                 {/if}
               </span>
-              <span class="n-dist">{fmtDistance(d)}</span>
+              {#if !(app.listEditing && sv)}<span class="n-dist">{fmtDistance(d)}</span>{/if}
             </button>
+            {#if app.listEditing && sv && app.savedList}
+              <button class="del-round" onclick={() => app.removeFromList(sv, app.savedList)} aria-label={tx('liste.retirer_de_la_liste', { name: sv.name })}>
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M10 7V5h4v2M7 7l1 13h8l1-13M10.5 10.5v6M13.5 10.5v6" /></svg>
+              </button>
+            {/if}
+            </div>
             {/if}
           </li>
         {/each}
       </ul>
+      {#if app.listEditing && app.savedList && app.savedList !== 'fav' && !app.category.shared}
+        <button class="del-list" onclick={() => (asking = app.listOf(app.savedList))}>{tx('liste.supprimer_la_liste_bouton', { name: app.listOf(app.savedList).name })}</button>
+      {/if}
+      {#if asking}<ConfirmDeleteList l={asking} n={app.favorites.filter((f) => f.lists.includes(asking.id)).length} onconfirm={() => { app.listEditing = false; app.deleteList(asking); }} onclose={() => (asking = null)} />{/if}
       {#if (app.openAt || app.filters.length) && app.openCounts?.unknown && !app.category?.saved}
         <button class="unknown-row" onclick={() => { app.showUnknown = !app.showUnknown; app.applyOpenFilter(); }}>
           {#if app.filters.length}
@@ -286,10 +275,6 @@
   .close::after { content: ''; position: absolute; inset: -6px; }
   .hub-h { font-size: 15px; font-weight: 700; margin: 18px 0 4px; }
   .hub-lists { list-style: none; margin: 0; padding: 0; }
-  .hub-lists > li > button {   /* (pas le bouton « Créer » du champ de nouvelle liste : il écrasait le champ à 0 px) */ display: grid; grid-template-columns: 34px 1fr auto auto; gap: 12px; align-items: center; width: 100%;
-    min-height: 52px; border: 0; background: none; padding: 0; text-align: left; cursor: pointer; border-bottom: 1px solid var(--line); font-size: 16px; }
-  .pl-count { color: var(--muted); font-size: 14px; font-variant-numeric: tabular-nums; }
-  .chev-r { width: 18px; height: 18px; color: var(--faint); }
   .new-list { display: flex; gap: 8px; align-items: center; min-height: 50px; border-bottom: 1px solid var(--line); }
   .new-list input { flex: 1; border: 0; background: none; font: inherit; font-size: 16px; color: var(--ink); padding: 10px 0; min-width: 0; }
   .new-list .link:disabled { opacity: 0.4; }
@@ -305,24 +290,22 @@
   .qr :global(svg) { width: 100%; height: auto; display: block; }
   .pw { display: grid; gap: 6px; font-size: 14px; color: var(--muted); margin-top: 14px; }
   .pw input { font: inherit; font-size: 16px; color: var(--ink); background: var(--fill); border: 0; border-radius: 12px; padding: 12px 14px; }
+  /* glisser vers la gauche (swiperow.js) : la ligne glisse, la corbeille est derrière */
   .swipe-row { position: relative; overflow: hidden; }
   .nearby button { box-sizing: border-box; }
-  .swipe-row .n-main { position: relative; z-index: 1; background: var(--card); transition: width 0.2s ease; }
-  /* Poubelle visible : la ligne se rétrécit (le texte reste lisible) au lieu de glisser hors de la fiche */
-  .swipe-row.swiped .n-main { width: calc(100% - 72px); }
-  .nearby .swipe-del { position: absolute; padding: 0; right: 0; top: 0; bottom: 0; width: 72px; border: 0; border-top: 1px solid var(--line);
-    background: var(--closed); color: #fff; display: grid; grid-template-columns: 1fr; place-items: center; cursor: pointer; }
-  .nearby button.swipe-del:hover { background: color-mix(in srgb, var(--closed) 85%, #000); }
-  /* Ordinateur (souris) : au survol d'une ligne, une petite poubelle remplace la distance */
-  @media (hover: hover) and (pointer: fine) {
-
-    .swipe-row:not(.swiped) .swipe-del { z-index: 2; top: 50%; bottom: auto; right: 14px; width: 38px; height: 38px; margin-top: -19px;
-      border: 0; border-radius: 50%; background: var(--fill); color: var(--closed); opacity: 0; transition: opacity 0.12s; }
-    .swipe-row:not(.swiped):hover .swipe-del, .swipe-row:not(.swiped) .swipe-del:focus-visible { opacity: 1; }
-    .nearby .swipe-row:not(.swiped) button.swipe-del:hover { background: color-mix(in srgb, var(--closed) 16%, var(--card)); }
-    .swipe-row:not(.swiped):hover .n-dist { visibility: hidden; }
-  }
-  .swipe-del svg { width: 22px; height: 22px; stroke-width: 2; }
+  .n-wrap { display: flex; align-items: center; }
+  .n-wrap .n-main { flex: 1; min-width: 0; }
+  .swipe-row .swipe-content { position: relative; z-index: 1; background: var(--card); }
+  .nearby .swipe-act { position: absolute; top: 0; bottom: 0; right: 0; width: max(var(--dx, 0px), 84px); border: 0; padding: 0 30px;
+    background: var(--closed); color: #fff; display: flex; align-items: center; justify-content: flex-end; cursor: pointer; }
+  .swipe-act svg { width: 22px; height: 22px; stroke-width: 2; flex: none; }
+  /* mode « Modifier » : un petit bouton rond par lieu, à la place de la distance */
+  .nearby .del-round { flex: none; width: 36px; height: 36px; margin: 0 var(--gutter) 0 8px; border: 0; border-radius: 50%; padding: 0;
+    background: var(--closed-bg); color: var(--closed); display: grid; place-items: center; cursor: pointer; position: relative; }
+  .del-round::after { content: ''; position: absolute; inset: -4px; }
+  .del-round svg { width: 19px; height: 19px; stroke-width: 2; }
+  .del-list { display: block; width: 100%; margin: 18px 0 8px; padding: 13px; border: 0; border-radius: 14px; background: var(--fill);
+    color: var(--closed); font: inherit; font-size: 16px; font-weight: 600; cursor: pointer; }
   .close ~ h1 { margin-right: 44px; }
   h1 { font-size: 24px; line-height: 1.2; font-weight: 700; letter-spacing: -0.02em; margin: 2px 44px 2px 0; text-wrap: balance; }
   .kind { margin: 0; color: var(--muted); font-size: 15px; }
@@ -387,12 +370,6 @@
 
     .chev { animation: none; transition: none; }
   }
-  .list-style { display: grid; gap: 10px; margin: 10px 0 4px; }
-  .ls-row { display: flex; flex-wrap: wrap; gap: 6px; }
-  .ls-btn { padding: 2px; border: 2px solid transparent; border-radius: 50%; background: none; cursor: pointer; line-height: 0; }
-  .ls-btn.on { border-color: var(--accent); }
-  .ls-color { width: 28px; height: 28px; border-radius: 50%; border: 3px solid var(--card); box-shadow: 0 0 0 1px var(--line); cursor: pointer; }
-  .ls-color.on { box-shadow: 0 0 0 2px var(--accent); }
   .add-chip { display: block; margin: 2px 0 4px; }
   .news { margin-left: auto; flex: none; align-self: center; padding: 3px 9px; border-radius: 999px; background: var(--accent-btn); color: #fff; font-size: 13px; font-weight: 650; }
 </style>
