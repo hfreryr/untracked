@@ -30,7 +30,7 @@
   import { FAMILIES, GLYPHS } from '#lib/mapstyle.js';
   import { streetRoute, MODE_NAMES, fmtDuration, fmtTime, fmtDistance } from '#lib/routing.js';
   import { bestExit } from '#lib/exits.js';
-  import { DEFAULT_LISTS, migratePlaces, restore, uniqueListIds } from '#lib/myplaces.js'; import { savedIcon } from '#lib/savedpin.js'; import { dropEmptyTodo } from '#lib/listorder.js';
+  import { DEFAULT_LISTS, migratePlaces, restore, uniqueListIds } from '#lib/myplaces.js'; import { contributeUrl, isTouch, noteUrl } from '#lib/osmlinks.js'; import { dropEmptyTodo } from '#lib/listorder.js'; import { savedIcon } from '#lib/savedpin.js';
   import { exitForQuay, placeForTransfer } from '#lib/rame.js';
   import { ALL_CATEGORIES, CATEGORY_WORDS, FILLER, loadChipPrefs, categoryFor as catFor } from '#lib/categories.js';
   import { createImport } from '#lib/importflow.js';
@@ -209,8 +209,8 @@
   });
   // Bandeau d'infos (distance, accès, entrée) : seulement ce qui est connu.
   // Liens vers OpenStreetMap : c'est l'utilisateur qui modifie, sur le site d'OSM (nous n'écrivons rien).
-  const osmEditUrl = $derived(place?.osmType ? `https://www.openstreetmap.org/edit?${place.osmType}=${place.osmId}` : null);
-  const osmNoteUrl = $derived(place ? `https://www.openstreetmap.org/note/new#map=19/${(+place.lat).toFixed(6)}/${(+place.lon).toFixed(6)}` : '');
+  const osmEditUrl = $derived(place?.osmType ? contributeUrl(place, isTouch()) : null);   // (osmlinks.js : une note sur téléphone)
+  const osmNoteUrl = $derived(noteUrl(place));
   const isPinned = $derived(!!place && pins.includes(placeKey(place)));
   async function copyAddress() {
     placeMenu = false;

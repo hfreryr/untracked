@@ -21,28 +21,13 @@
 5. **Prudence** : démarrage limité au 6e arrondissement, petit nombre de questions, revue des premières modifications avec la communauté.
 6. **Opt-out** : un contributeur OSM peut demander qu'on ne pose plus de questions sur un lieu ou un type de donnée.
 
-## 3. Message d'annonce pour le forum OSM France
+## 3. Annonce au forum OSM France
 
-*Annonce (pas une demande d'autorisation) : les Organised Editing Guidelines demandent de prévenir au moins 2 semaines avant ; le silence vaut accord. À publier dans la catégorie France de community.openstreetmap.org.*
+**Publiée le 13/10/2026** par le porteur, avec le compte du projet : questions sur ce qu'on voit sur place, modification avec le compte OSM de la personne, à partir du 27/10, 6e arrondissement. Un membre a demandé quelles ressources communautaires l'app utilise (fond de carte, API…) : à lui répondre dans le même fil.
 
-> **Titre : Untracked Maps — annonce : questions de vérification sur place à Paris (6e)**
->
-> Bonjour,
->
-> Je porte bénévolement **Untracked Maps** (untrackedmaps.app), une carte web grand public construite sur OSM, sans pistage, code sous AGPL-3.0. Notre public ne connaît pas OSM ; nous voulons qu'il y contribue proprement.
->
-> **Ce qui arrivera, au plus tôt dans deux semaines :** dans la fiche d'un lieu, une question courte sur ce que la personne voit sur place (« Ce commerce existe-t-il toujours ? », « Ouvert le dimanche ? »…). La modification part **avec le compte OSM de la personne**, signée `created_by=Untracked Maps` et `#untrackedmaps`.
->
-> **Nous reprenons les pratiques existantes** :
-> - [Good practice](https://wiki.openstreetmap.org/wiki/Good_practice) : on cartographie ce qu'on voit sur place, et rien n'est copié d'autres cartes (l'app le rappelle) ;
-> - [les règles des quêtes StreetComplete](https://github.com/streetcomplete/StreetComplete/blob/master/CONTRIBUTING_A_NEW_QUEST.md) : questions courtes, une information à la fois, `check_date` mis à jour quand la réponse confirme l'existant ;
-> - [Organised Editing Guidelines](https://osmfoundation.org/wiki/Organised_Editing_Guidelines) : page wiki publique, bilan mensuel.
->
-> Aucune modification automatique ni aucun import. Nous démarrons sur le 6e arrondissement uniquement.
->
-> Remarques, critiques et envies de relire les premières modifications sont bienvenues ici ou à [contact].
->
-> Guy
+**Complément proposé (02/11/2026), à publier en réponse dans le même fil** — pas une nouvelle annonce ni un nouveau délai de 2 semaines : le cadre annoncé (ce qu'on constate sur place, compte de la personne, confirmation, hashtag) ne change pas, seul le périmètre s'élargit. À réécrire avec ses propres mots.
+
+> Bonjour, un point d'étape sur Untracked Maps. En plus des questions courtes annoncées, la fiche d'un lieu permettra de corriger ce que la personne constate sur place : horaires (écran jour par jour qui produit un `opening_hours` valide), téléphone, site, ou « ce lieu a fermé ». Même cadre qu'annoncé : compte OSM de la personne, écran de confirmation, `created_by=Untracked Maps`, `#untrackedmaps`, rappel de ne rien recopier d'autres cartes, 6e arrondissement d'abord. Aucune modification n'est faite par le compte du projet : chaque modification porte le compte de la personne. Sans compte OSM, l'app proposera une note à l'endroit du lieu, rédigée précisément (« Horaires constatés : … »). Pour répondre à la question posée : [ressources utilisées]. Retours bienvenus ici ou à contact@untrackedmaps.app.
 
 ## 4. Page wiki (à créer après le retour du forum)
 
@@ -59,10 +44,11 @@ Titre proposé : `Organised Editing/Activities/Untracked Maps`. Contenu requis p
 
 ## 5. Étapes
 
-1. ☐ Porteur : créer un compte OSM pour le projet (contact public).
-2. ☐ Porteur : relire puis publier le message du forum.
-3. ☐ Attendre au moins 2 semaines et intégrer les retours.
+1. ☑ Porteur : créer un compte OSM pour le projet (contact public) — fait le 13/10/2026.
+2. ☑ Porteur : relire puis publier le message du forum — publié le 13/10/2026 ; complément du 02/11 à publier dans le même fil.
+3. ☑ Attendre au moins 2 semaines et intégrer les retours — délai écoulé le 27/10/2026.
 4. ☐ Créer la page wiki.
 5. ☐ Enregistrer l'app sur openstreetmap.org (OAuth 2.0, client public).
-6. ☐ Coder les micro-questions (6e arrondissement seulement).
+6. ☐ Coder la modification dans l'app (horaires d'abord, puis téléphone, site, fermeture), les micro-questions (6e arrondissement seulement) et la note rédigée dans l'app.
+   En attendant (02/11/2026) : sur téléphone, « Ajouter les horaires » ouvre une note sur le site d'OSM au lieu de l'éditeur pour ordinateur (`osmlinks.js`).
 7. ☐ Bilan avec la communauté après le premier mois.
