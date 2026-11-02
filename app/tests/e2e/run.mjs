@@ -841,11 +841,11 @@ const tests = {
     const { p, ctx, errors } = await page();
     await p.click('.chip:has-text("Restaurants")'); await p.waitForTimeout(6000);
     await p.click('.nearby li button >> nth=0'); await p.waitForTimeout(3000);
-    await p.click('.action.save'); await p.check('.pick-lists li:has-text("Favoris") input'); await p.click('.done'); await p.waitForTimeout(500);   // Enregistrer → Favoris
+    await p.click('.action.save'); await p.click('.pick-lists li:has-text("Favoris") .pick'); await p.waitForTimeout(500);   // Enregistrer → Favoris
     assert(await p.$('.action.save.on'), 'bouton non marqué « Enregistré »');
     await p.click('.action.save');                                                     // Enregistré : les listes du lieu
-    await p.waitForSelector('.pick-lists'); await p.uncheck('.pick-lists li:has-text("Favoris") input'); await p.waitForTimeout(400);
-    await p.click('.done'); await p.waitForTimeout(500);
+    await p.waitForSelector('.pick-lists'); await p.click('.pick-lists li:has-text("Favoris") .pick'); await p.waitForTimeout(500);   // toucher une liste cochée : retiré
+    assert(!(await p.$('.pick-lists')), 'le choix de liste doit se refermer en un geste');
     assert((await p.locator('.action.save.on').count()) === 0, 'toujours enregistré');
     assert(!errors.length, errors.join(' | '));
     await ctx.close();
@@ -928,7 +928,7 @@ const tests = {
     const { p, ctx, errors } = await page();
     await p.click('.chip:has-text("Restaurants")'); await p.waitForTimeout(6000);
     await p.click('.nearby li button >> nth=0'); await p.waitForTimeout(3000);
-    await p.click('.action.save'); await p.check('.pick-lists li:has-text("Favoris") input'); await p.click('.done'); await p.waitForTimeout(500);
+    await p.click('.action.save'); await p.click('.pick-lists li:has-text("Favoris") .pick'); await p.waitForTimeout(500);
     await p.click('.close'); await p.waitForTimeout(500);
     await p.click('.chip:has-text("Mes lieux")'); await p.waitForTimeout(1200);
     await p.click('.hub-lists li:has-text("Favoris") .swipe-content'); await p.waitForTimeout(1200);
@@ -943,7 +943,7 @@ const tests = {
   async 'Mes lieux : favori, nouvelle liste, renommer sur place, supprimer après confirmation'() {
     const { p, ctx, errors } = await page();
     await p.fill('#search', "Ed's rue Muller"); await p.waitForSelector('.results li.opt button', { timeout: 20000 }); await pick(p); await p.waitForTimeout(3000);
-    await p.click('.action.save'); await p.check('.pick-lists li:has-text("Favoris") input'); await p.click('.done'); await p.waitForTimeout(500);   // Enregistrer → Favoris
+    await p.click('.action.save'); await p.click('.pick-lists li:has-text("Favoris") .pick'); await p.waitForTimeout(500);   // Enregistrer → Favoris
     assert(/Enregistré/.test(await p.textContent('.action.save')), 'pas de confirmation de l’enregistrement');
     await p.click('.close'); await p.waitForTimeout(500);
     await p.click('.chip:has-text("Mes lieux")'); await p.waitForTimeout(1200);
@@ -1007,7 +1007,7 @@ const tests = {
     await p.fill('#search', "Ed's rue Muller"); await p.waitForSelector('.results li.opt button', { timeout: 20000 }); await pick(p); await p.waitForTimeout(3000);
     // Maison : dans « Enregistrer », avec les listes (31/10/2026 : un seul endroit pour garder un lieu)
     await p.click('.action.save'); await p.waitForSelector('.pick-lists.shortcuts');
-    await p.check('.shortcuts label:has-text("Maison") input'); await p.click('.done'); await p.waitForTimeout(400);
+    await p.click('.shortcuts li:has-text("Maison") .pick'); await p.waitForTimeout(400);
     assert(/Raccourci « Maison »/.test(await p.textContent('.in-lists')), 'Maison non enregistrée');
     assert(/Enregistré/.test(await p.textContent('.action.save')), 'bouton Enregistrer non allumé');
     await p.click('.sheet .close'); await p.waitForTimeout(500);
@@ -1464,7 +1464,7 @@ z.close()`, zip]);
     // « Enregistrer » ouvre le choix de la liste, Favoris en tête (P8, 30/10/2026)
     await p.click('.action.save'); await p.waitForSelector('.pick-lists');
     assert(/Favoris/.test(await p.textContent('.pick-lists li >> nth=0')), 'Favoris pas en tête du choix de liste');
-    await p.click('.done'); await p.waitForTimeout(400);
+    await p.click('section[aria-label="Enregistrer dans"] .close'); await p.waitForTimeout(400);
     assert(!(await p.$('.pmenu')) && !(await p.$('button[aria-label="Plus d\'options"]')), 'menu « Plus » encore présent');
     await ctx.close();
   },
