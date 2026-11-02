@@ -1,5 +1,5 @@
 // Infos clés d'une fiche en un coup d'œil, en colonnes sous les boutons (maquette B validée le 31/10/2026, inspirée
-// de Plans) : horaires (ouvert ou fermé), note moyenne (3 avis au moins), distance, accès fauteuil, entrée.
+// de Plans) : horaires (ouvert ou fermé), note moyenne (dès le premier avis, avec leur nombre), distance, accès fauteuil, entrée.
 // 4 colonnes au plus, pour rester lisibles avec le texte agrandi.
 import { tx } from '#lib/i18n/index.js';
 import { fmtDistance } from '#lib/routing.js';

@@ -13,8 +13,10 @@ test('avis lus dans les étiquettes, notes sur 5', () => {
   assert.equal(r.latest[0].date.getUTCFullYear(), 2026);
 });
 
-test('pas de moyenne mise en avant sous 3 avis ; rien sans avis', () => {
-  assert.equal(reviewsOf({ _rev: { n: 2, a: 90, l: [] } }).showAverage, false);
+test('note affichée dès le premier avis (comme Google) ; classement seulement à partir de 3 avis ; rien sans avis', () => {
+  const one = reviewsOf({ _rev: { n: 1, a: 100, l: [] } });
+  assert.equal(one.showAverage, true); assert.equal(one.average, 5); assert.equal(one.rankable, false);
+  assert.equal(reviewsOf({ _rev: { n: 3, a: 80, l: [] } }).rankable, true);
   assert.equal(reviewsOf({}), null);
   assert.equal(starsText(4), '★★★★☆');
 });
