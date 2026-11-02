@@ -1,5 +1,6 @@
 // Guidage pas à pas : voix, étapes, suivi de la position et recalcul.
 // Code sorti de +page.svelte : il lit et modifie l'état de l'écran par l'objet « app » (bloc « app » de la page).
+import { contribCount } from '#lib/osmcontrib.js';
 import { ARROWS, readArrow, readAsks, saveAsks, withArrival } from '#lib/contrib.js';
 import { loadReviewer } from '#lib/reviewer.js';
 import { noteEngaged } from '#lib/install.js';
@@ -98,7 +99,7 @@ export function createNav(app) {
     app.meMarker?.setRotationAlignment('map');      // la flèche suit la carte (qui tourne avec vous)
     app.meMarker?.setPitchAlignment('viewport');    // … mais le disque reste rond quand la carte est inclinée
     app.meMarker?.getElement().classList.add('navigating');
-    app.meMarker?.getElement().style.setProperty('--nav-disc', ARROWS[readArrow(loadReviewer().mine.length)]);   // couleur gagnée (contrib.js)
+    app.meMarker?.getElement().style.setProperty('--nav-disc', ARROWS[readArrow(contribCount())]);   // couleur gagnée (contrib.js)
     // sur la carte : seul le reste du trajet reste en bleu, et le point de départ disparaît (la flèche suffit)
     if (app.nav.kind !== 'transit') {
       const color = app.nav.mode === 'bike' ? app.BIKE_COLOR : app.WALK_COLOR;

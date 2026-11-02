@@ -2,6 +2,7 @@
      Passeur sans le savoir). Jamais à l'ouverture d'une autre fiche (retour du 01/11 : pop-up surgi sur un lieu sans
      rapport) ; ce qui a été obtenu autrement (avis d'avant cette annonce) est signalé par « Nouveau » dans Mes lieux. -->
 <script>
+  import { contribCount } from '#lib/osmcontrib.js';
   import { tx } from '#lib/i18n/index.js';
   import { getContext } from 'svelte';
   import { DOTS, markAnnounced } from '#lib/contrib.js';
@@ -15,7 +16,7 @@
   const app = getContext('app');
   const NAME = { eclaireur: () => tx('contrib.eclaireur'), passeur: () => tx('contrib.passeur'), vigie: () => tx('contrib.vigie'), phare: () => tx('contrib.phare') };
   const badge = $derived(earned.level ? null : earned.badges[0]);
-  function close() { markAnnounced(mine.length); markBadges(mine); onclose(); }
+  function close() { markAnnounced(contribCount(mine)); markBadges(mine); onclose(); }
   function openContrib() {
     close();
     app.closePlace?.();

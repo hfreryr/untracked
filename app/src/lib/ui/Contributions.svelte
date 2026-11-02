@@ -3,6 +3,7 @@
      serveur et des identités). Maquette validée le 30/10/2026 ; badges, carte de mes avis et couleur du point
      « vous êtes ici » ajoutés le 01/11 (maquette du 31/10). -->
 <script>
+  import { contribCount } from '#lib/osmcontrib.js';
   import { tx } from '#lib/i18n/index.js';
   import { getContext } from 'svelte';
   import { levelOf, unlockedArrows, LEVELS, DOTS, readArrow, saveArrow, markAnnounced } from '#lib/contrib.js';
@@ -15,7 +16,7 @@
   import { placesInBounds } from '#lib/placestore.js';
   const app = getContext('app');
   let me = $state(loadReviewer());
-  const n = me.mine.length;
+  const n = contribCount(me.mine);   // avis + modifications OSM (osmcontrib.js)
   // ce qui est « Nouveau » est vu en ouvrant ce panneau : plus de pastille ni d'annonce ensuite
   const fresh = new Set(badgesNotAnnounced(me.mine));
   markAnnounced(n);

@@ -27,6 +27,9 @@ const ALLOWED = {
   'lib/mapstyle.js': (s) => /sans-serif/.test(s),                // police de rendu des pictogrammes
   'lib/placeinfo.js': (s) => /^(File|Category):$/.test(s),      // préfixes de l'API Wikimedia Commons
   'lib/mangrove.js': (s) => /PUBLIC KEY-----/.test(s),            // en-tête de clé publique (format PEM)
+  'lib/hoursedit.js': (s) => /^(Mo|Tu|We|Th|Fr|Sa|Su)$/.test(s),   // jours au format d'OSM (opening_hours)
+  'lib/osmauth.js': (s) => /^(write_api read_prefs|Bearer …)$/.test(s),   // droits demandés à OSM, en-tête d'accès
+  'lib/osmedit.js': (s) => /^(Untracked Maps|Bearer …|changeset\/…\/close)$/.test(s),   // signature des modifications, API OSM
 };
 
 const CODE = /[|=&{}]|\.json\b|\b(rotate|translate\w*|scale)\(|cubic-bezier|ease-in|^Inter |^UntrackedMaps|^Europe\/|^Île-de-France$/;

@@ -486,6 +486,50 @@ const tests = {
     assert(!errors.length, errors.join(' | '));
     await ctx.close();
   },
+  async 'horaires modifiés dans l\'app : connexion à OSM, retour, envoi avec le compte de la personne (serveur OSM simulé) (02/11)'() {
+    const { ctx } = await page({ bypassCSP: true });
+    const ID = 31940133271;   // Deux Fois Plus de Piment (tuiles locales), sans horaires pour l'essai
+    await ctx.addInitScript(() => localStorage.setItem('osm-serveur-essai', JSON.stringify({ clientId: 'essai', web: 'https://osm.test', api: 'https://api.osm.test' })));
+    await ctx.route('**/data/places/**', async (route) => {
+      const r = await route.fetch(); const j = await tileJson(r);
+      if (!j?.t) return route.fulfill({ response: r });
+      for (const it of j.t) if (it[0] === ID) { delete it[3].opening_hours; it[3].amenity = 'restaurant'; }
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(j) });
+    });
+    let authorize = null; const puts = [];
+    await ctx.route('https://osm.test/oauth2/authorize**', (route) => { authorize = new URL(route.request().url()); route.fulfill({ status: 200, contentType: 'text/html', body: '<p>connexion OSM</p>' }); });
+    await ctx.route('https://osm.test/oauth2/token', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: '{"access_token":"jeton"}' }));
+    await ctx.route('https://api.osm.test/**', (route) => {
+      const u = route.request().url(), m = route.request().method();
+      if (u.endsWith('/user/details.json')) return route.fulfill({ status: 200, contentType: 'application/json', body: '{"user":{"display_name":"guy_r"}}' });
+      if (m === 'GET') return route.fulfill({ status: 200, contentType: 'text/xml', body: '<osm version="0.6"><node id="319401332" version="3" changeset="1" lat="48.86" lon="2.37"><tag k="amenity" v="restaurant"/><tag k="name" v="Deux Fois Plus de Piment"/></node></osm>' });
+      puts.push({ u, body: route.request().postData() || '', auth: route.request().headers().authorization });
+      route.fulfill({ status: 200, contentType: 'text/plain', body: /create$/.test(u) ? '777' : '4' });
+    });
+    const p = await ctx.newPage(); const errors = []; p.on('pageerror', (e) => errors.push(e.message));
+    await p.goto(`http://localhost:${PORT}/#carte=18/48.861574/2.370638&lieu=node/3194013327`);
+    await p.click('button.edit-h:has-text("Ajouter les horaires")', { timeout: 15000 });
+    await p.click('.days li >> nth=0 >> .d'); await p.click('.days li >> nth=0 >> .lnk');   // lundi ouvert, avec pause
+    await p.click('.tools .chip >> nth=0');                                                       // lundi → mardi à vendredi
+    assert(/Lun–Ven 9 h–12 h et 14 h–19 h · Sam–Dim fermé/.test(await p.textContent('.prev')), `aperçu : ${await p.textContent('.prev')}`);
+    await p.click('.dlg .go'); await p.waitForSelector('text=Se connecter à OpenStreetMap');
+    await p.click('.dlg .go'); await p.waitForTimeout(800);
+    assert(authorize && authorize.searchParams.get('code_challenge_method') === 'S256' && authorize.searchParams.get('scope') === 'write_api read_prefs', `connexion : ${authorize}`);
+    // retour d'OSM : l'app reprend à la confirmation, connectée
+    const state = authorize.searchParams.get('state');
+    await p.goto(`http://localhost:${PORT}/?code=abc&state=${state}`);
+    await p.waitForSelector('.acct:has-text("guy_r")', { timeout: 15000 });
+    assert(!/code=/.test(p.url()), 'le code reste dans l\'adresse');
+    await p.click('.dlg .go'); await p.waitForSelector('text=Merci !', { timeout: 10000 });
+    const node = puts.find((x) => /node\/3194013327$/.test(x.u));
+    assert(node && /k="opening_hours" v="Mo-Fr 09:00-12:00,14:00-19:00; Sa-Su off"/.test(node.body) && /k="check_date:opening_hours"/.test(node.body) && /changeset="777"/.test(node.body), `envoi : ${node?.body}`);
+    assert(puts.every((x) => x.auth === 'Bearer jeton'), 'envoi sans le compte de la personne');
+    assert(/created_by" v="Untracked Maps/.test(puts[0].body) && /#untrackedmaps/.test(puts[0].body), 'groupe de modifications non signé');
+    assert(puts.some((x) => /changeset\/777\/close$/.test(x.u)), 'groupe de modifications non fermé');
+    assert((await p.evaluate(() => JSON.parse(localStorage.getItem('modifs-osm') || '[]').length)) === 1, 'modification non comptée dans les contributions');
+    assert(!errors.length, errors.join(' | '));
+    await ctx.close();
+  },
   async 'photos du lieu sous l’en-tête (avis, site), sans clic ; photo jointe à un avis, sans sa position (01/11)'() {
     // bandeau comme Plans (capture du porteur, 01/11) : photos d'avis copiées chez nous (review_photos.py), photo du site
     // chargée depuis le site (build_sitehours.py) ; plein écran au toucher, crédit de chaque photo
