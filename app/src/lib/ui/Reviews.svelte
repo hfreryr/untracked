@@ -3,6 +3,7 @@
      fenêtre avec cette note. L'avis part directement du téléphone vers Mangrove (mangrove.js), signé par une clé gardée
      sur le téléphone (reviewer.js) ; pseudo facultatif, bouton « Générer » (pseudo.js). -->
 <script>
+  import { osmEdits } from '#lib/osmcontrib.js';
   import { tx } from '#lib/i18n/index.js';
   import { getContext } from 'svelte';
   import { starsText } from '#lib/reviews.js';
@@ -82,7 +83,7 @@
       dropPhoto();
       saveReviewer(me);
       // niveau ou badge gagné par cet avis : annoncé maintenant, et seulement maintenant (LevelUp.svelte)
-      const e = earnedBy(before, me.mine, badgeProgress);
+      const e = earnedBy(before, me.mine, badgeProgress, osmEdits().length);
       if (e.level || e.badges.length) earned = e;
       open = false;
       app.say(tx('avis.merci_publie'));

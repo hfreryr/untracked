@@ -48,7 +48,7 @@ Titre proposé : `Organised Editing/Activities/Untracked Maps`. Contenu requis p
 2. ☑ Porteur : relire puis publier le message du forum — publié le 13/10/2026 ; complément du 02/11 à publier dans le même fil.
 3. ☑ Attendre au moins 2 semaines et intégrer les retours — délai écoulé le 27/10/2026.
 4. ☐ Créer la page wiki.
-5. ☐ Enregistrer l'app sur openstreetmap.org (OAuth 2.0, client public).
+5. ☑ Enregistrer l'app sur openstreetmap.org — fait le 02/11/2026 (identifiant dans `osmauth.js`) (OAuth 2.0, client public) : nom « Untracked Maps », adresse de retour https://untrackedmaps.app/ , non confidentielle, droits « Modifier la carte » et « Lire les préférences » ; l'identifiant obtenu va dans le réglage VITE_OSM_CLIENT_ID (publication).
 6. ☐ Coder la modification dans l'app (horaires d'abord, puis téléphone, site, fermeture), les micro-questions (6e arrondissement seulement) et la note rédigée dans l'app.
    En attendant (02/11/2026) : sur téléphone, « Ajouter les horaires » ouvre une note sur le site d'OSM au lieu de l'éditeur pour ordinateur (`osmlinks.js`).
 7. ☐ Bilan avec la communauté après le premier mois.

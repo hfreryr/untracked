@@ -1,4 +1,5 @@
 <script>
+  import { contribCount, osmEdits } from '#lib/osmcontrib.js';
   import Contributions from '#lib/ui/Contributions.svelte';
   import { loadReviewer } from '#lib/reviewer.js';
   import { levelOf, levelToAnnounce } from '#lib/contrib.js';
@@ -32,8 +33,8 @@
   // ligne « Mes contributions » : niveau et nombre d'avis
   const LEVEL_NAME = { eclaireur: () => tx('contrib.eclaireur'), passeur: () => tx('contrib.passeur'), vigie: () => tx('contrib.vigie'), phare: () => tx('contrib.phare') };
   // niveau ou badge obtenu sans avoir été annoncé (avis d'avant l'annonce, avis complétés plus tard) : signalé ici, sans pop-up
-  function hasNews() { const m = loadReviewer().mine; return !!levelToAnnounce(m.length) || badgesNotAnnounced(m).length > 0; }
-  function contribLine() { const n = loadReviewer().mine.length, l = levelOf(n).level; return tx('contrib.resume', { n, niveau: l ? LEVEL_NAME[l.id]() : '' }); }
+  function hasNews() { const m = loadReviewer().mine; return !!levelToAnnounce(contribCount(m)) || badgesNotAnnounced(m).length > 0; }
+  function contribLine() { const n = loadReviewer().mine.length, m = osmEdits().length, l = levelOf(n + m).level; return tx('contrib.resume', { n, m, niveau: l ? LEVEL_NAME[l.id]() : '' }); }
 </script>
 
 

@@ -1,4 +1,8 @@
 <script>
+  import HoursEditor from './HoursEditor.svelte';
+  import { hoursEdit, openHoursEdit } from '#lib/hourseditstate.svelte.js';
+  import { parseHours } from '#lib/hoursedit.js';
+  import { osmServer } from '#lib/osmauth.js';
   import PhotoStrip from './PhotoStrip.svelte';
   import { placePhotos } from '#lib/placephotos.js';
   import { tx } from '#lib/i18n/index.js';
@@ -19,6 +23,8 @@
 
   // État et actions de la page (voir le bloc « app » de +page.svelte)
   const app = getContext('app');
+  // modifier les horaires dans l'app (HoursEditor.svelte), une fois l'app enregistrée chez OSM ; sinon le lien d'avant
+  const canEdit = $derived(!!osmServer() && !!app.place?.osmType);
   let freshInfo = $state(false);
   // date des données de ce lieu : chaque ville a la sienne (Île-de-France chaque nuit, autres villes chaque semaine)
   let placeDate = $state('');
@@ -135,12 +141,14 @@
             {#each app.week as d}<tr class:today={d.today}><th>{d.day}</th><td>{d.text}</td></tr>{/each}
           </tbody></table>
           {#if app.info?.sources?.opening_hours}<p class="details-src">{@render src(app.info.sources.opening_hours)}</p>{/if}
+          {#if canEdit && !app.info?.sources?.opening_hours && parseHours(app.info?.hours)}<button class="link edit-h" onclick={() => openHoursEdit(app.place, app.info.hours)}>{tx('horaires_edit.corriger')}</button>{/if}
         </section>
       {:else if app.info?.expectsHours && !app.isStation}
         <section class="psec">
           <h2>{tx('fiche.horaires_2')}</h2>
           <p class="muted small">{tx('fiche.personne_ne_les_a_encore_ajoutes_a')}</p>
-          {#if app.osmEditUrl}<a class="link ext" href={app.osmEditUrl} target="_blank" rel="noopener">{tx('fiche.ajouter_les_horaires')}</a>{/if}
+          {#if canEdit}<button class="link edit-h" onclick={() => openHoursEdit(app.place, '')}>{tx('horaires_edit.ajouter')}</button>
+          {:else if app.osmEditUrl}<a class="link ext" href={app.osmEditUrl} target="_blank" rel="noopener">{tx('fiche.ajouter_les_horaires')}</a>{/if}
         </section>
       {/if}
 
@@ -306,7 +314,10 @@
 
     </section>
 
+{#if hoursEdit.open}<HoursEditor />{/if}
+
 <style>
+  .edit-h { margin-top: 6px; }
   svg { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
   svg .solid { fill: currentColor; stroke: none; }
   .link { border: 0; background: none; color: var(--accent); font: inherit; font-weight: 500; cursor: pointer; padding: 4px 0; }

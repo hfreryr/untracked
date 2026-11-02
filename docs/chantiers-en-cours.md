@@ -6,6 +6,9 @@ Liste tenue à jour à chaque étape, pour ne rien perdre entre les sujets mené
 ## À fusionner
 | PR | Sujet | Après fusion |
 |---|---|---|
+| (cette PR) | Modifier les horaires dans l'app, envoyés à OSM avec le compte de la personne | Publier, puis essai sur l'iPhone (retour de connexion dans l'app installée) |
+| (cette PR) | Calendrier des calculs (`docs/calendrier-calculs.md`) ; lieux d'Île-de-France recalculés dès la fin des compléments et des devantures | Relancer seulement après réflexion (3 questions) |
+| #136 puis (cette PR) | Photos : place réservée et fondu, sans source dessus (#136) ; photos Wikimedia préparées à l'avance (cette PR) | Publier ; les photos préparées arrivent après le prochain calcul des compléments |
 | (cette PR) | Listes : Favoris en tête puis par dernière utilisation ; « À tester » retirée ; page « Modifier » refaite ; glisser pour supprimer | Publier |
 | #139, #140 | Calendrier des calculs (`docs/calendrier-calculs.md`) ; lieux d'Île-de-France recalculés dès la fin des compléments et des devantures | Relancer seulement après réflexion (3 questions) |
 | #136, #138 | Photos : place réservée et fondu, sans source dessus (#136) ; photos Wikimedia préparées à l'avance (#138) | Publier ; les photos préparées arrivent après le prochain calcul des compléments |

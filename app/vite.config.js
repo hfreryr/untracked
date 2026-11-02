@@ -24,7 +24,9 @@ const csp = {
       'https://api.transitous.org',                             // transports en commun
       'https://api.mangrove.reviews',                           // publier un avis (seulement quand on touche « Publier »)
       'https://upload.mangrove.reviews',                        // et sa photo, s'il y en a une (photoupload.js)
-      'https://www.wikidata.org', 'https://fr.wikipedia.org', 'https://commons.wikimedia.org'],
+      'https://www.wikidata.org', 'https://fr.wikipedia.org', 'https://commons.wikimedia.org',
+      // modifier OSM avec son compte (osmauth.js, osmedit.js) ; serveur d'essai d'OSM pour les tests
+      'https://www.openstreetmap.org', 'https://api.openstreetmap.org', 'https://master.apis.dev.openstreetmap.org'],
     'manifest-src': ['self'],
     'object-src': ['none'],
     'base-uri': ['self'],
