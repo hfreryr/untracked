@@ -10,6 +10,10 @@ updates:
     ignore:
       # Playwright doit rester aligné sur les navigateurs installés pour les tests de bout en bout : mis à jour à la main
       - dependency-name: playwright
+      # TypeScript 7 : refusé par SvelteKit 3.1 (dépendance « pair » limitée à TypeScript 5 et 6, constaté le 02/11/2026 sur #150) ;
+      # à reprendre quand SvelteKit l'acceptera
+      - dependency-name: typescript
+        update-types: ['version-update:semver-major']
   - package-ecosystem: github-actions
     directory: /
     schedule: { interval: monthly }
