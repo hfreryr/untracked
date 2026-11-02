@@ -10,8 +10,8 @@ test('infos clés : horaires coupés en état + détail, note seulement à parti
   assert.equal(g[0].value, 'Fermé'); assert.equal(g[0].sub, 'ouvre lundi à\u00a08\u00a0h\u00a030'); assert.equal(g[0].tone, 'closed');
   assert.equal(g[1].value, '★ 4,3'); assert.equal(g[1].label, '4 avis');
   assert.match(g[2].value, /100 m/);
-  const few = glanceItems({ status: { open: true, label: 'Ouvert' }, reviews: { count: 2, average: 5, showAverage: false }, place, info: {} });
-  assert.deepEqual(few.map((x) => [x.key, x.value, x.sub]), [['hours', 'Ouvert', undefined]]);
+  const one = glanceItems({ status: { open: true, label: 'Ouvert' }, reviews: { count: 1, average: 5, showAverage: true }, place, info: {} });
+  assert.deepEqual(one.slice(0, 2).map((x) => [x.key, x.value, x.label]), [['hours', 'Ouvert', 'Horaires'], ['rating', '★ 5', '1 avis']]);   // la note et son nombre, dès le premier avis
   assert.equal(glanceItems({ status: { open: null, label: 'Horaires incertains' }, place })[0].value, 'Incertains');
 });
 
