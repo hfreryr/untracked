@@ -64,10 +64,11 @@ export function addPlaceLayers(map, dark, favs) {
   map.addSource('selected', { type: 'geojson', data: empty() });
   map.addSource('favs', { type: 'geojson', data: favs });
   map.addLayer({ id: 'fav-label', type: 'symbol', source: 'favs', minzoom: 14,
-    layout: { ...label(12, 'Inter SemiBold', 1.4), 'symbol-sort-key': 0 },
+    layout: { ...label(12.5, 'Inter Bold', 1.75), 'symbol-sort-key': 0 },   // (nom en gras, décalé : pastille plus grande, savedpin.js)
     paint: { 'text-color': ['get', 'tc'], 'text-halo-color': dark ? 'rgba(22,24,28,0.9)' : '#FFFFFF', 'text-halo-width': 1.6 } });
   map.addLayer({ id: 'fav', type: 'symbol', source: 'favs',
-    layout: { 'icon-image': ['get', 'icon'], 'icon-allow-overlap': true, 'icon-padding': 0, 'icon-size': ['interpolate', ['linear'], ['zoom'], 11, 0.8, 16, 1.05] } });
+    layout: { 'icon-image': ['get', 'icon'], 'icon-allow-overlap': true, 'icon-ignore-placement': true, 'icon-padding': 0,   // (son nom n'est jamais caché par sa propre pastille)
+      'icon-size': ['interpolate', ['linear'], ['zoom'], 11, 0.8, 16, 1.05] } });
   map.addLayer({ id: 'selected', type: 'symbol', source: 'selected',
     layout: { 'icon-image': ['get', 'icon'], 'icon-allow-overlap': true, 'icon-ignore-placement': true,
               'text-field': ['get', 'name'], 'text-font': ['Inter Bold'], 'text-size': 13.5, 'text-anchor': 'left',
