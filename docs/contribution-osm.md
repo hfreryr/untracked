@@ -25,20 +25,23 @@
 
 *Annonce (pas une demande d'autorisation) : les Organised Editing Guidelines demandent de prévenir au moins 2 semaines avant ; le silence vaut accord. À publier dans la catégorie France de community.openstreetmap.org.*
 
-> **Titre : Untracked Maps — annonce : questions de vérification sur place à Paris (6e)**
+> **Titre : Untracked Maps — annonce : corrections depuis le téléphone (horaires, fermetures), à Paris (6e)**
 >
 > Bonjour,
 >
-> Je porte bénévolement **Untracked Maps** (untrackedmaps.app), une carte web grand public construite sur OSM, sans pistage, code sous AGPL-3.0. Notre public ne connaît pas OSM ; nous voulons qu'il y contribue proprement.
+> Je porte bénévolement **Untracked Maps** (untrackedmaps.app), une carte web grand public construite sur OSM, sans pistage, code sous AGPL-3.0. Notre public ne connaît pas OSM ; nous voulons qu'il y contribue proprement, depuis son téléphone.
 >
-> **Ce qui arrivera, au plus tôt dans deux semaines :** dans la fiche d'un lieu, une question courte sur ce que la personne voit sur place (« Ce commerce existe-t-il toujours ? », « Ouvert le dimanche ? »…). La modification part **avec le compte OSM de la personne**, signée `created_by=Untracked Maps` et `#untrackedmaps`.
+> **Ce qui arrivera, au plus tôt dans deux semaines**, dans la fiche d'un lieu :
+> 1. **Corriger une information constatée sur place** : horaires (écran simple jour par jour, qui produit un `opening_hours` valide), téléphone, site, ou « ce lieu a fermé ». La modification part **avec le compte OSM de la personne** (connexion OAuth 2.0), après un écran de confirmation, signée `created_by=Untracked Maps` et `#untrackedmaps`.
+> 2. **Une question courte** sur ce que la personne voit (« Ce commerce existe-t-il toujours ? », « Ouvert le dimanche ? »), même fonctionnement.
+> 3. **Sans compte OSM : une note** à l'endroit du lieu, rédigée dans l'app (« Horaires constatés : … »), pour que les contributeurs locaux la traitent.
 >
 > **Nous reprenons les pratiques existantes** :
-> - [Good practice](https://wiki.openstreetmap.org/wiki/Good_practice) : on cartographie ce qu'on voit sur place, et rien n'est copié d'autres cartes (l'app le rappelle) ;
+> - [Good practice](https://wiki.openstreetmap.org/wiki/Good_practice) : on cartographie ce qu'on voit sur place, et rien n'est copié d'autres cartes (l'app le rappelle à chaque envoi) ;
 > - [les règles des quêtes StreetComplete](https://github.com/streetcomplete/StreetComplete/blob/master/CONTRIBUTING_A_NEW_QUEST.md) : questions courtes, une information à la fois, `check_date` mis à jour quand la réponse confirme l'existant ;
-> - [Organised Editing Guidelines](https://osmfoundation.org/wiki/Organised_Editing_Guidelines) : page wiki publique, bilan mensuel.
+> - [Organised Editing Guidelines](https://osmfoundation.org/wiki/Organised_Editing_Guidelines) : page wiki publique, bilan mensuel ; relecture des premières modifications avec qui le souhaite.
 >
-> Aucune modification automatique ni aucun import. Nous démarrons sur le 6e arrondissement uniquement.
+> Aucune modification automatique ni aucun import. Nous démarrons sur le 6e arrondissement uniquement ; les notes, elles, seront possibles partout (comme depuis le site d'OSM).
 >
 > Remarques, critiques et envies de relire les premières modifications sont bienvenues ici ou à [contact].
 >
@@ -64,5 +67,6 @@ Titre proposé : `Organised Editing/Activities/Untracked Maps`. Contenu requis p
 3. ☐ Attendre au moins 2 semaines et intégrer les retours.
 4. ☐ Créer la page wiki.
 5. ☐ Enregistrer l'app sur openstreetmap.org (OAuth 2.0, client public).
-6. ☐ Coder les micro-questions (6e arrondissement seulement).
+6. ☐ Coder la modification dans l'app (horaires d'abord, puis téléphone, site, fermeture), les micro-questions (6e arrondissement seulement) et la note rédigée dans l'app.
+   En attendant (02/11/2026) : sur téléphone, « Ajouter les horaires » ouvre une note sur le site d'OSM au lieu de l'éditeur pour ordinateur (`osmlinks.js`).
 7. ☐ Bilan avec la communauté après le premier mois.
