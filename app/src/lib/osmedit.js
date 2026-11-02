@@ -55,3 +55,13 @@ export async function sendTags({ osmType, osmId }, tags, comment, { api, token, 
   }
   return { changeset: cs };
 }
+
+/** Message (note) laissé sur la carte à l'endroit d'un lieu, pour les bénévoles : sans compte, comme sur le site d'OSM.
+ *  @returns {Promise<{id:number}>} */
+export async function sendNote({ lat, lon }, text, { api, fetcher = fetch }) {
+  const body = new URLSearchParams({ lat: String(lat), lon: String(lon), text });
+  const r = await fetcher(`${api}/api/0.6/notes.json`, { method: 'POST', body }).catch(() => null);
+  if (!r?.ok) throw Object.assign(new Error('reseau'), { code: 'reseau' });
+  const j = await r.json().catch(() => null);
+  return { id: j?.properties?.id || 0 };
+}

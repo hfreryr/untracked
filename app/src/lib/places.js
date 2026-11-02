@@ -72,6 +72,7 @@ export function fromTags(t, at = null) {
   const street = streetLine(t, at);   // ordre du pays (searchscope.js)
   return {
     covered: true,
+    tags: t,             // étiquettes telles quelles, pour « Corriger » (placefields.js : quelle clé modifier, d'où vient l'info)
     name: t.name,
     type: typeOfTags(t),
     address: street ? [street, t['addr:postcode']].filter(Boolean).join(', ') : null,

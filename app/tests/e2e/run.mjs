@@ -75,7 +75,7 @@ const tests = {
     assert(!errors.length, errors.join(' | '));
     await ctx.close();
   },
-  async 'fiche façon Plans : 4 boutons, infos clés en colonnes, Signaler · Copier l’adresse, avis proposé une seule fois sur place (31/10)'() {
+  async 'fiche façon Plans : 4 boutons, infos clés en colonnes, Corriger · Copier l’adresse, avis proposé une seule fois sur place (31/10)'() {
     // à 60 m de l'Espace Lino-Ventura (Torcy) ; ouvert par la recherche pour que la position soit connue
     const { p, ctx, errors } = await page({ viewport: { width: 312, height: 760 }, geolocation: { latitude: 48.8504, longitude: 2.6526 } });
     await p.evaluate(() => localStorage.setItem('position-expliquee', '1'));
@@ -88,7 +88,8 @@ const tests = {
     const strip = await p.textContent('.strip');
     assert(/Horaires/.test(strip) && /(Ouvert|Fermé)/.test(strip) && /Distance\s*\d+ m/.test(strip), `infos clés : ${strip}`);
     const sec = await p.$$eval('.sec-row .sec-btn span', (s) => s.map((e) => e.textContent.trim()));
-    assert(sec.join('|') === 'Signaler|Copier l’adresse' || sec.join('|') === 'Signaler|Copier l\'adresse', `rangée secondaire (lieu sans avis) : ${sec}`);
+    // « Corriger » remplace « Signaler » depuis le 02/11 (PlaceEditor.svelte)
+    assert(/^Corriger\|Copier l[’']adresse$/.test(sec.join('|')), `rangée secondaire (lieu sans avis) : ${sec}`);
     // une seule invitation à noter : en haut (sur place), pas aussi dans la section Avis
     assert(!(await p.$('.rev .rate')), 'invitation à noter en double dans la section Avis');
     assert(/Vous êtes à proximité/.test(await p.textContent('.near')), 'avis sur place non proposé');
@@ -527,6 +528,55 @@ const tests = {
     assert(/created_by" v="Untracked Maps/.test(puts[0].body) && /#untrackedmaps/.test(puts[0].body), 'groupe de modifications non signé');
     assert(puts.some((x) => /changeset\/777\/close$/.test(x.u)), 'groupe de modifications non fermé');
     assert((await p.evaluate(() => JSON.parse(localStorage.getItem('modifs-osm') || '[]').length)) === 1, 'modification non comptée dans les contributions');
+    assert(!errors.length, errors.join(' | '));
+    await ctx.close();
+  },
+  async 'corriger un lieu : crayon par ligne, site trouvé hors OSM corrigé, envoi signé ; fermeture : message aux bénévoles (02/11)'() {
+    const { ctx } = await page({ bypassCSP: true });
+    const ID = 31940133271;
+    await ctx.addInitScript(() => {
+      localStorage.setItem('osm-serveur-essai', JSON.stringify({ clientId: 'essai', web: 'https://osm.test', api: 'https://api.osm.test' }));
+      localStorage.setItem('osm-acces', JSON.stringify({ token: 'jeton', name: 'guy_r', server: 'https://osm.test' }));
+    });
+    await ctx.route('**/data/places/**', async (route) => {
+      const r = await route.fetch(); const j = await tileJson(r);
+      if (!j?.t) return route.fulfill({ response: r });
+      for (const it of j.t) if (it[0] === ID) { it[3].website = 'https://faux-site.example'; it[3]._src = { ...(it[3]._src || {}), website: 'overture' }; delete it[3]['contact:website']; }
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(j) });
+    });
+    const puts = [], notes = [];
+    await ctx.route('https://api.osm.test/**', (route) => {
+      const u = route.request().url(), m = route.request().method();
+      if (/notes\.json$/.test(u)) { notes.push(route.request().postData()); return route.fulfill({ status: 200, contentType: 'application/json', body: '{"properties":{"id":55}}' }); }
+      if (m === 'GET') return route.fulfill({ status: 200, contentType: 'text/xml', body: '<osm version="0.6"><node id="3194013327" version="3" changeset="1" lat="48.86" lon="2.37"><tag k="amenity" v="restaurant"/><tag k="name" v="Deux Fois Plus de Piment"/></node></osm>' });
+      puts.push({ u, body: route.request().postData() || '' });
+      route.fulfill({ status: 200, contentType: 'text/plain', body: /create$/.test(u) ? '888' : '4' });
+    });
+    const p = await ctx.newPage(); const errors = []; p.on('pageerror', (e) => errors.push(e.message));
+    await p.goto(`http://localhost:${PORT}/#carte=18/48.861574/2.370638&lieu=node/3194013327`);
+    await p.click('.sec-btn:has-text("Corriger")', { timeout: 15000 });
+    await p.waitForSelector('.fields');
+    assert(/trouvé hors d'OSM/.test(await p.textContent('.fields li:has-text("Site web")')), 'origine du site non signalée');
+    assert(!(await p.$('.go.sticky')), 'bouton d\'envoi visible sans correction');
+    await p.click('button[aria-label="Modifier : Site web"]');
+    await p.fill('.fields input.edit', 'deuxfoisplusdepiment.fr'); await p.click('.fields .lnk.strong');
+    assert(/corrigé/.test(await p.textContent('.fields li:has-text("Site web")')), 'ligne non marquée corrigée');
+    await p.click('.go.sticky:has-text("Envoyer 1 correction")');
+    assert(/faux-site\.example/.test(await p.textContent('.chg')) && /deuxfoisplusdepiment\.fr/.test(await p.textContent('.chg')), 'avant → après absent');
+    await p.click('.dlg .go'); await p.waitForSelector('text=Merci !', { timeout: 10000 });
+    const node = puts.find((x) => /node\/3194013327$/.test(x.u));
+    assert(node && /k="website" v="https:\/\/deuxfoisplusdepiment\.fr"/.test(node.body) && /changeset="888"/.test(node.body), `envoi : ${node?.body}`);
+    assert(/Corrections de « Deux Fois Plus de Piment » constatées sur place : site web/.test(puts[0].body), `commentaire : ${puts[0].body}`);
+    await p.click('.dlg .go');
+    const before = puts.length;
+    // fermeture : un message aux bénévoles, pas une modification de la carte
+    await p.click('.sec-btn:has-text("Corriger")'); await p.click('.dlg .sec:has-text("Le lieu a fermé")');
+    await p.click('.pick button:has-text("Fermé définitivement")');
+    await p.fill('.dlg textarea', 'Local vide, panneau à louer sur la vitrine'); await p.click('.dlg .go');
+    await p.waitForSelector('text=Votre message est sur OpenStreetMap', { timeout: 10000 });
+    const sent = new URLSearchParams(notes[0] || '');
+    assert(/fermé définitivement « Deux Fois Plus de Piment »/.test(sent.get('text') || '') && /à louer/.test(sent.get('text')) && sent.get('lat'), `message : ${notes[0]}`);
+    assert(puts.length === before, 'la fermeture ne doit pas modifier la carte');
     assert(!errors.length, errors.join(' | '));
     await ctx.close();
   },
