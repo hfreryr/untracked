@@ -57,3 +57,24 @@ def test_categories_limitees_par_passage():
 def test_pas_une_photo():
     assert photo_of({"title": "File:Plan.pdf", "imageinfo": [{"thumburl": THUMB + "x"}]}) is None
     assert photo_of({"title": "File:a.jpg", "imageinfo": [{"thumburl": "https://ailleurs/a.jpg"}]}) is None
+
+
+def page(title, year=None, desc="", w=4000, h=3000):
+    meta = {"ImageDescription": {"value": desc}}
+    if year:
+        meta["DateTimeOriginal"] = {"value": f"{year}-06-01 12:00"}
+    return {"title": "File:" + title, "imageinfo": [{"thumburl": THUMB + f"a/ab/{title}/960px-{title}", "width": w, "height": h, "extmetadata": meta}]}
+
+
+def test_classement_comme_maps_la_gravure_en_dernier_meme_choisie_par_wikidata():
+    from build_wikiphotos import ranked
+    pages = [page("Saint-Sulpice gravure 1850.jpg", desc="Gravure du XIXe siècle"), page("Saint-Sulpice 2023.jpg", 2023),
+             page("Saint-Sulpice 2009.jpg", 2009), page("Plan Saint-Sulpice.png", w=800, h=900)]
+    order = [p[0].split("/")[2] for p in ranked(pages, main_title="File:Saint-Sulpice gravure 1850.jpg")]
+    assert order[:2] == ["Saint-Sulpice 2023.jpg", "Saint-Sulpice 2009.jpg"]
+    assert set(order[2:]) == {"Saint-Sulpice gravure 1850.jpg", "Plan Saint-Sulpice.png"}
+
+
+def test_photo_ancienne_par_sa_date():
+    from build_wikiphotos import photo_score
+    assert photo_score(page("Rue.jpg", 1925)) < photo_score(page("Rue.jpg", 2021))
