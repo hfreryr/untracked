@@ -153,7 +153,7 @@
   .ico.stop::after { content: ''; width: 10px; height: 10px; border: 2.5px solid var(--muted); border-radius: 3px; }
   .ico.end::after { content: ''; width: 12px; height: 12px; border-radius: 50%; background: var(--end); }
   .card.end { display: flex; align-items: center; gap: 10px; padding-bottom: 10px; }
-  .badge { flex: none; min-width: 30px; height: 30px; padding: 0 6px; border-radius: 15px; display: grid; place-items: center; font-size: 14px; font-weight: 800; }
+  .badge { flex: none; white-space: nowrap; min-width: 30px; height: 30px; padding: 0 6px; border-radius: 15px; display: grid; place-items: center; font-size: 14px; font-weight: 800; }
   .sub { margin: 6px 0 0 40px; font-size: var(--fs-meta); color: var(--muted); display: grid; gap: 1px; }
   .sub b { color: var(--ink); font-weight: 600; }
   .sub .k { font-size: var(--fs-small); }

@@ -29,7 +29,8 @@
 {#snippet depart(o)}
   <!-- comme Citymapper : signe « temps réel » devant, puis « dans 1, 4, 7 min de Château Rouge » ou l'heure du train -->
   {@const d = departInfo(o, when, now)}
-  <span class="sum-sub depart">{#if d.live}<span class="live" title={tx('itin.horaire_en_temps_reel')}>●</span>{' '}{/if}{departText(d)}</span>
+  <!-- heure choisie : l'heure d'arrivée ou de départ est déjà sous la durée (opt-times) -->
+  {#if d.kind !== 'leave' && d.kind !== 'arrive'}<span class="sum-sub depart">{#if d.live}<span class="live" title={tx('itin.horaire_en_temps_reel')}>●</span>{' '}{/if}{departText(d)}</span>{/if}
 {/snippet}
 
 <section class="sheet route-sheet" aria-label={tx('fiche.itineraire')} use:draggable={{ key: `${from?.lat},${to?.lat},${mode},${app.transitDetail}`, start: app.transitDetail ? 'half' : 'peek', min: true, tease: 58 }}>
@@ -144,7 +145,7 @@
             <span class="opt-top">
               <LegChain it={o} />
               {#if fare != null}<span class="fare" title={tx('itin.prix_detail')}>{fmtEuros(fare)}</span>{/if}
-              <span class="big-dur">{fmtDuration(o.duration)}</span>
+              <span class="dur-col"><span class="big-dur">{fmtDuration(o.duration)}</span><span class="opt-times">{fmtTime(o.start)} → {fmtTime(o.end)}</span></span>
             </span>
             {@render depart(o)}
             {#if ta}<span class="t-alert {ta.alert.level}"><TraficIcon skip={ta.alert.skip} />{ta.alert.station ? ta.alert.title : ta.alert.header}</span>{/if}
@@ -231,6 +232,9 @@
   .opt-top :global(.chain) { flex: 1; min-width: 0; }
   .fare { font-size: var(--fs-meta); font-weight: 600; color: var(--accent); white-space: nowrap; }
   .big-dur { font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  /* heures de départ et d'arrivée sous la durée, comme Google Maps : on voit pourquoi un trajet plus long arrive plus tôt */
+  .dur-col { display: flex; flex-direction: column; align-items: flex-end; flex: none; }
+  .opt-times { font-size: var(--fs-meta); color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
   .add-stop { margin-top: 10px; }
   .t-head { display: grid; gap: 10px; padding: 10px 0 4px; }
   .t-top { display: flex; align-items: center; gap: 6px; }

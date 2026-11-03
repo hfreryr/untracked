@@ -32,7 +32,7 @@
 
 <style>
   :global(.dlg-icon:has(.tb)) { background: none; }
-  .tb { min-width: 30px; height: 30px; padding: 0 6px; border-radius: 15px; display: grid; place-items: center; font-size: 14px; font-weight: 800; }
+  .tb { flex: none; white-space: nowrap; min-width: 30px; height: 30px; padding: 0 6px; border-radius: 15px; display: grid; place-items: center; font-size: 14px; font-weight: 800; }
   .tf { max-height: 60vh; overflow-y: auto; }
   .msg + .msg { border-top: 1px solid var(--line); margin-top: 12px; padding-top: 4px; }
   h3 { font-size: 16px; margin: 10px 0 2px; }
