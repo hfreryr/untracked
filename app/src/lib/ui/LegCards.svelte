@@ -22,22 +22,27 @@
   const cards = $derived(legCards(it.legs, to?.label || ''));
   let open = $state({});                 // étapes dont la liste des arrêts est dépliée
   let traf = $state(null);               // info trafic ouverte { alerts, leg }
-  let entry = $state(null);              // meilleure entrée de la première station { key, exit }
+  let entries = $state({});             // meilleure entrée de chaque station où l'on monte à pied { [picked|li]: exit | null }
 
-  // Meilleure entrée de la station de départ : l'accès RATP le plus proche du point de départ, sinon l'entrée OSM.
+  // Meilleure entrée de chaque station où l'on arrive à pied (départ, ou correspondance par la rue) : l'accès RATP le
+  // plus proche du début de la marche, sinon l'entrée OSM. Chaque marche a la sienne (retour d'un utilisateur, 03/11 :
+  // la correspondance vers Cité affichait l'entrée de la gare de départ, Juvisy).
   $effect(() => {
-    const first = cards.find((c) => c.kind === 'walk' && c.toRide);
-    const ride = first && it.legs[first.li + 1];
-    const key = `${picked}|${ride?.fromStop}`;
-    if (!ride?.fromPos || entry?.key === key) return;
-    const start = it.legs[first.li].coords?.[0];
-    const goal = start ? { lon: start[0], lat: start[1] } : from;
-    if (!goal) return;
-    entry = { key, exit: null };
-    exitForQuay(ride.fromStop, goal).catch(() => null)
-      .then((r) => r?.exit || bestExit(ride.fromPos, goal).catch(() => null))
-      .then((e) => { if (entry?.key === key) entry = { key, exit: e || null }; });
+    for (const c of cards) {
+      if (c.kind !== 'walk' || !c.toRide) continue;
+      const ride = it.legs[c.li + 1];
+      const key = `${picked}|${c.li}|${ride?.fromStop}`;
+      if (!ride?.fromPos || key in entries) continue;
+      const start = it.legs[c.li].coords?.[0];
+      const goal = start ? { lon: start[0], lat: start[1] } : c.li === 0 ? from : null;
+      if (!goal) continue;
+      entries[key] = null;
+      exitForQuay(ride.fromStop, goal).catch(() => null)
+        .then((r) => r?.exit || bestExit(ride.fromPos, goal).catch(() => null))
+        .then((e) => { entries[key] = e || null; });
+    }
   });
+  const entryOf = (li) => entries[`${picked}|${li}|${it.legs[li + 1]?.fromStop}`];
   const tipOf = (li) => legExits[`${picked}|${li}|${it.legs[li].to}`];
   const WHERE = { Avant: tx('itin.rame_avant'), Milieu: tx('itin.rame_milieu'), Arrière: tx('itin.rame_arriere') };
 </script>
@@ -51,8 +56,8 @@
           <span class="ico walk" aria-hidden="true"><ModeIcon id="walk" /></span>
           <span class="title">{c.final ? tx('itin.marcher_jusqua', { lieu: c.target }) : c.transfer ? tx('itin.correspondance_a_pied', { lieu: c.target }) : tx('itin.marcher_jusqua', { lieu: c.target })}</span>
         </button>
-        {#if c.toRide && entry?.exit && exitLabel(entry.exit)}
-          <p class="sub"><span class="k">{tx('itin.meilleure_entree')}</span><b>{exitLabel(entry.exit)}</b></p>
+        {#if c.toRide && entryOf(c.li) && exitLabel(entryOf(c.li))}
+          <p class="sub"><span class="k">{tx('itin.meilleure_entree')}</span><b>{exitLabel(entryOf(c.li))}</b></p>
         {/if}
         <p class="sub row"><span>{leg.distance ? fmtDistance(leg.distance) : ''}</span><b>{fmtDuration(leg.duration)}</b></p>
       {:else if c.kind === 'stop'}
@@ -64,10 +69,11 @@
       {:else if c.kind === 'ride'}
         {@const tip = tipOf(c.li)}
         {@const deps = c.first ? nextDepartures(it, now) : null}
-        <button class="head" onclick={() => app.focusOnLeg(c.li)} aria-pressed={app.focusLeg === c.li}
-          aria-label={tx('itin.prendre_ligne', { ligne: `${MODE_NAMES[leg.mode] || tx('itin.ligne')} ${leg.line}`, headsign: leg.headsign, from: leg.from })}>
-          <span class="badge" style:background={leg.color} style:color={leg.textColor}>{badge(leg)}</span>
-          <span class="title"><span class="arrow" aria-hidden="true">→</span> {leg.headsign}</span>
+        <!-- nom lu : la phrase entière, le visible (« M 4 → … ») étant masqué aux lecteurs d'écran (WCAG 2.5.3, axe-core 4.14) -->
+        <button class="head" onclick={() => app.focusOnLeg(c.li)} aria-pressed={app.focusLeg === c.li}>
+          <span class="sr">{tx('itin.prendre_ligne', { ligne: `${MODE_NAMES[leg.mode] || tx('itin.ligne')} ${leg.line}`, headsign: leg.headsign, from: leg.from })}</span>
+          <span class="badge" aria-hidden="true" style:background={leg.color} style:color={leg.textColor}>{badge(leg)}</span>
+          <span class="title" aria-hidden="true"><span class="arrow">→</span> {leg.headsign}</span>
         </button>
         <p class="sub">{tx('itin.depuis', { from: leg.from })}</p>
         {@const tf = leg.trafic}
@@ -137,6 +143,7 @@
 {#if traf}<TraficDialog alerts={traf.alerts} leg={traf.leg} onclose={() => (traf = null)} />{/if}
 
 <style>
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   .cards { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 8px; }
   .card { position: relative; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 10px 12px 12px; }
   /* trait discret qui relie les étapes, comme une ligne de temps */

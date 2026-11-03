@@ -1233,7 +1233,7 @@ z.close()`, zip]);
     // 4 km : plus de « 50 min à pied » sur le bouton, mais les transports
     assert(/en transports/.test(await p.getAttribute('.action.primary', 'aria-label')), 'transports non proposés pour un lieu lointain');
     await p.click('.action.primary'); await p.waitForTimeout(1500);
-    assert(await p.$('.mode-tab.on[aria-label="Transports"]'), 'onglet transports non choisi');
+    assert(await p.$('.mode-tab.on:has-text("Transports")'), 'onglet transports non choisi');
     await p.click('.mode-tab:has-text("Vélo")'); await p.waitForTimeout(500);
     await p.click('.top .back'); await p.waitForTimeout(800);
     assert(/à vélo/.test(await p.getAttribute('.action.primary', 'aria-label')), 'le dernier mode choisi (vélo) n’est pas repris');
@@ -1400,7 +1400,7 @@ z.close()`, zip]);
     // la rame dessinée, nommée pour les lecteurs d'écran
     if (await p.locator('.card .rame').count()) assert(/voiture \d+ sur \d+/.test(await p.getAttribute('.card .rame >> nth=0', 'aria-label')), 'rame sans nom');
     // les arrêts se déplient
-    await p.click('.card.ride .more >> nth=0');
+    await p.click('.card.ride button.more[aria-expanded] >> nth=0');   // (pas « Autres départs » ni « autres messages »)
     assert((await p.locator('.card.ride .stops li').count()) >= 2, 'arrêts de la ligne non dépliés');
     // toucher une étape : elle est cadrée sur la carte, les autres bouts s'estompent ; retoucher : tout le trajet
     await p.click('.card.ride .head >> nth=0'); await p.waitForTimeout(400);
@@ -1509,8 +1509,8 @@ z.close()`, zip]);
     await p.click('.action.primary'); await p.waitForTimeout(2000);
     await p.click('.mode-tabs .mode-tab >> nth=2'); await p.waitForSelector('.t-opt', { timeout: 25000 });
     assert(/\d,\d\d €/.test(await p.$eval('.t-opt', (e) => e.innerText)), 'prix absent de la proposition');
-    // départs comme Citymapper : « dans 1, 4, 7 min de Station » (minutes avant de partir), ou l'heure du train
-    assert(/dans [\d, ]+ min de |\d\d:\d\d.* de /.test(await p.$eval('.t-opt .depart', (e) => e.innerText)), 'départs absents de la proposition');
+    // départs comme Citymapper : « Depuis Station : dans 1, 4 et 7 min » (minutes avant de partir), ou l'heure du train
+    assert(/Depuis .+ : (dans|maintenant|\d\d:\d\d)/.test(await p.$eval('.t-opt .depart', (e) => e.innerText)), 'départs absents de la proposition');
     // « pas de métro, pas de RER » (P5 : liste excluante) : il reste bus et tram
     await p.click('.t-pref:has-text("Métro")'); await p.waitForTimeout(400); await p.click('.t-pref:has-text("RER")'); await p.waitForTimeout(1000);
     await p.waitForSelector('.t-opt', { timeout: 25000 }); await p.waitForTimeout(1500);
@@ -1533,7 +1533,8 @@ z.close()`, zip]);
     assert(/Arrivée demain à 09:00/.test(await p.textContent('.when-btn')), 'heure choisie non affichée : ' + await p.textContent('.when-btn'));
     await p.waitForSelector('.t-opt', { timeout: 25000 }); await p.waitForTimeout(1000);
     const opt = await p.$eval('.t-opt', (e) => e.innerText);
-    assert(/Départ \d\d:\d\d/.test(opt), `« Départ HH:MM » absent (comme Citymapper) : ${opt}`);
+    // l'heure où partir et l'arrivée, sous la durée (« 08:26 → 08:58 », comme Google Maps ; 03/11)
+    assert(/\d\d:\d\d → (08:[0-5]\d|09:00)/.test(opt), `heures de départ et d'arrivée absentes : ${opt}`);
     await p.click('.t-opt >> nth=0'); await p.waitForSelector('.t-head');
     const sum = await p.$eval('.t-head', (e) => e.innerText);
     const arr = /→ (\d\d):(\d\d)/.exec(sum);

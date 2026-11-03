@@ -74,8 +74,13 @@ test('départs comme Citymapper : partir dans 1, 4, 7 min ; trains à l’heure 
   assert.equal(departText(departInfo(trip, { t: +at('11:05'), arrive: true }, now)), 'Départ 10:26');
   // RER : heure prévue, état, destination, gare
   const rer = (start, scheduled) => ({ start: at('10:20'), next: [], board: { mode: 'SUBURBAN', from: 'Gare du Nord', headsign: 'Saint-Rémy-lès-Chevreuse', start: at(start), scheduled: at(scheduled), realTime: true } });
-  assert.equal(departText(departInfo(rer('10:43', '10:35'), null, now)), '10:35 (Retardé 10:43) Saint-Rémy-lès-Chevreuse de Gare du Nord');
-  assert.equal(departText(departInfo(rer('10:50', '10:50'), null, now)), '10:50 (À l\'heure) Saint-Rémy-lès-Chevreuse de Gare du Nord');
+  assert.equal(departText(departInfo(rer('10:43', '10:35'), null, now)), 'Depuis Gare du Nord : 10:35 (retardé 10:43), direction Saint-Rémy-lès-Chevreuse');
+  assert.equal(departText(departInfo(rer('10:50', '10:50'), null, now)), 'Depuis Gare du Nord : 10:50 (à l\'heure), direction Saint-Rémy-lès-Chevreuse');
+  // code de mission du RER (« PIER ») → terminus du train ; une vraie destination est gardée
+  const { mapLeg } = await import('#lib/routing.js');
+  const leg = (headsign) => mapLeg({ mode: 'SUBWAY', headsign, tripTo: { name: 'Saint-Rémy-lès-Chevreuse' }, startTime: 0, endTime: 0 });
+  assert.equal(leg('PIER').headsign, 'Saint-Rémy-lès-Chevreuse');
+  assert.equal(leg('Porte de Clignancourt').headsign, 'Porte de Clignancourt');
 });
 
 test('modes de transport : on retire ce qu’on ne veut pas (P5 « pas de bus »)', async () => {
