@@ -40,15 +40,17 @@ test('tuile de Paris au zoom 14', () => {
   assert.deepEqual(tileXY(2.3488, 48.8534, 14), [8298, 5636]);
 });
 
-test('transports : « Le plus rapide » et « Le plus simple »', async () => {
+test('transports : « Arrivée la plus tôt » et « Le plus simple » ; « Le plus rapide » en « Arriver à »', async () => {
   const { transitTags } = await import('#lib/routeview.js');
   const ride = (line) => ({ mode: 'SUBWAY', line });
   const a = { end: new Date(1000), legs: [ride('10'), ride('4')] };
   const b = { end: new Date(1300), legs: [ride('10')] };
   const c = { end: new Date(1500), legs: [ride('12'), ride('4')] };
-  assert.deepEqual(transitTags([a, b, c]), ['Le plus rapide', 'Le plus simple', '']);
-  assert.deepEqual(transitTags([b, a]), ['Le plus simple', 'Le plus rapide']);
-  assert.deepEqual(transitTags([{ end: new Date(1), legs: [ride('1')] }, { end: new Date(2), legs: [ride('2')] }]), ['Le plus rapide', '']);
+  assert.deepEqual(transitTags([a, b, c]), ['Arrivée la plus tôt', 'Le plus simple', '']);
+  assert.deepEqual(transitTags([b, a]), ['Le plus simple', 'Arrivée la plus tôt']);
+  assert.deepEqual(transitTags([{ end: new Date(1), legs: [ride('1')] }, { end: new Date(2), legs: [ride('2')] }]), ['Arrivée la plus tôt', '']);
+  // « Arriver à » : toutes arrivent à l'heure, le plus court est « Le plus rapide »
+  assert.deepEqual(transitTags([{ start: new Date(0), end: new Date(10), legs: [ride('1')] }, { start: new Date(5), end: new Date(10), legs: [ride('2')] }], true), ['', 'Le plus rapide']);
 });
 
 test('départs comme Citymapper : partir dans 1, 4, 7 min ; trains à l’heure ou retardés', async () => {
@@ -59,10 +61,13 @@ test('départs comme Citymapper : partir dans 1, 4, 7 min ; trains à l’heure 
   const metro = { start: at('10:26'), board: { mode: 'SUBWAY', from: 'Château Rouge', start: at('10:36'), realTime: true },
     next: [{ board: at('10:39'), leave: at('10:29') }, { board: at('10:42'), leave: at('10:32') }] };
   const d = departInfo(metro, null, now);
-  assert.equal(departText(d), 'dans 1, 4, 7 min de Château Rouge');
+  assert.equal(departText(d), 'Depuis Château Rouge : dans 1, 4 et 7 min');
   assert.equal(d.live, true);
   // un départ déjà manqué disparaît
-  assert.equal(departText(departInfo(metro, null, Date.parse('2026-10-16T10:27:30+02:00'))), 'dans 1, 4 min de Château Rouge');
+  assert.equal(departText(departInfo(metro, null, Date.parse('2026-10-16T10:27:30+02:00'))), 'Depuis Château Rouge : dans 1 et 4 min');
+  assert.equal(departText({ kind: 'countdown', mins: [0, 4], from: 'Abbesses' }), 'Depuis Abbesses : maintenant, puis dans 4 min');
+  assert.equal(departText({ kind: 'countdown', mins: [0], from: 'Abbesses' }), 'Depuis Abbesses : maintenant');
+  assert.equal(departText({ kind: 'countdown', mins: [5, 9], from: 'Anvers' }), 'Depuis Anvers : dans 5 et 9 min');
   // heure choisie, comme Citymapper : « Partir à » → l'arrivée ; « Arriver à » → l'heure où partir
   const trip = { ...metro, end: at('11:02') };
   assert.equal(departText(departInfo(trip, { t: +at('10:20'), arrive: false }, now)), 'Arrivée 11:02');

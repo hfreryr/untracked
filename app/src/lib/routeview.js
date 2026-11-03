@@ -44,18 +44,25 @@ export function departInfo(it, when = null, now = Date.now()) {
   return { kind: 'countdown', mins: mins.length ? mins : [0], from: b.from, live };
 }
 
-/** Le texte : « dans 1, 4, 7 min de Château Rouge », « à 08:21, 08:24 de Château Rouge », « 10:50 (À l'heure) … de Gare du Nord ». */
+// « 5 et 9 », « 1, 4 et 7 » (accord du français ; porteur, 03/11/2026 : « dans 5, 9 min de Anvers » se lisait mal)
+const andList = (ns) => (ns.length < 2 ? `${ns[0]}` : `${ns.slice(0, -1).join(', ')} ${tx('itin.et')} ${ns[ns.length - 1]}`);
+
+/** Le texte : « Depuis Château Rouge : dans 1, 4 et 7 min », « Depuis Abbesses : maintenant, puis dans 4 min », « à 08:21, 08:24 de Château Rouge », « 10:50 (À l'heure) … de Gare du Nord ». */
 export function departText(d) {
   if (d.kind === 'train') return tx('itin.depart_train', { heure: d.time, etat: d.status ? ` (${d.status})` : '', direction: d.headsign ? ` ${d.headsign}` : '', from: d.from });
   if (d.kind === 'leave') return tx('itin.depart_a', { heure: d.time });
   if (d.kind === 'arrive') return tx('itin.arrivee_4', { fmtTime: d.time });
-  return tx('itin.depart_dans', { mins: d.mins.join(', '), from: d.from });
+  const [first, ...rest] = d.mins;
+  if (first > 0) return tx('itin.depart_dans', { mins: andList(d.mins), from: d.from });
+  return rest.length ? tx('itin.depart_maintenant_puis', { mins: andList(rest), from: d.from }) : tx('itin.depart_maintenant', { from: d.from });
 }
 
 const PREFIX = { SUBWAY: 'M', METRO: 'M', TRAM: 'T', BUS: tx('itin.bus'), REGIONAL_RAIL: 'RER', SUBURBAN: 'RER' };
 /**
- * Étiquettes des propositions en transports : « Le plus rapide » (arrivée la plus tôt) et « Le plus simple »
- * (moins de correspondances), comme Citymapper. Une proposition qui est les deux est « Le plus rapide ».
+ * Étiquettes des propositions en transports : « Arrivée la plus tôt » et « Le plus simple » (moins de correspondances),
+ * comme Citymapper. Une proposition qui est les deux est « Arrivée la plus tôt ». En « Arriver à » (toutes arrivent à
+ * l'heure), c'est le trajet le plus court : « Le plus rapide ». (porteur, 03/11/2026 : « Le plus rapide » sur 35 min,
+ * à côté d'un 31 min qui part plus tard, semblait faux.)
  */
 export function transitTags(list, arrive = false) {
   const rides = (it) => it.legs.filter((l) => l.mode !== 'WALK' && l.mode !== 'STOP').length;
@@ -64,7 +71,7 @@ export function transitTags(list, arrive = false) {
   const key = (it) => (arrive ? it.end - it.start : +it.end);
   const fastest = list.reduce((b, it, i) => (key(it) < key(list[b]) ? i : b), 0);
   const fewest = list.reduce((b, it, i) => (rides(it) < rides(list[b]) ? i : b), 0);
-  return list.map((_, i) => (i === fastest ? tx('itin.le_plus_rapide')
+  return list.map((_, i) => (i === fastest ? (arrive ? tx('itin.le_plus_rapide') : tx('itin.arrivee_la_plus_tot'))
     : i === fewest && rides(list[i]) < rides(list[fastest]) ? tx('itin.le_plus_simple') : ''));
 }
 export const badge = (leg) => `${PREFIX[leg.mode] ? PREFIX[leg.mode] + ' ' : ''}${leg.line}`.trim();
