@@ -47,9 +47,10 @@ export function departInfo(it, when = null, now = Date.now()) {
 // « 5 et 9 », « 1, 4 et 7 » (accord du français ; porteur, 03/11/2026 : « dans 5, 9 min de Anvers » se lisait mal)
 const andList = (ns) => (ns.length < 2 ? `${ns[0]}` : `${ns.slice(0, -1).join(', ')} ${tx('itin.et')} ${ns[ns.length - 1]}`);
 
-/** Le texte : « Depuis Château Rouge : dans 1, 4 et 7 min », « Depuis Abbesses : maintenant, puis dans 4 min », « à 08:21, 08:24 de Château Rouge », « 10:50 (À l'heure) … de Gare du Nord ». */
+/** Le texte : « Depuis Château Rouge : dans 1, 4 et 7 min », « Depuis Abbesses : maintenant, puis dans 4 min »,
+ * « Depuis Gare du Nord : 10:35 (retardé 10:43), direction Saint-Rémy-lès-Chevreuse », « à 08:21, 08:24 de Château Rouge », « 10:50 (À l'heure) … de Gare du Nord ». */
 export function departText(d) {
-  if (d.kind === 'train') return tx('itin.depart_train', { heure: d.time, etat: d.status ? ` (${d.status})` : '', direction: d.headsign ? ` ${d.headsign}` : '', from: d.from });
+  if (d.kind === 'train') return tx('itin.depart_train', { heure: d.time, etat: d.status ? ` (${d.status})` : '', direction: d.headsign ? tx('itin.direction_train', { headsign: d.headsign }) : '', from: d.from });
   if (d.kind === 'leave') return tx('itin.depart_a', { heure: d.time });
   if (d.kind === 'arrive') return tx('itin.arrivee_4', { fmtTime: d.time });
   const [first, ...rest] = d.mins;

@@ -192,13 +192,15 @@ export const transitModesFor = (kept) => (!kept || kept.length >= ALL_KINDS.leng
 const RER_MODES = ['REGIONAL_RAIL', 'SUBURBAN'];
 export const modeHere = (mode, pos) => (RER_MODES.includes(mode) && pos && !covered(pos) ? 'RAIL' : mode);
 
+const MISSION = /^[A-Z]{4}\d{0,2}$/;            // code de mission SNCF / RATP (4 lettres)
 export function mapLeg(l) {
   return {
     mode: modeHere(l.mode, l.from?.lat != null ? { lat: l.from.lat, lon: l.from.lon } : null),
     line: l.routeShortName || '',
     color: l.routeColor ? `#${l.routeColor}` : '#5B6573',
     textColor: l.routeTextColor ? `#${l.routeTextColor}` : '#FFFFFF',
-    headsign: l.headsign || '',
+    // Le RER affiche un code de mission (« SORI », « PIER ») : on prend le vrai terminus du train (porteur, 03/11)
+    headsign: (MISSION.test(l.headsign || '') && l.tripTo?.name) || l.headsign || l.tripTo?.name || '',
     from: l.from?.name === 'START' ? tx('recherche.depart') : l.from?.name,
     to: l.to?.name === 'END' ? tx('recherche.arrivee') : l.to?.name,
     toPos: l.to?.lat != null ? { lat: l.to.lat, lon: l.to.lon } : null,
