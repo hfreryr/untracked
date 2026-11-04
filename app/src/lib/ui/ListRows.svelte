@@ -12,9 +12,14 @@
   let open = $state(null);        // liste dont la corbeille est découverte
   let asking = $state(null);      // liste dont on demande confirmation de la suppression
   const count = (l) => app.favorites.filter((f) => f.lists.includes(l.id)).length;
+  // 4 listes, puis « Voir les N autres » (porteur, 04/11/2026 : on voit la suite de Mes lieux sans faire défiler)
+  const SHOWN = 4;
+  let all = $state(false);
+  const sorted = $derived(sortLists(app.lists));
+  const rest = $derived(sorted.length - SHOWN);
 </script>
 
-{#each sortLists(app.lists) as l (l.id)}
+{#each rest > 1 && !all ? sorted.slice(0, SHOWN) : sorted as l (l.id)}
   {@const used = usedLabel(l)}
   <li class="swipe-row" use:swipeRow={{ enabled: l.id !== 'fav', open: open === l.id, onOpen: (v) => (open = v ? l.id : null), onDelete: () => { open = null; asking = l; } }}>
     {#if l.id !== 'fav'}
@@ -30,10 +35,14 @@
     </button>
   </li>
 {/each}
+{#if rest > 1}
+  <li><button class="more" aria-expanded={all} onclick={() => (all = !all)}>{all ? tx('liste.voir_moins') : tx('liste.voir_les_autres', { n: rest })}</button></li>
+{/if}
 {#if asking}<ConfirmDeleteList l={asking} n={count(asking)} onconfirm={() => app.deleteList(asking)} onclose={() => (asking = null)} />{/if}
 
 <style>
   .swipe-row { position: relative; overflow: hidden; }
+  .more { width: 100%; min-height: 48px; border: 0; background: none; color: var(--accent); font: inherit; font-size: 15.5px; font-weight: 600; text-align: left; padding: 0 0 0 46px; cursor: pointer; }
   .swipe-content { position: relative; z-index: 1; display: grid; grid-template-columns: 34px 1fr auto auto; gap: 12px; align-items: center; width: 100%;
     min-height: 52px; border: 0; background: var(--card); padding: 6px 0; text-align: left; cursor: pointer; border-bottom: 1px solid var(--line);
     font: inherit; font-size: 16px; color: var(--ink); }
@@ -42,6 +51,8 @@
   .pl-count { color: var(--muted); font-size: 14px; font-variant-numeric: tabular-nums; }
   .chev-r { width: 18px; height: 18px; color: var(--faint); fill: none; stroke: currentColor; stroke-width: 2; }
   /* corbeille derrière la ligne : sa largeur suit le doigt ; tirée assez loin, elle s'élargit (on peut lâcher) */
+  /* cachée tant que la ligne n'a pas bougé (sinon un liseré rouge dépasse au bord droit, capture du 04/11) */
+  :global(.swipe-row:not(.moved)) .swipe-act { visibility: hidden; }
   .swipe-act { position: absolute; top: 0; bottom: 1px; right: 0; width: max(var(--dx, 0px), 84px); border: 0; padding: 0 30px;
     background: var(--closed); color: #fff; display: flex; align-items: center; justify-content: flex-end; cursor: pointer; }
   .swipe-act svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; flex: none; transition: transform 0.15s; }
