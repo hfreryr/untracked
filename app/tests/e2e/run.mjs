@@ -573,6 +573,9 @@ const tests = {
     assert(node && /k="website" v="https:\/\/deuxfoisplusdepiment\.fr"/.test(node.body) && /k="addr:housenumber" v="42"/.test(node.body) && /changeset="888"/.test(node.body), `envoi : ${node?.body}`);
     assert(/Corrections de « Deux Fois Plus de Piment » constatées sur place : adresse, site web/.test(puts[0].body), `commentaire : ${puts[0].body}`);
     await p.click('.dlg .go');
+    // affichée tout de suite sur la fiche, sans attendre le calcul de nuit (pendingedits.js, 04/11)
+    await p.waitForFunction(() => /deuxfoisplusdepiment\.fr/.test(document.querySelector('section.sheet')?.innerText || ''), null, { timeout: 5000 });
+    assert(!/faux-site\.example/.test(await p.textContent('section.sheet')), 'ancien site encore affiché');
     const before = puts.length;
     // fermeture : un message aux bénévoles, pas une modification de la carte
     await p.click('.sec-btn:has-text("Corriger")'); await p.click('.dlg .sec:has-text("Le lieu a fermé")');
@@ -582,6 +585,8 @@ const tests = {
     const sent = new URLSearchParams(notes[0] || '');
     assert(/fermé définitivement « Deux Fois Plus de Piment »/.test(sent.get('text') || '') && /à louer/.test(sent.get('text')) && sent.get('lat'), `message : ${notes[0]}`);
     assert(puts.length === before, 'la fermeture ne doit pas modifier la carte');
+    await p.click('.dlg .go');
+    assert(/Signalé le .* en cours de vérification/.test(await p.textContent('.reported')), 'signalement non rappelé sur la fiche');
     assert(!errors.length, errors.join(' | '));
     await ctx.close();
   },

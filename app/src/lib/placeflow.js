@@ -105,3 +105,9 @@ export function createPlace(app) {
 
   return { remember, forgetRecents, openPlace, sharePlace, loadDepartures, closePlace };
 }
+
+/** Relit la fiche ouverte après une correction envoyée : elle s'affiche tout de suite (pendingedits.js). */
+export function refreshInfo(app, place) {
+  const same = () => app.place?.osmType === place.osmType && String(app.place?.osmId) === String(place.osmId);
+  details(place).then((i) => { if (same()) app.info = { ...app.info, ...i }; }).catch(() => {});
+}

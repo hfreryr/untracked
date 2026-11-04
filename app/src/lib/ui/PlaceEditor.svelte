@@ -15,6 +15,8 @@
   import { osmServer, osmAccount, osmLogin, osmLogout } from '#lib/osmauth.js';
   import { sendTags, sendNote } from '#lib/osmedit.js';
   import { recordEdit } from '#lib/osmcontrib.js';
+  import { refOf } from '#lib/pendingedits.js';
+  import { refreshInfo } from '#lib/placeflow.js';
   const app = getContext('app');
   const LABEL = { name: () => tx('corriger.nom'), address: () => tx('corriger.adresse'), website: () => tx('corriger.site'), phone: () => tx('corriger.telephone'),
     opening_hours: () => tx('corriger.horaires'), outdoor_seating: () => tx('corriger.terrasse'), wheelchair: () => tx('corriger.fauteuil') };
@@ -55,9 +57,11 @@
     placeEdit.step = 'sending'; error = '';
     try {
       const names = Object.keys(placeEdit.changes).map((k) => LABEL[k]().toLowerCase()).join(', ');
-      const r = await sendTags(place, tagsFor(placeEdit.changes, tags), tx('corriger.commentaire', { nom: place.name, champs: names }), { api: s.api, token: account.token });
+      const sent = tagsFor(placeEdit.changes, tags);
+      const r = await sendTags(place, sent, tx('corriger.commentaire', { nom: place.name, champs: names }), { api: s.api, token: account.token });
       link = `${s.web}/changeset/${r.changeset}`;
-      recordEdit({ name: place.name, kind: 'corrections', changeset: r.changeset, server: s.web });
+      recordEdit({ name: place.name, kind: 'corrections', changeset: r.changeset, server: s.web, ref: refOf(place), tags: sent });
+      refreshInfo(app, place);
       placeEdit.step = 'done';
     } catch (e) {
       if (e.code === 'acces') { osmLogout(); account = null; }
@@ -72,6 +76,7 @@
     try {
       const r = await sendNote(place, noteText(noteKind, place.name, noteDetail), { api: s.api });
       link = r.id ? `${s.web}/note/${r.id}` : null;
+      recordEdit({ name: place.name, kind: 'signalement', note: r.id || null, server: s.web, ref: refOf(place) });
       placeEdit.step = 'notedone';
     } catch { error = tx('horaires_edit.envoi_impossible'); placeEdit.step = 'note'; }
   }

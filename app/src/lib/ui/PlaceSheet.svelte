@@ -22,9 +22,12 @@
   import { glanceItems, isNear } from '#lib/glance.js';
   import { loadReviewer, mineFor } from '#lib/reviewer.js';
   import NearbyRate from './NearbyRate.svelte';
+  import { reportedAt, refOf } from '#lib/pendingedits.js';
 
   // État et actions de la page (voir le bloc « app » de +page.svelte)
   const app = getContext('app');
+  // relu à chaque étape de « Corriger » (un signalement vient peut-être d'être envoyé)
+  const reported = $derived(placeEdit.step && reportedAt(refOf(app.place)));
   // modifier les horaires dans l'app (HoursEditor.svelte), une fois l'app enregistrée chez OSM ; sinon le lien d'avant
   const canEdit = $derived(!!osmServer() && !!app.place?.osmType);
   let freshInfo = $state(false);
@@ -309,6 +312,8 @@
           </button>
         {/if}
       </div>
+      <!-- signalement fait depuis ce téléphone : la carte ne change qu'après vérification par des bénévoles -->
+      {#if reported}<p class="reported">{tx('fiche.signale_le', { date: new Date(reported * 1000).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }) })}</p>{/if}
 
       {#if nearAsk}<NearbyRate place={app.place} />{/if}
 
@@ -404,6 +409,7 @@
   .sec-btn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
   .sec-btn .solid { fill: currentColor; stroke: none; }
   .sec-btn.on { color: var(--accent); }
+  .reported { margin: 6px 0 0; text-align: center; font-size: var(--fs-meta); color: var(--muted); }
   /* Sections du bas */
   .psec { margin-top: 22px; }
   .psec h2 { font-size: 17px; font-weight: 700; margin: 0 0 8px; }
