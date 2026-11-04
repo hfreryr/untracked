@@ -556,7 +556,8 @@ const tests = {
     await p.goto(`http://localhost:${PORT}/#carte=18/48.861574/2.370638&lieu=node/3194013327`);
     await p.click('.sec-btn:has-text("Corriger")', { timeout: 15000 });
     await p.waitForSelector('.fields');
-    assert(/trouvé hors d'OSM/.test(await p.textContent('.fields li:has-text("Site web")')), 'origine du site non signalée');
+    // (l'origine technique du site n'est plus affichée : sans intérêt pour l'utilisateur, 04/11)
+    assert(!/OSM/.test(await p.textContent('.fields li:has-text("Site web")')), 'mention technique affichée');
     assert(!(await p.$('.go.sticky')), 'bouton d\'envoi visible sans correction');
     await p.click('button[aria-label="Modifier : Site web"]');
     await p.fill('.fields input.edit', 'deuxfoisplusdepiment.fr'); await p.click('.fields .lnk.strong');
@@ -581,7 +582,7 @@ const tests = {
     await p.click('.sec-btn:has-text("Corriger")'); await p.click('.dlg .sec:has-text("Le lieu a fermé")');
     await p.click('.pick button:has-text("Fermé définitivement")');
     await p.fill('.dlg textarea', 'Local vide, panneau à louer sur la vitrine'); await p.click('.dlg .go');
-    await p.waitForSelector('text=Votre message est sur OpenStreetMap', { timeout: 10000 });
+    await p.waitForSelector('text=Des bénévoles vont vérifier', { timeout: 10000 });
     const sent = new URLSearchParams(notes[0] || '');
     assert(/fermé définitivement « Deux Fois Plus de Piment »/.test(sent.get('text') || '') && /à louer/.test(sent.get('text')) && sent.get('lat'), `message : ${notes[0]}`);
     assert(puts.length === before, 'la fermeture ne doit pas modifier la carte');

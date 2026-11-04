@@ -108,7 +108,7 @@
             <div class="mini"><button class="lnk strong" onclick={() => ok(f)}>{tx('corriger.ok')}</button><button class="lnk muted" onclick={() => { editing = null; error = ''; }}>{tx('corriger.annuler')}</button></div>
           {:else}
             <div class="val">
-              <span class="lab">{LABEL[f.key]()}{#if changed}<span class="done">● {tx('corriger.corrige')}</span>{:else if cur.outside}<span class="out">{tx('corriger.hors_osm')}</span>{/if}</span>
+              <span class="lab">{LABEL[f.key]()}{#if changed}<span class="done">● {tx('corriger.corrige')}</span>{/if}</span>
               <span class="txt">{f.kind === 'address' && !cur.value ? app.address || shown(f, '') : shown(f, placeEdit.changes[f.key] ?? cur.value)}</span>
               {#if changed && cur.value}<s class="old">{shown(f, cur.value)}</s>{/if}
               {#if f.kind === 'address' && !cur.value}<span class="hint">{tx('corriger.adresse_immeuble')} <button class="lnk inline" onclick={() => toNote('adresse')}>{tx('corriger.signalez_la')}</button></span>{/if}
@@ -169,7 +169,6 @@
   .val .lab { width: auto; }
   .txt { font-size: 15.5px; overflow-wrap: anywhere; }
   .old { color: var(--muted); font-size: 13px; }
-  .out { color: #b86e12; font-weight: 600; font-size: 12px; margin-left: 6px; }
   .done { color: var(--open); font-weight: 600; font-size: 12px; margin-left: 6px; }
   .pen { flex: none; width: 38px; height: 38px; border-radius: 50%; border: 0; background: var(--fill); color: var(--accent); display: grid; place-items: center; cursor: pointer; position: relative; }
   .pen::after { content: ''; position: absolute; inset: -3px; }
