@@ -807,7 +807,7 @@ export default {
   'liste.supprimer_la_liste_bouton': 'Supprimer la liste « {name} »',
   // ——— Corriger un lieu (PlaceEditor.svelte, placefields.js) ———
   'corriger.bouton': 'Corriger',
-  'fiche.signale_le': 'Signalé le {date} · en cours de vérification',
+  'fiche.signale': 'Signalement en cours de vérification',
   'fiche.corrigez_la_ici': 'Corrigez-la ici',
   'fiche.corriger_suite': ' : elle servira à tous.',
   'corriger.titre': 'Corriger {nom}',
