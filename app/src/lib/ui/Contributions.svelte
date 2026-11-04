@@ -3,7 +3,8 @@
      serveur et des identités). Maquette validée le 30/10/2026 ; badges, carte de mes avis et couleur du point
      « vous êtes ici » ajoutés le 01/11 (maquette du 31/10). -->
 <script>
-  import { contribCount } from '#lib/osmcontrib.js';
+  import { contribCount, osmEdits } from '#lib/osmcontrib.js';
+  import { tally, POINTS, isOnSite } from '#lib/points.js';
   import { tx } from '#lib/i18n/index.js';
   import { getContext } from 'svelte';
   import { levelOf, unlockedArrows, LEVELS, DOTS, readArrow, saveArrow, markAnnounced } from '#lib/contrib.js';
@@ -16,7 +17,8 @@
   import { placesInBounds } from '#lib/placestore.js';
   const app = getContext('app');
   let me = $state(loadReviewer());
-  const n = contribCount(me.mine);   // avis + modifications OSM (osmcontrib.js)
+  const n = contribCount(me.mine);   // points : avis + modifications OSM pondérées (points.js, 04/11/2026)
+  const t = tally(me.mine, osmEdits());
   // ce qui est « Nouveau » est vu en ouvrant ce panneau : plus de pastille ni d'annonce ensuite
   const fresh = new Set(badgesNotAnnounced(me.mine));
   markAnnounced(n);
@@ -42,6 +44,9 @@
   const KINDS = /^(restaurant|cafe|bar|pub|fast_food|ice_cream|bakery|museum|gallery|theatre|cinema|library)$/;
   const TYPES = { 1: 'node', 2: 'way', 3: 'relation' };
   let todo = $state([]);
+  // horaires inconnus près de soi (maquette du 04/11/2026) : l'info la plus utile, la mieux récompensée
+  const HOURS = /^(restaurant|cafe|bar|pub|fast_food|ice_cream|bakery|pharmacy|bank|post_office|library|museum)$/;
+  let noHours = $state([]);
   const at = app.me || (app.map && { lat: app.map.getCenter().lat, lon: app.map.getCenter().lng });
   if (at) {
     const dLat = 0.0027, dLon = 0.004;
@@ -50,6 +55,9 @@
       todo = all.filter((p) => p.tags.name && !p.tags._rev && KINDS.test(p.tags.amenity || p.tags.tourism || p.tags.shop || '') && d(p) <= 300)
         .map((p) => ({ name: p.tags.name, lat: p.lat, lon: p.lon, osmType: TYPES[p.id % 10], osmId: Math.floor(p.id / 10), m: Math.round(d(p)) }))
         .filter((p) => !me.mine.some((m) => m.id === placeId(p))).sort((a, b) => a.m - b.m);
+      noHours = all.filter((p) => p.tags.name && !p.tags.opening_hours && (p.tags.shop || HOURS.test(p.tags.amenity || p.tags.tourism || '')) && d(p) <= 300)
+        .map((p) => ({ name: p.tags.name, lat: p.lat, lon: p.lon, osmType: TYPES[p.id % 10], osmId: Math.floor(p.id / 10), m: Math.round(d(p)) }))
+        .sort((a, b) => a.m - b.m);
     }).catch(() => {});
   }
 </script>
@@ -63,15 +71,47 @@
       <h2>{lv.level ? NAME[lv.level.id]() : tx('contrib.pas_encore')}</h2>
       <p class="s">{lv.level ? tx('contrib.niveau_sur', { n: lv.rank }) : tx('contrib.premier_avis')}</p>
     </div>
+    <div class="pts"><b>{n}</b><small>{tx('points.points', { n })}</small></div>
   </div>
   {#if lv.next}
     <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow={Math.round(lv.progress * 100)} aria-label={tx('contrib.progression')}><i style:width={`${Math.round(lv.progress * 100)}%`}></i></div>
     <p class="n">{tx('contrib.encore', { n: lv.remaining, niveau: NAME[lv.next.id]() })}</p>
   {/if}
-  {#if n}<p class="quote">{tx('contrib.servent_a_tous', { n })}</p>{/if}
+  {#if n}<p class="quote">{tx('contrib.servent_a_tous', { n: t.avis + t.corrections + t.horaires + t.signalements })}</p>{/if}
 </div>
 
-<div class="stats"><div class="stat"><b>{n}</b><span>{tx('contrib.avis_publies', { n })}</span></div></div>
+<div class="stats">
+  <div class="stat"><b>{t.avis}</b><span>{tx('points.n_avis', { n: t.avis })}</span></div>
+  <div class="stat"><b>{t.corrections}</b><span>{tx('points.n_corrections', { n: t.corrections })}</span></div>
+  <div class="stat"><b>{t.horaires}</b><span>{tx('points.n_horaires', { n: t.horaires })}</span></div>
+  <div class="stat"><b>{t.signalements}</b><span>{tx('points.n_signalements', { n: t.signalements })}</span></div>
+</div>
+
+<h3 class="h">{tx('points.a_faire')}</h3>
+{#if noHours.length || todo.length}
+  <ul class="todo">
+    {#each noHours.slice(0, 3) as p (p.osmId)}
+      <li><button onclick={() => app.openPlace(p)}><span class="tt"><span>{p.name} · {p.m} m</span><small>{tx('points.horaires_inconnus')}</small></span>
+        <span class="gain">{tx('points.gain', { n: POINTS.horaires * (isOnSite(app.me, p) ? 2 : 1) })}</span></button></li>
+    {/each}
+    {#each todo.slice(0, noHours.length ? 2 : 5) as p (p.osmId)}
+      <li><button onclick={() => app.openPlace(p)}><span class="tt"><span>{p.name} · {p.m} m</span><small>{tx('points.pas_d_avis')}</small></span>
+        <span class="gain">{tx('points.gain', { n: POINTS.avis })}</span></button></li>
+    {/each}
+  </ul>
+{:else}
+  <p class="muted">{tx('contrib.rien_pres')}</p>
+{/if}
+
+<h3 class="h">{tx('points.comment')}</h3>
+<dl class="how">
+  <dt>{tx('points.avis')}</dt><dd>{POINTS.avis}</dd>
+  <dt>{tx('points.signaler')}</dt><dd>{POINTS.signalement}</dd>
+  <dt>{tx('points.corriger')}</dt><dd>{POINTS.corrections}</dd>
+  <dt>{tx('points.ajouter_horaires')}</dt><dd>{POINTS.horaires}</dd>
+</dl>
+<p class="double">{tx('points.double')}</p>
+<p class="muted">{tx('points.pas_de_classement')}</p>
 
 <h3 class="h">{tx('badges.titre')}</h3>
 <ul class="badges">
@@ -110,16 +150,6 @@
   {/each}
 </div>
 
-<h3 class="h">{tx('contrib.pres_de_vous')}</h3>
-{#if todo.length}
-  <ul class="todo">
-    {#each todo.slice(0, 5) as p (p.osmId)}
-      <li><button onclick={() => app.openPlace(p)}><span>{p.name}</span><small>{p.m} m</small></button></li>
-    {/each}
-  </ul>
-{:else}
-  <p class="muted">{tx('contrib.rien_pres')}</p>
-{/if}
 
 <style>
   .lv { padding: 18px; border-radius: 20px; background: var(--fill); }
@@ -132,10 +162,19 @@
   .bar i { display: block; height: 100%; background: var(--accent); }
   .n { margin: 0; font-size: 13.5px; color: var(--ink); }
   .quote { margin: 14px 0 0; font-size: 14.5px; line-height: 1.45; }
-  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
-  .stat { background: var(--fill); border-radius: 16px; padding: 12px 14px; }
-  .stat b { display: block; font-size: 22px; }
-  .stat span { font-size: 13px; color: var(--ink); }
+  .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin-top: 12px; }
+  .stat { background: var(--fill); border-radius: 14px; padding: 10px 2px; text-align: center; min-width: 0; }
+  .stat b { display: block; font-size: 20px; }
+  .stat span { font-size: 12px; color: var(--ink); }
+  .pts { margin-left: auto; text-align: right; }
+  .pts b { display: block; font-size: 26px; color: var(--accent); line-height: 1; }
+  .pts small { font-size: 12.5px; color: var(--ink); }
+  .tt { display: grid; gap: 1px; min-width: 0; }
+  .tt small { margin-left: 0 !important; }
+  .gain { margin-left: auto; flex: none; background: var(--fill); color: var(--open); font-weight: 700; font-size: 13.5px; border-radius: 999px; padding: 4px 10px; }
+  .how { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; margin: 0; padding: 12px 14px; border-radius: 14px; background: var(--fill); font-size: 14.5px; }
+  .how dt { margin: 0; } .how dd { margin: 0; font-weight: 700; text-align: right; }
+  .double { margin: 8px 2px 4px; color: var(--open); font-weight: 600; font-size: 14px; }
   .h { margin: 24px 0 10px; font-size: 17px; }
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 10px; }
   .un { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 4px 8px; border: 2px solid transparent; border-radius: 16px;

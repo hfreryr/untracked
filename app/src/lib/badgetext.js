@@ -2,12 +2,15 @@
 import { tx } from './i18n/index.js';
 
 const NAME = { gourmet: () => tx('badges.gourmet'), explorateur: () => tx('badges.explorateur'), quartier: () => tx('badges.quartier'),
-  culture: () => tx('badges.culture'), cafe: () => tx('badges.cafe'), nuit: () => tx('badges.nuit') };
+  culture: () => tx('badges.culture'), cafe: () => tx('badges.cafe'), nuit: () => tx('badges.nuit'),
+  gardien: () => tx('badges.gardien'), sentinelle: () => tx('badges.sentinelle'), cartographe: () => tx('badges.cartographe') };
 const SUB = { gourmet: (o) => tx('badges.n_restaurants', o), explorateur: (o) => tx('badges.n_villes', o), quartier: (o) => tx('badges.n_quartier', o),
-  culture: (o) => tx('badges.n_culture', o), cafe: (o) => tx('badges.n_cafes', o), nuit: (o) => tx('badges.n_bars', o) };
+  culture: (o) => tx('badges.n_culture', o), cafe: (o) => tx('badges.n_cafes', o), nuit: (o) => tx('badges.n_bars', o),
+  gardien: (o) => tx('badges.n_horaires', o), sentinelle: (o) => tx('badges.n_signalements', o), cartographe: (o) => tx('badges.n_lieux_corriges', o) };
 const THANKS = { gourmet: (o) => tx('badges.gourmet_merci', o), explorateur: (o) => tx('badges.explorateur_merci', o),
   quartier: (o) => tx('badges.quartier_merci', o), culture: (o) => tx('badges.culture_merci', o), cafe: (o) => tx('badges.cafe_merci', o),
-  nuit: (o) => tx('badges.nuit_merci', o) };
+  nuit: (o) => tx('badges.nuit_merci', o), gardien: (o) => tx('badges.gardien_merci', o), sentinelle: (o) => tx('badges.sentinelle_merci', o),
+  cartographe: (o) => tx('badges.cartographe_merci', o) };
 
 export const badgeName = (id) => NAME[id]?.() || '';
 /** « 4 / 10 restaurants » */

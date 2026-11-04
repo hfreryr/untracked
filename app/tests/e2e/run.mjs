@@ -305,7 +305,7 @@ const tests = {
     assert(/Passeur · 6 avis/.test(await p.textContent('section.sheet')), 'résumé du niveau absent de Mes lieux');
     await p.click('button.row-btn:has-text("Mes contributions")'); await p.waitForSelector('.lv');
     const txt = await p.textContent('section.sheet');
-    assert(/Passeur/.test(txt) && /Encore 14 avis pour devenir Vigie/.test(txt), `niveau mal calculé : ${txt.slice(0, 200)}`);
+    assert(/Passeur/.test(txt) && /Encore 14 points pour devenir Vigie/.test(txt), `niveau mal calculé : ${txt.slice(0, 200)}`);
     assert(await p.$('.un[disabled]:has-text("Vigie")'), 'flèche Vigie non verrouillée');
     await p.click('.un:has-text("Passeur")');
     assert(await p.evaluate(() => localStorage.getItem('fleche-guidage') === '"passeur"'), 'flèche non gardée');

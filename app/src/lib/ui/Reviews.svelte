@@ -10,6 +10,7 @@
   import { newKeyJwk, payloadOf, signReview, submit } from '#lib/mangrove.js';
   import { loadReviewer, saveReviewer, withMine, mineFor, placeId } from '#lib/reviewer.js';
   import { makePseudo } from '#lib/pseudo.js';
+  import { editsPoints } from '#lib/points.js';
   import { takeIntent, earnedBy } from '#lib/contrib.js';
   import { badgeProgress } from '#lib/badges.js';
   import { reviewMeta } from '#lib/reviewmeta.js';
@@ -83,7 +84,7 @@
       dropPhoto();
       saveReviewer(me);
       // niveau ou badge gagné par cet avis : annoncé maintenant, et seulement maintenant (LevelUp.svelte)
-      const e = earnedBy(before, me.mine, badgeProgress, osmEdits().length);
+      const e = earnedBy(before, me.mine, badgeProgress, editsPoints(osmEdits()));
       if (e.level || e.badges.length) earned = e;
       open = false;
       app.say(tx('avis.merci_publie'));
