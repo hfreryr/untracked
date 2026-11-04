@@ -12,6 +12,8 @@
   import { osmServer, osmAccount, osmLogin, osmLogout } from '#lib/osmauth.js';
   import { sendTags } from '#lib/osmedit.js';
   import { recordEdit } from '#lib/osmcontrib.js';
+  import { refOf } from '#lib/pendingedits.js';
+  import { refreshInfo } from '#lib/placeflow.js';
   const app = getContext('app');
   let week = $state(parseHours(hoursEdit.oh) || emptyWeek());
   let error = $state('');
@@ -27,10 +29,12 @@
     hoursEdit.step = 'sending'; error = '';
     try {
       const today = new Date().toISOString().slice(0, 10);
-      const r = await sendTags(place, { opening_hours: formatHours(week), 'check_date:opening_hours': today },
+      const sent = { opening_hours: formatHours(week), 'check_date:opening_hours': today };
+      const r = await sendTags(place, sent,
         tx('horaires_edit.commentaire', { nom: place.name }), { api: s.api, token: account.token });
       changeset = `${s.web}/changeset/${r.changeset}`;
-      recordEdit({ name: place.name, kind: 'horaires', changeset: r.changeset, server: s.web });
+      recordEdit({ name: place.name, kind: 'horaires', changeset: r.changeset, server: s.web, ref: refOf(place), tags: sent });
+      refreshInfo(app, place);
       hoursEdit.step = 'done';
     } catch (e) {
       if (e.code === 'acces') { osmLogout(); account = null; }
