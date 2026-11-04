@@ -8,6 +8,7 @@
   import { getContext } from 'svelte';
   import Dialog from './Dialog.svelte';
   import WeekEditor from './WeekEditor.svelte';
+  import AddressEdit from './AddressEdit.svelte';
   import { placeEdit, closePlaceEdit } from '#lib/placeeditstate.svelte.js';
   import { FIELDS, current, cleanValue, shown, tagsFor, noteText } from '#lib/placefields.js';
   import { parseHours, formatHours, checkWeek, emptyWeek } from '#lib/hoursedit.js';
@@ -15,12 +16,13 @@
   import { sendTags, sendNote } from '#lib/osmedit.js';
   import { recordEdit } from '#lib/osmcontrib.js';
   const app = getContext('app');
-  const LABEL = { name: () => tx('corriger.nom'), website: () => tx('corriger.site'), phone: () => tx('corriger.telephone'),
+  const LABEL = { name: () => tx('corriger.nom'), address: () => tx('corriger.adresse'), website: () => tx('corriger.site'), phone: () => tx('corriger.telephone'),
     opening_hours: () => tx('corriger.horaires'), outdoor_seating: () => tx('corriger.terrasse'), wheelchair: () => tx('corriger.fauteuil') };
   const place = placeEdit.place;
   const tags = $derived(app.info?.tags || {});
   let editing = $state(null);          // champ ouvert
   let draft = $state('');
+  let num = $state(''), street = $state('');   // adresse ouverte (AddressEdit)
   let week = $state(emptyWeek());
   let error = $state('');
   let account = $state(osmAccount());
@@ -28,16 +30,18 @@
   let noteKind = $state(null), noteDetail = $state('');
   const n = $derived(Object.keys(placeEdit.changes).length);
   // horaires détaillés (saisons…) : pas réécrits par l'app, pour ne rien perdre
-  const editable = (f) => f.kind !== 'hours' || !current(f, tags).value || !!parseHours(current(f, tags).value);
+  // adresse : seulement si le lieu porte la sienne (sinon c'est celle de l'immeuble ou de la recherche : on la signale)
+  const editable = (f) => f.kind === 'address' ? !!tags['addr:street'] : f.kind !== 'hours' || !current(f, tags).value || !!parseHours(current(f, tags).value);
 
   function open(f) {
     error = ''; editing = f.key;
     const v = placeEdit.changes[f.key] ?? current(f, tags).value;
     draft = f.kind === 'url' ? shown(f, v) === tx('corriger.non_renseigne') ? '' : v : v;
     if (f.kind === 'hours') week = parseHours(v) || emptyWeek();
+    if (f.kind === 'address') [num = '', street = ''] = (v || '|').split('|');
   }
   function ok(f) {
-    const raw = f.kind === 'hours' ? (checkWeek(week) ? null : formatHours(week)) : draft;
+    const raw = f.kind === 'hours' ? (checkWeek(week) ? null : formatHours(week)) : f.kind === 'address' ? `${num}|${street}` : draft;
     if (raw == null) { error = checkWeek(week); return; }
     const r = cleanValue(f, raw);
     if (r.error) { error = r.error; return; }
@@ -61,6 +65,7 @@
       placeEdit.step = 'confirm';
     }
   }
+  const toNote = (kind) => { noteKind = kind; noteDetail = ''; editing = null; error = ''; placeEdit.step = 'note'; };
   async function note() {
     const s = osmServer();
     placeEdit.step = 'sending'; error = '';
@@ -84,6 +89,7 @@
           {#if editing === f.key}
             <div class="lab">{LABEL[f.key]()}</div>
             {#if f.kind === 'hours'}<WeekEditor bind:week onchange={() => (error = '')} />
+            {:else if f.kind === 'address'}<AddressEdit bind:num bind:street onenter={() => ok(f)} onmisplaced={() => toNote('position')} />
             {:else if f.kind === 'choice'}
               <div class="chips" role="radiogroup" aria-label={LABEL[f.key]()}>
                 {#each f.options as o}<button class="chip" class:on={draft === o} role="radio" aria-checked={draft === o} onclick={() => (draft = o)}>{shown(f, o)}</button>{/each}
@@ -98,8 +104,9 @@
           {:else}
             <div class="val">
               <span class="lab">{LABEL[f.key]()}{#if changed}<span class="done">● {tx('corriger.corrige')}</span>{:else if cur.outside}<span class="out">{tx('corriger.hors_osm')}</span>{/if}</span>
-              <span class="txt">{shown(f, placeEdit.changes[f.key] ?? cur.value)}</span>
+              <span class="txt">{f.kind === 'address' && !cur.value ? app.address || shown(f, '') : shown(f, placeEdit.changes[f.key] ?? cur.value)}</span>
               {#if changed && cur.value}<s class="old">{shown(f, cur.value)}</s>{/if}
+              {#if f.kind === 'address' && !cur.value}<span class="hint">{tx('corriger.adresse_immeuble')} <button class="lnk inline" onclick={() => toNote('adresse')}>{tx('corriger.signalez_la')}</button></span>{/if}
             </div>
             {#if editable(f)}<button class="pen" onclick={() => open(f)} aria-label={tx('corriger.modifier_x', { champ: LABEL[f.key]() })} disabled={!!editing}>
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16zM13.5 6.5l4 4" /></svg></button>{/if}
@@ -130,6 +137,7 @@
       <li><button onclick={() => { noteKind = 'ferme'; placeEdit.step = 'note'; }}><b>{tx('corriger.choix_ferme')}</b><small>{tx('corriger.choix_ferme_detail')}</small></button></li>
       <li><button onclick={() => { placeEdit.step = 'list'; open(FIELDS[0]); }}><b>{tx('corriger.choix_nom')}</b></button></li>
       <li><button onclick={() => { noteKind = 'travaux'; placeEdit.step = 'note'; }}><b>{tx('corriger.choix_travaux')}</b></button></li>
+      <li><button onclick={() => toNote('position')}><b>{tx('corriger.choix_position')}</b><small>{tx('corriger.choix_autre_detail')}</small></button></li>
       <li><button onclick={() => { noteKind = 'autre'; placeEdit.step = 'note'; }}><b>{tx('corriger.choix_autre')}</b><small>{tx('corriger.choix_autre_detail')}</small></button></li>
     </ul>
   {:else if placeEdit.step === 'note' || placeEdit.step === 'sending'}
@@ -137,8 +145,8 @@
     <textarea class="edit area" bind:value={noteDetail} rows="4" maxlength="1000" placeholder={tx('corriger.note_placeholder')} aria-label={tx('corriger.note_placeholder')}></textarea>
     <p class="note">{tx('horaires_edit.rappel_sur_place')}</p>
     {#if error}<p class="err" role="alert">{error}</p>{/if}
-    <button class="go" onclick={note} disabled={placeEdit.step === 'sending' || (noteKind === 'autre' && noteDetail.trim().length < 10)}>{placeEdit.step === 'sending' ? tx('horaires_edit.envoi') : tx('corriger.note_envoyer')}</button>
-    <button class="sec" onclick={() => (placeEdit.step = 'closed')}>{tx('corriger.annuler')}</button>
+    <button class="go" onclick={note} disabled={placeEdit.step === 'sending' || ((noteKind === 'autre' || noteKind === 'adresse') && noteDetail.trim().length < 10)}>{placeEdit.step === 'sending' ? tx('horaires_edit.envoi') : tx('corriger.note_envoyer')}</button>
+    <button class="sec" onclick={() => (placeEdit.step = noteKind === 'adresse' ? 'list' : 'closed')}>{tx('corriger.annuler')}</button>
   {:else}
     <div class="ok" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5" /></svg></div>
     <p class="center">{placeEdit.step === 'notedone' ? tx('corriger.note_merci') : tx('corriger.merci_detail', { n, nom: place.name })}</p>
@@ -182,6 +190,8 @@
   .acct b { display: block; }
   .av { width: 34px; height: 34px; border-radius: 50%; background: #3f7d32; color: #fff; display: grid; place-items: center; font-weight: 700; }
   .note { font-size: 13.5px; color: var(--muted); line-height: 1.4; margin: 10px 2px; }
+  .hint { display: block; font-size: 13px; color: var(--muted); margin-top: 2px; }
+  .lnk.inline { padding: 2px 0; font-size: 13px; font-weight: 600; }
   .err { color: var(--closed); font-size: 14px; margin: 6px 2px; width: 100%; }
   .go { display: block; width: 100%; height: 48px; border: 0; border-radius: 14px; background: var(--accent-btn); color: #fff; font: inherit; font-weight: 650; font-size: 16px; cursor: pointer; margin-top: 8px; }
   .go:disabled { opacity: 0.6; }

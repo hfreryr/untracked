@@ -5,9 +5,12 @@ import { tx } from '#lib/i18n/index.js';
 import { parseHours, previewHours } from '#lib/hoursedit.js';
 
 const YES_NO = ['yes', 'no'];
-/** Champs, dans l'ordre de la page. kind : text | url | tel | hours | choice */
+/** Champs, dans l'ordre de la page. kind : text | address | url | tel | hours | choice */
 export const FIELDS = [
   { key: 'name', tags: ['name'], kind: 'text' },
+  // adresse (maquette validée le 04/11/2026) : numéro et rue seulement, et seulement si le lieu porte lui-même une adresse ;
+  // sinon (adresse de l'immeuble, ou trouvée par la recherche) on la signale aux bénévoles d'OSM. Valeur : « numéro|rue ».
+  { key: 'address', tags: ['addr:street'], kind: 'address' },
   { key: 'website', tags: ['website', 'contact:website'], kind: 'url' },
   { key: 'phone', tags: ['phone', 'contact:phone'], kind: 'tel' },
   { key: 'opening_hours', tags: ['opening_hours'], kind: 'hours' },
@@ -23,6 +26,9 @@ export function tagOf(field, tags = {}) {
 
 /** Valeur actuelle d'un champ, et si elle vient d'ailleurs qu'OSM. */
 export function current(field, tags = {}) {
+  if (field.kind === 'address') {
+    return tags['addr:street'] ? { value: `${tags['addr:housenumber'] || ''}|${tags['addr:street']}`, outside: !!(tags._src || {})['addr:street'] } : { value: '', outside: false };
+  }
   const k = field.tags.find((x) => tags[x] != null);
   return { value: k ? String(tags[k]) : '', outside: !!(k && (tags._src || {})[k]) };
 }
@@ -44,6 +50,12 @@ export function cleanValue(field, raw) {
     return { value: fr };
   }
   if (field.kind === 'hours') return parseHours(v) ? { value: v } : { error: tx('corriger.horaires_invalides') };
+  if (field.kind === 'address') {
+    const [num = '', street = ''] = v.split('|').map((x) => x.trim().replace(/\s+/g, ' '));
+    if (!street) return { error: tx('corriger.rue_vide') };
+    if (num && !/^\d{1,4}( ?[a-z]| ?(bis|ter|quater))?$/i.test(num)) return { error: tx('corriger.numero_invalide') };
+    return { value: `${num}|${street.slice(0, 200)}` };
+  }
   return { value: v.slice(0, 255) };
 }
 
@@ -53,6 +65,7 @@ export function shown(field, value) {
   if (field.kind === 'hours') { const w = parseHours(value); return w ? previewHours(w) : value; }
   if (field.kind === 'choice') return { yes: tx('ecran.oui'), no: tx('ecran.non'), limited: tx('ecran.partiel') }[value] || value;
   if (field.kind === 'url') return value.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '');
+  if (field.kind === 'address') return value.split('|').filter(Boolean).join(' ');
   return value;
 }
 
@@ -62,6 +75,12 @@ export function tagsFor(changes, tags = {}, today = new Date().toISOString().sli
   for (const [key, value] of Object.entries(changes)) {
     const f = FIELDS.find((x) => x.key === key);
     if (!f) continue;
+    if (f.kind === 'address') {
+      const [num, street] = value.split('|');
+      if (num) out['addr:housenumber'] = num;
+      out['addr:street'] = street;
+      continue;
+    }
     out[tagOf(f, tags)] = value;
     if (key === 'opening_hours') out['check_date:opening_hours'] = today;
   }
@@ -70,6 +89,7 @@ export function tagsFor(changes, tags = {}, today = new Date().toISOString().sli
 
 /** Texte d'une note OSM pour ce qui ne se corrige pas directement (fermeture, travaux, autre). */
 export function noteText(kind, name, detail = '') {
-  const what = { ferme: tx('corriger.note_ferme'), travaux: tx('corriger.note_travaux'), autre: tx('corriger.note_autre') }[kind];
+  const what = { ferme: tx('corriger.note_ferme'), travaux: tx('corriger.note_travaux'), autre: tx('corriger.note_autre'),
+    position: tx('corriger.note_position'), adresse: tx('corriger.note_adresse') }[kind];
   return [`${what} « ${name} ».`, detail.trim(), tx('corriger.note_signature')].filter(Boolean).join('\n');
 }

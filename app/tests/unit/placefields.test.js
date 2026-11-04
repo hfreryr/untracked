@@ -38,3 +38,20 @@ test('message aux bénévoles : précis, signé', () => {
   assert.match(t, /à louer/);
   assert.match(t, /Untracked Maps/);
 });
+
+test('adresse : numéro et rue, seulement si le lieu porte la sienne ; envoi en addr:housenumber / addr:street', () => {
+  const A = F('address');
+  assert.deepEqual(current(A, { 'addr:housenumber': '83', 'addr:street': 'Avenue de Ségur' }), { value: '83|Avenue de Ségur', outside: false });
+  assert.deepEqual(current(A, { 'addr:street': 'Rue X', _src: { 'addr:street': 'overture' } }), { value: '|Rue X', outside: true });
+  assert.deepEqual(current(A, { name: 'Sans adresse' }), { value: '', outside: false });
+  assert.equal(shown(A, '83|Avenue de Ségur'), '83 Avenue de Ségur');
+  assert.equal(shown(A, '|Rue X'), 'Rue X');
+  assert.deepEqual(cleanValue(A, ' 12  bis |  rue   de Rennes '), { value: '12 bis|rue de Rennes' });
+  assert.deepEqual(cleanValue(A, '12B|Rue de Rennes'), { value: '12B|Rue de Rennes' });
+  assert.ok(cleanValue(A, '12|').error);
+  assert.ok(cleanValue(A, 'douze|Rue de Rennes').error);
+  assert.deepEqual(tagsFor({ address: '85|Avenue de Ségur' }, {}), { 'addr:housenumber': '85', 'addr:street': 'Avenue de Ségur' });
+  assert.deepEqual(tagsFor({ address: '|Avenue de Ségur' }, {}), { 'addr:street': 'Avenue de Ségur' });
+  assert.match(noteText('position', 'Café X', 'Il est au 12, pas au 40'), /position fausse sur la carte pour « Café X »/);
+  assert.match(noteText('adresse', 'Café X', 'C’est au 12 rue Y'), /adresse fausse pour « Café X »/);
+});
