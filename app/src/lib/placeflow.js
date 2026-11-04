@@ -53,7 +53,8 @@ export function createPlace(app) {
     try { app.info = await details(p); } catch { app.info = {}; }
     if (app.place?.id !== p.id) return;
     // Lien partagé : on ne connaissait que l'identifiant du lieu, on récupère son nom.
-    if (!p.name && app.info.name) { app.place = { ...app.place, name: app.info.name, type: app.info.kind || app.info.type || app.place.type }; remember(app.place); app.showSelection(app.place); }
+    // (nom corrigé depuis ce téléphone et pas encore dans nos données : celui des détails, pendingedits.js)
+    if (app.info.name && app.info.name !== p.name) { app.place = { ...app.place, name: app.info.name, type: app.info.kind || app.info.type || app.place.type }; remember(app.place); app.showSelection(app.place); }
     if (app.info.wikiPhotos || app.info.wikiTitle) {
       // préparé à l'avance (wikiprepared.js) : les photos tout de suite, le texte quand il arrive
       const photos = preparedPhotos(app.info.wikiPhotos);
@@ -109,5 +110,10 @@ export function createPlace(app) {
 /** Relit la fiche ouverte après une correction envoyée : elle s'affiche tout de suite (pendingedits.js). */
 export function refreshInfo(app, place) {
   const same = () => app.place?.osmType === place.osmType && String(app.place?.osmId) === String(place.osmId);
-  details(place).then((i) => { if (same()) app.info = { ...app.info, ...i }; }).catch(() => {});
+  details(place).then((i) => {
+    if (!same()) return;
+    app.info = { ...app.info, ...i };
+    // nom corrigé : le titre de la fiche vient du lieu ouvert, pas de ses détails (porteur, 04/11/2026 : « Sesame »)
+    if (i.name && i.name !== app.place.name) app.place = { ...app.place, name: i.name };
+  }).catch(() => {});
 }

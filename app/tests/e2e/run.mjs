@@ -513,6 +513,12 @@ const tests = {
     await p.click('.days li >> nth=0 >> .d'); await p.click('.days li >> nth=0 >> .lnk');   // lundi ouvert, avec pause
     await p.click('.tools .chip >> nth=0');                                                       // lundi → mardi à vendredi
     assert(/Lun–Ven 9 h–12 h et 14 h–19 h · Sam–Dim fermé/.test(await p.textContent('.prev')), `aperçu : ${await p.textContent('.prev')}`);
+    // samedi ouvert : il reprend les horaires du vendredi ; fermeture à 16 h 30, minutes par quart d'heure (04/11)
+    await p.click('.days li >> nth=5 >> .d');
+    const sat = p.locator('.days li >> nth=5 >> .tp >> nth=3 >> select');
+    assert((await sat.nth(1).locator('option').allTextContents()).join(',') === '00,15,30,45', 'minutes autres que les quarts d’heure');
+    await sat.nth(0).selectOption('16'); await sat.nth(1).selectOption('30');
+    assert(/Lun–Ven 9 h–12 h et 14 h–19 h · Sam 9 h–12 h et 14 h–16 h 30 · Dim fermé/.test(await p.textContent('.prev')), `aperçu samedi : ${await p.textContent('.prev')}`);
     await p.click('.dlg .go'); await p.waitForSelector('text=Se connecter à OpenStreetMap');
     await p.click('.dlg .go'); await p.waitForTimeout(800);
     assert(authorize && authorize.searchParams.get('code_challenge_method') === 'S256' && authorize.searchParams.get('scope') === 'write_api read_prefs', `connexion : ${authorize}`);
@@ -523,7 +529,7 @@ const tests = {
     assert(!/code=/.test(p.url()), 'le code reste dans l\'adresse');
     await p.click('.dlg .go'); await p.waitForSelector('text=Merci !', { timeout: 10000 });
     const node = puts.find((x) => /node\/3194013327$/.test(x.u));
-    assert(node && /k="opening_hours" v="Mo-Fr 09:00-12:00,14:00-19:00; Sa-Su off"/.test(node.body) && /k="check_date:opening_hours"/.test(node.body) && /changeset="777"/.test(node.body), `envoi : ${node?.body}`);
+    assert(node && /k="opening_hours" v="Mo-Fr 09:00-12:00,14:00-19:00; Sa 09:00-12:00,14:00-16:30; Su off"/.test(node.body) && /k="check_date:opening_hours"/.test(node.body) && /changeset="777"/.test(node.body), `envoi : ${node?.body}`);
     assert(puts.every((x) => x.auth === 'Bearer jeton'), 'envoi sans le compte de la personne');
     assert(/created_by" v="Untracked Maps/.test(puts[0].body) && /#untrackedmaps/.test(puts[0].body), 'groupe de modifications non signé');
     assert(puts.some((x) => /changeset\/777\/close$/.test(x.u)), 'groupe de modifications non fermé');
@@ -567,16 +573,19 @@ const tests = {
     assert(await p.$('.fields button:has-text("Signalez-le")'), 'lien « mal placé » absent');
     await p.fill('.fields input[aria-label="Numéro"]', '42'); await p.click('.fields .lnk.strong');
     assert(/42 Rue de Malte/.test(await p.textContent('.fields li:has-text("Adresse")')), 'adresse corrigée non affichée');
-    await p.click('.go.sticky:has-text("Envoyer 2 corrections")');
+    // nom (04/11 : le nom corrigé n'apparaissait pas dans le titre de la fiche)
+    await p.click('button[aria-label="Modifier : Nom"]'); await p.fill('.fields input.edit', 'Deux Fois Plus de Piments'); await p.click('.fields .lnk.strong');
+    await p.click('.go.sticky:has-text("Envoyer 3 corrections")');
     assert(/faux-site\.example/.test(await p.textContent('.chg')) && /deuxfoisplusdepiment\.fr/.test(await p.textContent('.chg')), 'avant → après absent');
     await p.click('.dlg .go'); await p.waitForSelector('text=Merci !', { timeout: 10000 });
     const node = puts.find((x) => /node\/3194013327$/.test(x.u));
     assert(node && /k="website" v="https:\/\/deuxfoisplusdepiment\.fr"/.test(node.body) && /k="addr:housenumber" v="42"/.test(node.body) && /changeset="888"/.test(node.body), `envoi : ${node?.body}`);
-    assert(/Corrections de « Deux Fois Plus de Piment » constatées sur place : adresse, site web/.test(puts[0].body), `commentaire : ${puts[0].body}`);
+    assert(/Corrections de « Deux Fois Plus de Piment » constatées sur place : nom, adresse, site web/.test(puts[0].body), `commentaire : ${puts[0].body}`);
     await p.click('.dlg .go');
     // affichée tout de suite sur la fiche, sans attendre le calcul de nuit (pendingedits.js, 04/11)
     await p.waitForFunction(() => /deuxfoisplusdepiment\.fr/.test(document.querySelector('section.sheet')?.innerText || ''), null, { timeout: 5000 });
     assert(!/faux-site\.example/.test(await p.textContent('section.sheet')), 'ancien site encore affiché');
+    assert(/Deux Fois Plus de Piments/.test(await p.textContent('section.sheet h1')), `nom corrigé absent du titre : ${await p.textContent('section.sheet h1')}`);
     const before = puts.length;
     // fermeture : un message aux bénévoles, pas une modification de la carte
     await p.click('.sec-btn:has-text("Corriger")'); await p.click('.dlg .sec:has-text("Le lieu a fermé")');
@@ -584,7 +593,7 @@ const tests = {
     await p.fill('.dlg textarea', 'Local vide, panneau à louer sur la vitrine'); await p.click('.dlg .go');
     await p.waitForSelector('text=Des bénévoles vont vérifier', { timeout: 10000 });
     const sent = new URLSearchParams(notes[0] || '');
-    assert(/fermé définitivement « Deux Fois Plus de Piment »/.test(sent.get('text') || '') && /à louer/.test(sent.get('text')) && sent.get('lat'), `message : ${notes[0]}`);
+    assert(/fermé définitivement « Deux Fois Plus de Piments »/.test(sent.get('text') || '') && /à louer/.test(sent.get('text')) && sent.get('lat'), `message : ${notes[0]}`);
     assert(puts.length === before, 'la fermeture ne doit pas modifier la carte');
     await p.click('.dlg .go');
     assert(/en cours de vérification/.test(await p.textContent('.reported')), 'signalement non rappelé sur la fiche');
