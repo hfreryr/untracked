@@ -1,22 +1,45 @@
-<!-- Nouvelle version en ligne : un bandeau propose de recharger (choix du porteur, 22/10 : « bandeau », pas de
-     rechargement silencieux qui couperait un guidage). L'app installée sur l'écran d'accueil de l'iPhone garde sinon
+<!-- Nouvelle version en ligne (versioncheck.js) : à l'ouverture, l'app se recharge seule (porteur, 04/11) ; ensuite, un
+     bandeau propose de recharger (choix du porteur, 22/10 : « bandeau », pas de rechargement silencieux qui couperait un
+     guidage). L'app installée sur l'écran d'accueil de l'iPhone garde sinon
      l'ancienne version. SvelteKit lit notre propre fichier de version (_app/version.json) : aucun service tiers. -->
 <script>
   import { tx } from '#lib/i18n/index.js';
   import { getContext, onMount } from 'svelte';
   import { updated } from '$app/state';
+  import { version } from '$app/environment';
+  import { latestVersion, isNewer, freshUrl, withoutV, reloadNow } from '#lib/versioncheck.js';
 
   const app = getContext('app');
-  // à l'ouverture (SvelteKit revérifie aussi à chaque retour dans l'app, et toutes les 10 min)
-  onMount(() => { updated.check().catch(() => {}); });
+  const t0 = Date.now();
+  // version déjà demandée par un rechargement (?v=) : si la page reçue est encore l'ancienne, pas de second rechargement
+  const tried = new URL(location.href).searchParams.get('v');
+  let fresh = $state(null);            // version en ligne plus récente que celle-ci
+  const busy = () => !!(app.place || app.nav || app.directions || app.category);
+  const reload = (v) => location.replace(freshUrl(location.href, v || String(Date.now())));
+  async function check() {
+    const v = await latestVersion().catch(() => null);
+    if (!isNewer(v, version)) return;
+    // à l'ouverture, rien d'ouvert : on recharge sans rien demander ; sinon le bandeau (jamais pendant un guidage)
+    if (v !== tried && reloadNow(Date.now() - t0, busy())) reload(v);
+    else fresh = v;
+  }
+  onMount(() => {
+    const clean = withoutV(location.href);
+    if (clean) history.replaceState(history.state, '', clean);
+    check();
+    const onVis = () => { if (document.visibilityState === 'visible') check(); };   // retour dans l'app installée
+    document.addEventListener('visibilitychange', onVis);
+    const timer = setInterval(check, 600_000);
+    return () => { document.removeEventListener('visibilitychange', onVis); clearInterval(timer); };
+  });
   // jamais pendant un guidage ni un itinéraire en cours : on attend la fin ; ni par-dessus un message passager (même place)
-  const show = $derived(updated.current && !app.nav && !app.directions && !app.toast);
+  const show = $derived((fresh || updated.current) && !app.nav && !app.directions && !app.toast);
 </script>
 
 {#if show}
   <div class="update" role="status">
     <span>{tx('maj.nouvelle_version')}</span>
-    <button onclick={() => location.reload()}>{tx('maj.mettre_a_jour')}</button>
+    <button onclick={() => reload(fresh)}>{tx('maj.mettre_a_jour')}</button>
   </div>
 {/if}
 
