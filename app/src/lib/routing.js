@@ -14,6 +14,7 @@ import { createLimiter } from './ratelimit.js';
 const VALHALLA = ROUTING_URL;
 // FOSSGIS : une demande par seconde au plus (conditions d'utilisation ; marge de 100 ms)
 const valhallaTurn = createLimiter(1100);
+import { readableLine } from '#lib/linecolor.js';
 const TRANSITOUS = 'https://api.transitous.org/api/v5/plan';
 
 // ——— Lissage des tracés ———
@@ -197,8 +198,7 @@ export function mapLeg(l) {
   return {
     mode: modeHere(l.mode, l.from?.lat != null ? { lat: l.from.lat, lon: l.from.lon } : null),
     line: l.routeShortName || '',
-    color: l.routeColor ? `#${l.routeColor}` : '#5B6573',
-    textColor: l.routeTextColor ? `#${l.routeTextColor}` : '#FFFFFF',
+    ...readableLine(l.routeColor ? `#${l.routeColor}` : '#5B6573', l.routeTextColor ? `#${l.routeTextColor}` : '#FFFFFF'),
     // Le RER affiche un code de mission (« SORI », « PIER ») : on prend le vrai terminus du train (porteur, 03/11)
     headsign: (MISSION.test(l.headsign || '') && l.tripTo?.name) || l.headsign || l.tripTo?.name || '',
     from: l.from?.name === 'START' ? tx('recherche.depart') : l.from?.name,
@@ -241,6 +241,11 @@ export async function transitRoutes(from, to, signal, when = new Date(), modes =
     // pas de limite ; le classement par heure d'arrivée (transitrank.js) garde les longues marches derrière.
     maxPreTransitTime: '1800',
     maxPostTransitTime: '1800',
+    // correspondances à pied calculées sur le vrai réseau piéton (couloirs, rues) plutôt qu'à vol d'oiseau : sans cela,
+    // Transitous comptait 2 min de rue entre Mabillon et Saint-Germain-des-Prés et préférait ce détour au changement
+    // à Odéon (Ségur → Barbès, porteur, 03/11/2026), et 3 min pour 380 m de couloirs à Gare du Nord. Comparé sur
+    // 12 trajets : temps de réponse égal, heures d'arrivée parfois 2 à 6 min plus tard mais réalistes.
+    useRoutedTransfers: 'true',
     ...(arrive ? { arriveBy: 'true' } : {}),
     ...(modes ? { transitModes: modes.join(',') } : {})
   });
@@ -368,8 +373,7 @@ export async function departures(name, lat, lon, signal) {
     let g = groups.get(key);
     if (!g) {
       g = { mode: s.mode, line: s.routeShortName || MODE_NAMES[s.mode] || tx('ecran.train'), headsign: dest,
-        color: s.routeColor ? `#${s.routeColor}` : '#5B6573',
-        textColor: s.routeTextColor ? `#${s.routeTextColor}` : '#FFFFFF', times: [], realTime: false };
+        ...readableLine(s.routeColor ? `#${s.routeColor}` : '#5B6573', s.routeTextColor ? `#${s.routeTextColor}` : '#FFFFFF'), times: [], realTime: false };
       groups.set(key, g);
     }
     if (g.times.length < 3 && !g.times.some((t) => Math.abs(t - when) < 30000)) g.times.push(when);
