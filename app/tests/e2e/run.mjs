@@ -541,7 +541,7 @@ const tests = {
     await ctx.route('**/data/places/**', async (route) => {
       const r = await route.fetch(); const j = await tileJson(r);
       if (!j?.t) return route.fulfill({ response: r });
-      for (const it of j.t) if (it[0] === ID) { it[3].website = 'https://faux-site.example'; it[3]._src = { ...(it[3]._src || {}), website: 'overture' }; delete it[3]['contact:website']; }
+      for (const it of j.t) if (it[0] === ID) { it[3].website = 'https://faux-site.example'; it[3]._src = { ...(it[3]._src || {}), website: 'overture' }; delete it[3]['contact:website']; it[3]['addr:housenumber'] = '40'; it[3]['addr:street'] = 'Rue de Malte'; }
       route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(j) });
     });
     const puts = [], notes = [];
@@ -561,12 +561,17 @@ const tests = {
     await p.click('button[aria-label="Modifier : Site web"]');
     await p.fill('.fields input.edit', 'deuxfoisplusdepiment.fr'); await p.click('.fields .lnk.strong');
     assert(/corrigé/.test(await p.textContent('.fields li:has-text("Site web")')), 'ligne non marquée corrigée');
-    await p.click('.go.sticky:has-text("Envoyer 1 correction")');
+    // adresse (04/11) : numéro et rue ; lien « mal placé » vers un message
+    await p.click('button[aria-label="Modifier : Adresse"]');
+    assert(await p.$('.fields button:has-text("Signalez-le")'), 'lien « mal placé » absent');
+    await p.fill('.fields input[aria-label="Numéro"]', '42'); await p.click('.fields .lnk.strong');
+    assert(/42 Rue de Malte/.test(await p.textContent('.fields li:has-text("Adresse")')), 'adresse corrigée non affichée');
+    await p.click('.go.sticky:has-text("Envoyer 2 corrections")');
     assert(/faux-site\.example/.test(await p.textContent('.chg')) && /deuxfoisplusdepiment\.fr/.test(await p.textContent('.chg')), 'avant → après absent');
     await p.click('.dlg .go'); await p.waitForSelector('text=Merci !', { timeout: 10000 });
     const node = puts.find((x) => /node\/3194013327$/.test(x.u));
-    assert(node && /k="website" v="https:\/\/deuxfoisplusdepiment\.fr"/.test(node.body) && /changeset="888"/.test(node.body), `envoi : ${node?.body}`);
-    assert(/Corrections de « Deux Fois Plus de Piment » constatées sur place : site web/.test(puts[0].body), `commentaire : ${puts[0].body}`);
+    assert(node && /k="website" v="https:\/\/deuxfoisplusdepiment\.fr"/.test(node.body) && /k="addr:housenumber" v="42"/.test(node.body) && /changeset="888"/.test(node.body), `envoi : ${node?.body}`);
+    assert(/Corrections de « Deux Fois Plus de Piment » constatées sur place : adresse, site web/.test(puts[0].body), `commentaire : ${puts[0].body}`);
     await p.click('.dlg .go');
     const before = puts.length;
     // fermeture : un message aux bénévoles, pas une modification de la carte
