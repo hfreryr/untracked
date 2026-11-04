@@ -1210,6 +1210,26 @@ z.close()`, zip]);
     assert(!errors.length, errors.join(' | '));
     await ctx.close();
   },
+  async 'liste ouverte : Modifier et Partager dans l’aperçu ; corbeille centrée dans son rond (04/11)'() {
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, locale: 'fr-FR' });
+    await ctx.addInitScript(() => {
+      localStorage.setItem('promesse-vue', '1');
+      localStorage.setItem('mes-listes', JSON.stringify([{ id: 'fav', name: 'Favoris', icon: 'heart', color: '#D63A7A' }, { id: 'lp', name: 'Paris', icon: 'star', color: '#D63A7A' }]));
+      localStorage.setItem('lieux-favoris', JSON.stringify([{ id: 'g1', name: 'Café de Flore', type: 'Café', address: '', lat: 48.8541, lon: 2.3326, lists: ['lp'] }]));
+    });
+    const p = await ctx.newPage(); const errors = []; p.on('pageerror', (e) => errors.push(e.message));
+    await p.goto(`http://localhost:${PORT}/`); await p.waitForTimeout(2500);
+    await p.click('.chip:has-text("Mes lieux")'); await p.waitForTimeout(1000);
+    await p.click('.swipe-content:has-text("Paris")'); await p.waitForTimeout(1500);
+    const [sheet, acts] = await Promise.all([p.$eval('section.sheet', (e) => e.getBoundingClientRect().bottom), p.$eval('.list-actions', (e) => e.getBoundingClientRect().bottom)]);
+    assert(sheet - acts >= 30, `Modifier / Partager collés au bord de l’écran (${Math.round(sheet - acts)} px dessous)`);
+    await p.click('.list-actions .link:has-text("Modifier")'); await p.waitForTimeout(800);
+    const off = await p.evaluate(() => { const b = document.querySelector('.del-round').getBoundingClientRect(), s = document.querySelector('.del-round svg').getBoundingClientRect();
+      return Math.abs(s.left + s.width / 2 - (b.left + b.width / 2)) + Math.abs(s.top + s.height / 2 - (b.top + b.height / 2)); });
+    assert(off < 1.5, `corbeille décentrée de ${off} px`);
+    assert(!errors.length, errors.join(' | '));
+    await ctx.close();
+  },
   async 'Mes lieux : 4 listes, puis « Voir les autres » (04/11)'() {
     const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, locale: 'fr-FR' });
     await ctx.addInitScript(() => {

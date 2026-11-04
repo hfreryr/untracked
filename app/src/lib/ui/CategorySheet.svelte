@@ -38,7 +38,7 @@
 </script>
 
 
-    <section class="sheet" aria-label={app.category.label} use:draggable={app.category.saved ? { key: app.category.label, onDismiss: app.clearCategory } : { key: app.category.label, start: 'peek' }}>
+    <section class="sheet" aria-label={app.category.label} use:draggable={app.category.saved ? { key: app.category.label, onDismiss: app.clearCategory, tease: 44 } : { key: app.category.label, start: 'peek' }}>
       <button class="grip" aria-label={tx('liste.agrandir_la_fiche')}></button>
       <button class="close" onclick={app.clearCategory} aria-label={tx('liste.fermer_la_liste')}>
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10M17 7 7 17" /></svg>
@@ -123,7 +123,8 @@
         {:else if !app.category.shared}<button class="link back-link" onclick={() => { app.savedList = null; app.refreshSaved(); }}>{tx('liste.mes_lieux')}</button>{/if}
         <h1 class="list-title"><ListDot l={l} size={30} />{l.name || app.category.label}</h1>
         <p class="kind">{app.category.reviews ? tx('badges.lieux_notes', { n: app.nearby.length }) : app.category.shared ? tx('liste.liste_partagee_lieu', { n: app.nearby.length }) : app.nearby.length ? tx('liste.lieu', { n: app.nearby.length, ordre: app.nearbyFromMe ? tx('liste.les_plus_proches_de_vous_abord') : tx('liste.par_distance') }) : tx('liste.aucun_lieu_pour_instant_touchez')}</p>
-        <div class="list-actions">
+        <!-- l'aperçu s'arrête sous Modifier / Partager, avec le haut du premier lieu (porteur, 04/11/2026) -->
+        <div class="list-actions" data-peek-end>
           {#if app.category.reviews}
           {:else if app.category.shared}
             <button class="go" onclick={app.keepIncomingList}>{tx('liste.ajouter_a_mes_lieux')}</button>
@@ -301,7 +302,7 @@
     background: var(--closed); color: #fff; display: flex; align-items: center; justify-content: flex-end; cursor: pointer; }
   .swipe-act svg { width: 22px; height: 22px; stroke-width: 2; flex: none; }
   /* mode « Modifier » : un petit bouton rond par lieu, à la place de la distance */
-  .nearby .del-round { flex: none; width: 36px; height: 36px; margin: 0 var(--gutter) 0 8px; border: 0; border-radius: 50%; padding: 0;
+  .nearby .del-round { flex: none; grid-template-columns: none; width: 36px; height: 36px; margin: 0 var(--gutter) 0 8px; border: 0; border-radius: 50%; padding: 0;
     background: var(--closed-bg); color: var(--closed); display: grid; place-items: center; cursor: pointer; position: relative; }
   .del-round::after { content: ''; position: absolute; inset: -4px; }
   .del-round svg { width: 19px; height: 19px; stroke-width: 2; }
@@ -356,9 +357,12 @@
   .nearby { list-style: none; margin: 12px calc(-1 * var(--gutter)) 0; padding: 0; }
   .nearby button {
     display: grid; grid-template-columns: 20px 1fr auto; gap: 14px; align-items: center; width: 100%;
-    border: 0; background: none; padding: 10px var(--gutter); text-align: left; cursor: pointer; border-top: 1px solid var(--line);
+    border: 0; background: none; padding: 10px var(--gutter); text-align: left; cursor: pointer;
   }
-  .nearby button:hover { background: var(--fill); }
+  /* trait entre les lieux sur toute la ligne, bouton corbeille compris (capture du porteur, 04/11/2026) */
+  .nearby > li { border-top: 1px solid var(--line); }
+  /* survol seulement avec une souris : sur un téléphone, le gris restait sur la dernière ligne touchée */
+  @media (hover: hover) { .nearby button:hover { background: var(--fill); } }
   .n-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--fam); box-shadow: 0 0 0 2px var(--card), 0 0 0 3px var(--line); justify-self: center; }
   .n-dist { color: var(--muted); font-size: 14px; font-variant-numeric: tabular-nums; }
   .n-dep { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 6px; font-size: 13.5px; margin-top: 3px; }
