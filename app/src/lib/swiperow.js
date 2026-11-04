@@ -25,6 +25,7 @@ export function swipeRow(node, opts) {
     c.style.transform = x ? `translateX(${x}px)` : '';
     node.style.setProperty('--dx', `${-x}px`);
     node.classList.toggle('far', x <= -node.offsetWidth * 0.55);
+    node.classList.toggle('moved', x < 0);
   };
   const start = (e) => {
     if (!o.enabled || e.touches.length !== 1) return;

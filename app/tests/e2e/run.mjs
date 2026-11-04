@@ -1210,6 +1210,25 @@ z.close()`, zip]);
     assert(!errors.length, errors.join(' | '));
     await ctx.close();
   },
+  async 'Mes lieux : 4 listes, puis « Voir les autres » (04/11)'() {
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, locale: 'fr-FR' });
+    await ctx.addInitScript(() => {
+      localStorage.setItem('promesse-vue', '1');
+      const names = ['Alsace', 'Paris', 'Images', 'Baléares', 'Provence', 'Norvège'];
+      localStorage.setItem('mes-listes', JSON.stringify([{ id: 'fav', name: 'Favoris', icon: 'heart', color: '#D63A7A' },
+        ...names.map((name, i) => ({ id: `l${i}`, name, icon: 'star', color: '#2A5BD7' }))]));
+    });
+    const p = await ctx.newPage(); const errors = []; p.on('pageerror', (e) => errors.push(e.message));
+    await p.goto(`http://localhost:${PORT}/`); await p.waitForTimeout(2500);
+    await p.click('.chip:has-text("Mes lieux")'); await p.waitForTimeout(1200);
+    assert((await p.locator('.swipe-row').count()) === 4, 'plus de 4 listes affichées d’emblée');
+    await p.click('button.more:has-text("Voir les 3 autres listes")');
+    assert((await p.locator('.swipe-row').count()) === 7, 'toutes les listes non affichées');
+    await p.click('button.more:has-text("Voir moins")');
+    assert((await p.locator('.swipe-row').count()) === 4, '« Voir moins » sans effet');
+    assert(!errors.length, errors.join(' | '));
+    await ctx.close();
+  },
   async 'lien de liste partagée et lien de transfert'() {
     const lien = await packList({ name: 'Sorties', icon: 'star', color: '#2A5BD7' }, [{ name: 'Le Comptoir', lat: 48.8515, lon: 2.3387, osmType: 'node', osmId: 1 }]);
     let { p, ctx } = await page({}, `#liste=${lien}`);

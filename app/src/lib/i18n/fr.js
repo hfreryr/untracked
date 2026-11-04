@@ -159,6 +159,8 @@ export default {
   'liste.raccourci_ajoute': '« {nom} » ajouté à vos catégories',
   'liste.agrandir_la_fiche': 'Agrandir la fiche',
   'liste.fermer_la_liste': 'Fermer la liste',
+  'liste.voir_les_autres': ({ n }) => `Voir les ${n} autres listes`,
+  'liste.voir_moins': 'Voir moins',
   'liste.listes': 'Listes',
   'liste.nouvelle_liste': 'Nouvelle liste…',
   'liste.nom_de_la_nouvelle_liste': 'Nom de la nouvelle liste',
