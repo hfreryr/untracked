@@ -1303,11 +1303,29 @@ z.close()`, zip]);
     const { p, ctx, errors } = await page();
     assert(!(await p.$('.update')), 'bandeau affiché sans nouvelle version');
     // le site annonce une autre version que celle chargée → bandeau ; « Mettre à jour » recharge la page
-    await p.route('**/_app/version.json', (r) => r.fulfill({ contentType: 'application/json', body: '{"version":"autre"}' }));
-    await p.evaluate(() => window.dispatchEvent(new Event('focus')));
+    await p.route('**/_app/version.json*', (r) => r.fulfill({ contentType: 'application/json', body: '{"version":"autre"}' }));
+    await p.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));   // retour dans l'app
     await p.waitForSelector('.update', { timeout: 8000 });
     assert(/Nouvelle version/.test(await p.textContent('.update')), 'texte du bandeau');
     await Promise.all([p.waitForEvent('load'), p.click('.update button')]);
+    assert(!errors.length, errors.join(' | '));
+    await ctx.close();
+  },
+  async 'nouvelle version à l’ouverture : rechargement seul, sans cache, une seule fois (04/11)'() {
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, locale: 'fr-FR' });
+    await ctx.addInitScript(() => localStorage.setItem('promesse-vue', '1'));
+    const asked = [];
+    await ctx.route('**/_app/version.json*', (r) => { asked.push(r.request().url()); r.fulfill({ contentType: 'application/json', body: '{"version":"autre"}' }); });
+    const p = await ctx.newPage(); const errors = []; p.on('pageerror', (e) => errors.push(e.message));
+    const loads = []; p.on('framenavigated', (f) => { if (f === p.mainFrame()) loads.push(f.url()); });
+    let pages = 0; p.on('load', () => pages++);
+    await p.goto(`http://localhost:${PORT}/#carte=14/48.85/2.35`);
+    // la page reçue reste l'ancienne (même fichier) : rechargée une fois sur ?v=autre, puis le bandeau, pas de boucle
+    await p.waitForSelector('.update', { timeout: 15000 }); await p.waitForTimeout(1500);
+    assert(loads.some((u) => /\?v=autre#carte=14/.test(u)), `pas de rechargement sur une adresse nouvelle : ${loads.join(' | ')}`);
+    assert(pages === 2, `${pages} chargements de la page (attendu : 2, l'ouverture puis un seul rechargement)`);
+    assert(!/[?&]v=/.test(p.url()) && /#carte=/.test(p.url()), `adresse non remise au propre : ${p.url()}`);
+    assert(asked.every((u) => /\?t=\d+/.test(u)), `fichier de version demandé sans adresse unique : ${asked[0]}`);
     assert(!errors.length, errors.join(' | '));
     await ctx.close();
   },
