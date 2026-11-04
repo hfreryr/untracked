@@ -586,7 +586,7 @@ const tests = {
     assert(/fermé définitivement « Deux Fois Plus de Piment »/.test(sent.get('text') || '') && /à louer/.test(sent.get('text')) && sent.get('lat'), `message : ${notes[0]}`);
     assert(puts.length === before, 'la fermeture ne doit pas modifier la carte');
     await p.click('.dlg .go');
-    assert(/Signalé le .* en cours de vérification/.test(await p.textContent('.reported')), 'signalement non rappelé sur la fiche');
+    assert(/en cours de vérification/.test(await p.textContent('.reported')), 'signalement non rappelé sur la fiche');
     assert(!errors.length, errors.join(' | '));
     await ctx.close();
   },

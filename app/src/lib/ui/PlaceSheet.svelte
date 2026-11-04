@@ -313,7 +313,7 @@
         {/if}
       </div>
       <!-- signalement fait depuis ce téléphone : la carte ne change qu'après vérification par des bénévoles -->
-      {#if reported}<p class="reported">{tx('fiche.signale_le', { date: new Date(reported * 1000).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }) })}</p>{/if}
+      {#if reported}<p class="reported">{tx('fiche.signale')}</p>{/if}
 
       {#if nearAsk}<NearbyRate place={app.place} />{/if}
 
