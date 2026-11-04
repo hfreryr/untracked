@@ -4,7 +4,8 @@
   let { id, size = 48, off = false } = $props();
   const STYLE = {
     gourmet: ['#fde4d6', '#b9502a'], explorateur: ['#dce7fb', '#2a5bd7'], quartier: ['#dcf1e3', '#2a7a4b'],
-    culture: ['#ebe5fb', '#6a46c8'], cafe: ['#f2e6d8', '#87582a'], nuit: ['#e2e5f3', '#34437f']
+    culture: ['#ebe5fb', '#6a46c8'], cafe: ['#f2e6d8', '#87582a'], nuit: ['#e2e5f3', '#34437f'],
+    gardien: ['#fdf0d3', '#9a6a00'], sentinelle: ['#fbe1e1', '#b42b2b'], cartographe: ['#dff1f1', '#1f6f73']
   };
   const [bg, fg] = $derived(STYLE[id] || ['#eee', '#555']);
 </script>
@@ -25,6 +26,12 @@
     {:else if id === 'cafe'}
       <path d="M12 21h20v7a8 8 0 0 1-8 8h-4a8 8 0 0 1-8-8z" /><path d="M32 23.5h2.5a3.5 3.5 0 0 1 0 7H31" />
       <path d="M18 11c-1.5 2 1.5 3.5 0 5.5M24 10c-1.5 2 1.5 3.5 0 5.5" />
+    {:else if id === 'gardien'}
+      <circle cx="24" cy="24" r="12.5" /><path d="M24 16.5V24l5 3" />
+    {:else if id === 'sentinelle'}
+      <circle cx="21.5" cy="21.5" r="8.5" /><path d="m27.8 27.8 8 8" /><path d="M21.5 17.5v4.5M21.5 25v.3" />
+    {:else if id === 'cartographe'}
+      <path d="m10 15 9-3.5 10 3.5 9-3.5v21.5l-9 3.5-10-3.5-9 3.5z" /><path d="M19 11.5V33M29 15v21.5" />
     {:else}
       <path d="M30.5 32.5A11 11 0 0 1 22 13a11 11 0 1 0 13.5 15.6 11 11 0 0 1-5 3.9z" />
       <path d="M32 12.5v4M30 14.5h4M37 19.5v2.6M35.7 20.8h2.6" />

@@ -13,6 +13,8 @@
   import { sendTags } from '#lib/osmedit.js';
   import { recordEdit } from '#lib/osmcontrib.js';
   import { refOf } from '#lib/pendingedits.js';
+  import { isOnSite } from '#lib/points.js';
+  import RewardGain from './RewardGain.svelte';
   import { refreshInfo } from '#lib/placeflow.js';
   const app = getContext('app');
   let week = $state(parseHours(hoursEdit.oh) || emptyWeek());
@@ -33,7 +35,7 @@
       const r = await sendTags(place, sent,
         tx('horaires_edit.commentaire', { nom: place.name }), { api: s.api, token: account.token });
       changeset = `${s.web}/changeset/${r.changeset}`;
-      recordEdit({ name: place.name, kind: 'horaires', changeset: r.changeset, server: s.web, ref: refOf(place), tags: sent });
+      recordEdit({ name: place.name, kind: 'horaires', changeset: r.changeset, server: s.web, ref: refOf(place), tags: sent, near: isOnSite(app.me, place) });
       refreshInfo(app, place);
       hoursEdit.step = 'done';
     } catch (e) {
@@ -64,9 +66,8 @@
     <button class="sec" onclick={() => (hoursEdit.step = 'edit')}>{tx('horaires_edit.modifier')}</button>
   {:else}
     <div class="ok" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5" /></svg></div>
+    <RewardGain />
     <p class="center">{tx('horaires_edit.merci_detail', { nom: place.name })}</p>
-    <p class="note">{tx('horaires_edit.visible_quand')}</p>
-    <p class="note">{tx('horaires_edit.compte_dans_contributions')}</p>
     {#if changeset}<a class="sec" href={changeset} target="_blank" rel="noopener">{tx('horaires_edit.voir_modification')}</a>{/if}
     <button class="go" onclick={closeHoursEdit}>{tx('enregistrer.termine')}</button>
   {/if}

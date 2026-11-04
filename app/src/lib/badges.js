@@ -1,6 +1,7 @@
 // Badges à collectionner (maquette du 31/10/2026, validée le 01/11) : comptés sur le téléphone à partir de mes avis
 // (reviewer.js), comme les niveaux (contrib.js). Rien n'est envoyé, aucun classement entre personnes.
 // Chaque avis garde, en plus de la note : le genre de lieu, sa position, sa commune et son code postal (reviewmeta.js).
+import { osmEdits } from '#lib/osmcontrib.js';
 
 /** Genre d'un lieu pour les badges, d'après sa sous-catégorie OSM (amenity=restaurant → « restaurant »). */
 const KINDS = {
@@ -12,7 +13,12 @@ const KINDS = {
 export const kindOf = (subclass) => KINDS[subclass] || null;
 
 const GOAL = 5;
+// badges des corrections (maquette du 04/11/2026), comptés sur les modifications retenues par osmcontrib.js
+const kindN = (k) => (m, ed = []) => ed.filter((e) => e.kind === k).length;
 export const BADGES = [
+  { id: 'gardien', goal: 10, count: kindN('horaires') },
+  { id: 'sentinelle', goal: GOAL, count: kindN('signalement') },
+  { id: 'cartographe', goal: 10, count: (m, ed = []) => new Set(ed.map((e) => e.ref).filter(Boolean)).size },
   { id: 'gourmet', goal: 10, count: (m) => m.filter((r) => r.kind === 'restaurant').length },
   { id: 'explorateur', goal: GOAL, count: (m) => new Set(m.map((r) => r.city).filter(Boolean)).size },
   { id: 'quartier', goal: GOAL, count: (m) => Math.max(0, ...Object.values(byArea(m))) },
@@ -41,8 +47,8 @@ export function topArea(mine) {
 }
 
 /** Avancement de chaque badge : { id, n (plafonné au but), goal, done }. */
-export const badgeProgress = (mine) => BADGES.map((b) => {
-  const n = b.count(mine);
+export const badgeProgress = (mine, edits = osmEdits()) => BADGES.map((b) => {
+  const n = b.count(mine, edits);
   return { id: b.id, n: Math.min(n, b.goal), goal: b.goal, done: n >= b.goal };
 });
 

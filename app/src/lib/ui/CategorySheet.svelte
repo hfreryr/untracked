@@ -34,7 +34,7 @@
   const LEVEL_NAME = { eclaireur: () => tx('contrib.eclaireur'), passeur: () => tx('contrib.passeur'), vigie: () => tx('contrib.vigie'), phare: () => tx('contrib.phare') };
   // niveau ou badge obtenu sans avoir été annoncé (avis d'avant l'annonce, avis complétés plus tard) : signalé ici, sans pop-up
   function hasNews() { const m = loadReviewer().mine; return !!levelToAnnounce(contribCount(m)) || badgesNotAnnounced(m).length > 0; }
-  function contribLine() { const n = loadReviewer().mine.length, m = osmEdits().length, l = levelOf(n + m).level; return tx('contrib.resume', { n, m, niveau: l ? LEVEL_NAME[l.id]() : '' }); }
+  function contribLine() { const mine = loadReviewer().mine, n = mine.length, m = osmEdits().length, l = levelOf(contribCount(mine)).level; return tx('contrib.resume', { n, m, niveau: l ? LEVEL_NAME[l.id]() : '' }); }
 </script>
 
 

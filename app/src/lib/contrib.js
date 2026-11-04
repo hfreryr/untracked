@@ -65,7 +65,7 @@ export function levelToAnnounce(n, store = globalThis.localStorage) {
 export const markAnnounced = (n, store = globalThis.localStorage) => write(ANNOUNCED_KEY, levelOf(n).rank, store);
 
 /** Ce qu'un avis vient de faire gagner (pour l'annoncer tout de suite) : le niveau franchi, les badges complétés. */
-export function earnedBy(before, after, progress, extra = 0) {   // extra : modifications OSM (osmcontrib.js), qui comptent aussi
+export function earnedBy(before, after, progress, extra = 0) {   // extra : points des modifications OSM (points.js), qui comptent aussi
   const a = levelOf(after.length + extra), b = levelOf(before.length + extra);
   const done = (m) => new Set(progress(m).filter((x) => x.done).map((x) => x.id));
   const was = done(before);

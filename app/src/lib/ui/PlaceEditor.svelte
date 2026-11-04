@@ -16,6 +16,8 @@
   import { sendTags, sendNote } from '#lib/osmedit.js';
   import { recordEdit } from '#lib/osmcontrib.js';
   import { refOf } from '#lib/pendingedits.js';
+  import { isOnSite } from '#lib/points.js';
+  import RewardGain from './RewardGain.svelte';
   import { refreshInfo } from '#lib/placeflow.js';
   const app = getContext('app');
   const LABEL = { name: () => tx('corriger.nom'), address: () => tx('corriger.adresse'), website: () => tx('corriger.site'), phone: () => tx('corriger.telephone'),
@@ -60,7 +62,7 @@
       const sent = tagsFor(placeEdit.changes, tags);
       const r = await sendTags(place, sent, tx('corriger.commentaire', { nom: place.name, champs: names }), { api: s.api, token: account.token });
       link = `${s.web}/changeset/${r.changeset}`;
-      recordEdit({ name: place.name, kind: 'corrections', changeset: r.changeset, server: s.web, ref: refOf(place), tags: sent });
+      recordEdit({ name: place.name, kind: 'corrections', changeset: r.changeset, server: s.web, ref: refOf(place), tags: sent, near: isOnSite(app.me, place) });
       refreshInfo(app, place);
       placeEdit.step = 'done';
     } catch (e) {
@@ -76,7 +78,7 @@
     try {
       const r = await sendNote(place, noteText(noteKind, place.name, noteDetail), { api: s.api });
       link = r.id ? `${s.web}/note/${r.id}` : null;
-      recordEdit({ name: place.name, kind: 'signalement', note: r.id || null, server: s.web, ref: refOf(place) });
+      recordEdit({ name: place.name, kind: 'signalement', note: r.id || null, server: s.web, ref: refOf(place), near: isOnSite(app.me, place) });
       placeEdit.step = 'notedone';
     } catch { error = tx('horaires_edit.envoi_impossible'); placeEdit.step = 'note'; }
   }
@@ -154,8 +156,8 @@
     <button class="sec" onclick={() => (placeEdit.step = noteKind === 'adresse' ? 'list' : 'closed')}>{tx('corriger.annuler')}</button>
   {:else}
     <div class="ok" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5" /></svg></div>
+    <RewardGain />
     <p class="center">{placeEdit.step === 'notedone' ? tx('corriger.note_merci') : tx('corriger.merci_detail', { n, nom: place.name })}</p>
-    {#if placeEdit.step === 'done'}<p class="note">{tx('horaires_edit.visible_quand')}</p><p class="note">{tx('horaires_edit.compte_dans_contributions')}</p>{/if}
     {#if link}<a class="sec" href={link} target="_blank" rel="noopener">{tx('horaires_edit.voir_modification')}</a>{/if}
     <button class="go" onclick={closePlaceEdit}>{tx('enregistrer.termine')}</button>
   {/if}
