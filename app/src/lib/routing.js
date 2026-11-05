@@ -15,6 +15,9 @@ const VALHALLA = ROUTING_URL;
 // FOSSGIS : une demande par seconde au plus (conditions d'utilisation ; marge de 100 ms)
 const valhallaTurn = createLimiter(1100);
 import { readableLine } from '#lib/linecolor.js';
+import { trustedShape } from '#lib/legshape.js';
+// arrêts d'une étape, dans l'ordre, pour vérifier son tracé (legshape.js)
+const legStops = (l) => [l.from, ...(l.intermediateStops || []), l.to].filter((s) => s?.lat != null).map((s) => [s.lon, s.lat]);
 const TRANSITOUS = 'https://api.transitous.org/api/v5/plan';
 
 // ——— Lissage des tracés ———
@@ -220,7 +223,7 @@ export function mapLeg(l) {
     // heure prévue au départ de l'arrêt (le retard se lit par différence avec start)
     scheduled: l.scheduledStartTime ? new Date(l.scheduledStartTime) : null,
     coords: l.legGeometry
-      ? (l.mode === 'WALK' ? streetLine : (c) => smooth(c, 3))(decodePolyline(l.legGeometry.points, l.legGeometry.precision || 6))
+      ? (l.mode === 'WALK' ? streetLine : (c) => smooth(trustedShape(c, legStops(l)), 3))(decodePolyline(l.legGeometry.points, l.legGeometry.precision || 6))
       : []
   };
 }
