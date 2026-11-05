@@ -120,10 +120,13 @@ export async function placesInBounds({ west, south, east, north }, maxTiles = 6)
   const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
   const keys = [];
   for (let x = x0; x <= x1; x++) for (let y = y0; y <= y1; y++) {
-    const where = await sourceOf(x, y);
     // un fichier d'un seul carré n'existe que s'il a des lieux ; un grand fichier (campagne) peut avoir des carrés vides :
-    // on le charge (il est petit, et sera lu de toute façon) pour ne garder que les carrés habités
-    if (where && (where.file.startsWith(`${ZOOM}/`) || (await loadFile(where)).has(`${x}/${y}`))) keys.push([x, y]);
+    // on le charge (il est petit, et sera lu de toute façon) pour ne garder que les carrés habités. Toutes les sources
+    // sont regardées, pas seulement la première : à Jonzac ou Marans (Charente-Maritime), le grand fichier vide de
+    // l'Aquitaine ou des Pays de la Loire faisait écarter le carré, plein dans Poitou-Charentes (porteur, 06/11/2026)
+    for (const where of await sourcesWith(x, y)) {
+      if (where.file.startsWith(`${ZOOM}/`) || (await loadFile(where)).has(`${x}/${y}`)) { keys.push([x, y]); break; }
+    }
   }
   keys.sort((a, b) => Math.hypot(a[0] - cx, a[1] - cy) - Math.hypot(b[0] - cx, b[1] - cy));
   const lists = await Promise.all(keys.slice(0, maxTiles).map(([x, y]) => loadTile(x, y)));
