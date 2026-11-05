@@ -81,4 +81,4 @@ jobs:
           bash app/scripts/site_budget.sh pages   # plafond de poids du site (700 Mo), voir docs/villes.md
           cd pages && git add -A data/places && { [ ! -d data/bikes ] || git add -A data/bikes data/bikes.geojson; }
           git -c user.name=untracked-bot -c user.email=bot@untrackedmaps.app commit -qm "Lieux par tuile et réseau cyclable : extrait OSM du $(date -u +%F)" || exit 0
-          git push origin HEAD:gh-pages
+          bash ../app/scripts/push_pages.sh   # réessaie si gh-pages a avancé entre-temps (04/11/2026)
