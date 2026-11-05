@@ -1258,6 +1258,15 @@ z.close()`, zip]);
     assert(!errors.length, errors.join(' | '));
     await ctx.close();
   },
+  async 'lien vers un point placé à la main : l’épingle et sa fiche (05/11)'() {
+    const { p, ctx, errors } = await page({}, '#carte=17/48.84712/2.30715&point=1');
+    await p.waitForSelector('section.sheet h1', { timeout: 15000 });
+    await p.waitForFunction(() => /Ségur|Avenue|Rue|Point/i.test(document.querySelector('section.sheet h1')?.textContent || ''), null, { timeout: 15000 });
+    const c = await p.evaluate(() => { const m = window.__map.getCenter(); return [m.lat, m.lng]; });
+    assert(Math.abs(c[0] - 48.84712) < 0.002 && Math.abs(c[1] - 2.30715) < 0.002, `carte ailleurs : ${c}`);
+    assert(!errors.length, errors.join(' | '));
+    await ctx.close();
+  },
   async 'lien de liste partagée et lien de transfert'() {
     const lien = await packList({ name: 'Sorties', icon: 'star', color: '#2A5BD7' }, [{ name: 'Le Comptoir', lat: 48.8515, lon: 2.3387, osmType: 'node', osmId: 1 }]);
     let { p, ctx } = await page({}, `#liste=${lien}`);

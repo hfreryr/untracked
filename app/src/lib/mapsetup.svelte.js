@@ -1,5 +1,6 @@
 // Mise en place de la carte : style clair/sombre, liens partagés à l'ouverture, écouteurs.
 // Code sorti de +page.svelte : il lit et modifie l'état de l'écran par l'objet « app » (bloc « app » de la page).
+import { sharedPoint } from '#lib/sharedpoint.js';
 import { applyTheme, isDark } from '#lib/theme.js';
 import { tx } from '#lib/i18n/index.js';
 import { PARIS } from '#lib/places.js';
@@ -65,6 +66,9 @@ export function createMapSetup(app) {
         const c = app.map.getCenter();
         app.openPlace({ id: `${shared[1]}${shared[2]}`, osmType: shared[1], osmId: Number(shared[2]), name: '', type: '', address: '', lat: c.lat, lon: c.lng });
       }
+      // Point placé à la main et partagé (…&point=1) : l'épingle et sa fiche (adresse la plus proche)
+      const pt = !shared && sharedPoint(location.hash);
+      if (pt) app.openPoint({ lng: pt.lon, lat: pt.lat });
     });
     app.map.on('click', app.onMapClick);
     // Catégorie ouverte : quand on déplace ou zoome la carte à la main, la liste se recharge pour la nouvelle zone.
