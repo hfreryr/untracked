@@ -36,10 +36,15 @@ jobs:
         run: |
           gh label create controle --color B60205 --description "Contrôle quotidien des données" 2>/dev/null || true
           n=$(gh issue list --label controle --state open --json number --jq '.[0].number')
+          # un seul mail par changement (porteur, 06/11/2026) : pas d'échec du calcul en plus du signalement, et pas de
+          # commentaire quand la liste des problèmes est la même que la veille
+          probs() { sed -n '/^- /p' | sort; }
           if [ "$CODE" != "0" ]; then
-            if [ -n "$n" ]; then gh issue comment "$n" --body-file rapport.md
+            if [ -n "$n" ]; then
+              last=$(gh issue view "$n" --json body,comments --jq '(.comments | last | .body) // .body')
+              if [ "$(printf '%s\n' "$last" | probs)" != "$(probs < rapport.md)" ]; then gh issue comment "$n" --body-file rapport.md
+              else echo "mêmes problèmes que la veille : pas de nouveau mail"; fi
             else gh issue create --title "Contrôle des données : problème(s) à corriger" --label controle --body-file rapport.md; fi
-            exit 1
           elif [ -n "$n" ]; then
             gh issue close "$n" --comment "Tout est rentré dans l'ordre : $(date -u +%F)."
           fi
