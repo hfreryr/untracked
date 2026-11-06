@@ -58,4 +58,6 @@ jobs:
           bash ../app/scripts/push_pages.sh   # réessaie si gh-pages a avancé entre-temps (04/11/2026)
       - name: "Étape ratée en cours de route : calcul en rouge, même si le reste est publié (06/11/2026)"
         if: env.PARTIAL == '1'
-        run: { echo "::error::une étape a échoué (voir les messages en rouge plus haut)"; exit 1; }
+        run: |
+          echo "::error::une étape a échoué (voir les messages en rouge plus haut)"
+          exit 1
