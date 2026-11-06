@@ -1,5 +1,6 @@
 // Fiche lieu : ouverture, partage, prochains passages, lieux récents.
 // Code sorti de +page.svelte : il lit et modifie l'état de l'écran par l'objet « app » (bloc « app » de la page).
+import { syncSavedName } from '#lib/favname.js';
 import { tx } from '#lib/i18n/index.js';
 import { departures } from '#lib/routing.js';
 import { details } from '#lib/places.js';
@@ -54,7 +55,7 @@ export function createPlace(app) {
     if (app.place?.id !== p.id) return;
     // Lien partagé : on ne connaissait que l'identifiant du lieu, on récupère son nom.
     // (nom corrigé depuis ce téléphone et pas encore dans nos données : celui des détails, pendingedits.js)
-    if (app.info.name && app.info.name !== p.name) { app.place = { ...app.place, name: app.info.name, type: app.info.kind || app.info.type || app.place.type }; remember(app.place); app.showSelection(app.place); }
+    if (app.info.name && app.info.name !== p.name) { app.place = { ...app.place, name: app.info.name, type: app.info.kind || app.info.type || app.place.type }; remember(app.place); app.showSelection(app.place); syncSavedName(app, p, app.info.name); }
     if (app.info.wikiPhotos || app.info.wikiTitle) {
       // préparé à l'avance (wikiprepared.js) : les photos tout de suite, le texte quand il arrive
       const photos = preparedPhotos(app.info.wikiPhotos);
@@ -115,5 +116,6 @@ export function refreshInfo(app, place) {
     app.info = { ...app.info, ...i };
     // nom corrigé : le titre de la fiche vient du lieu ouvert, pas de ses détails (porteur, 04/11/2026 : « Sesame »)
     if (i.name && i.name !== app.place.name) app.place = { ...app.place, name: i.name };
+    if (i.name) syncSavedName(app, place, i.name);   // et dans Mes lieux (06/11/2026)
   }).catch(() => {});
 }

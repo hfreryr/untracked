@@ -543,6 +543,8 @@ const tests = {
     await ctx.addInitScript(() => {
       localStorage.setItem('osm-serveur-essai', JSON.stringify({ clientId: 'essai', web: 'https://osm.test', api: 'https://api.osm.test' }));
       localStorage.setItem('osm-acces', JSON.stringify({ token: 'jeton', name: 'guy_r', server: 'https://osm.test' }));
+      // déjà dans Mes lieux sous l'ancien nom (06/11 : le nom corrigé n'y était pas repris)
+      if (!localStorage.getItem('lieux-favoris')) localStorage.setItem('lieux-favoris', JSON.stringify([{ id: 'N3194013327', name: 'Deux Fois Plus de Piment', type: 'Restaurant', address: '', lat: 48.861574, lon: 2.370638, osmType: 'node', osmId: 3194013327, lists: ['fav'] }]));
     });
     await ctx.route('**/data/places/**', async (route) => {
       const r = await route.fetch(); const j = await tileJson(r);
@@ -586,6 +588,10 @@ const tests = {
     await p.waitForFunction(() => /deuxfoisplusdepiment\.fr/.test(document.querySelector('section.sheet')?.innerText || ''), null, { timeout: 5000 });
     assert(!/faux-site\.example/.test(await p.textContent('section.sheet')), 'ancien site encore affiché');
     assert(/Deux Fois Plus de Piments/.test(await p.textContent('section.sheet h1')), `nom corrigé absent du titre : ${await p.textContent('section.sheet h1')}`);
+    const saved = await p.evaluate(() => JSON.parse(localStorage.getItem('lieux-favoris') || '[]').map((f) => f.name));
+    assert(saved.includes('Deux Fois Plus de Piments') && !saved.includes('Deux Fois Plus de Piment'), `Mes lieux garde l'ancien nom : ${saved}`);
+    const dup = await p.evaluate(() => JSON.stringify(window.__map.getFilter('landmark')));
+    assert(/node\/3194013327/.test(dup), `le lieu enregistré reste aussi dans les lieux mis en avant (nom en double) : ${dup}`);
     const before = puts.length;
     // fermeture : un message aux bénévoles, pas une modification de la carte
     await p.click('.sec-btn:has-text("Corriger")'); await p.click('.dlg .sec:has-text("Le lieu a fermé")');
