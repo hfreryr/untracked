@@ -61,6 +61,30 @@ def split(cells, zmin=ZMIN, zmax=CELL, target=TARGET):
     return out
 
 
+COVER = 13   # carrés de zoom 13 (≈ 3 km) qui ont au moins un lieu : là, le fond de carte cède la place à nos lieux
+
+
+def cover(cells, z=COVER):
+    """Carrés de zoom `z` habités, en rangées : [[y, x début, x fin], …] (06/11/2026 : le cadre rectangulaire d'une région
+    débordait à l'étranger, et le fond de carte y était effacé sans rien à la place : Genève, Bâle, Kehl…). Pure."""
+    s = CELL - z
+    rows = defaultdict(set)
+    for (x, y), v in cells.items():
+        if v:
+            rows[y >> s].add(x >> s)
+    out = []
+    for y in sorted(rows):
+        xs = sorted(rows[y])
+        start = prev = xs[0]
+        for x in xs[1:]:
+            if x != prev + 1:
+                out.append([y, start, prev])
+                start = x
+            prev = x
+        out.append([y, start, prev])
+    return out
+
+
 def write(out_dir, cells, meta, **kw):
     """Écrit les fichiers et l'index ; renvoie la liste des tailles compressées."""
     files = split(cells, **kw)
@@ -70,7 +94,7 @@ def write(out_dir, cells, meta, **kw):
         with open(os.path.join(d, f"{y}.json.gz"), "wb") as f:
             f.write(data)
     index = {"v": 2, "zooms": sorted({z for z, _, _ in files}), "cells": sum(1 for v in cells.values() if v), **meta,
-             "tiles": sorted(f"{z}/{x}/{y}" for z, x, y in files)}
+             "tiles": sorted(f"{z}/{x}/{y}" for z, x, y in files), "cover": {"z": COVER, "rows": cover(cells)}}
     with open(os.path.join(out_dir, "index.json"), "w") as f:
         json.dump(index, f, separators=(",", ":"))
     return [len(d) for d in files.values()]

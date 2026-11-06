@@ -41,3 +41,10 @@ def test_ancien_format_encore_lu(tmp_path):
     d = tmp_path / "14" / "8000"; d.mkdir(parents=True)
     (d / "5000.json").write_text(json.dumps({"v": 1, "t": [lieu(7, 0, 0)]}))
     assert [it[0] for it in tileio.iter_items(str(tmp_path))] == [71]
+
+
+def test_cover_rangees_de_carres_habites():
+    """Carrés de zoom 13 habités, en rangées (06/11/2026 : fond de carte effacé à tort hors de France)."""
+    import tileio
+    cells = {(0, 0): [1], (1, 0): [1], (2, 0): [1], (6, 0): [1], (2, 2): [1], (8, 8): []}   # zoom 14
+    assert tileio.cover(cells) == [[0, 0, 1], [0, 3, 3], [1, 1, 1]]
