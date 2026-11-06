@@ -32,6 +32,21 @@ Voir `README.md` pour la feuille de route.
 - **Données préparées à l'avance, adressées par tuile**, avec une URL de base configurable ; jamais de service tiers interrogé lieu par lieu (Overpass interdit). Fournisseurs derrière des interfaces uniques (`search`, `details`, `route`) ; tout ce qui est parisien dans un profil de ville.
 - **Licences** : code AGPL-3.0, données ODbL, documentation CC-BY-SA 4.0. Vérifier la compatibilité de licence de toute nouvelle source de données avant de l'utiliser.
 
+## Fiabilité des données (après l'incident du 06/11/2026, voir `docs/incidents.md`)
+- **« Publié » ou « calculé » seulement après vérification en ligne** : version servie par le site (`wait_live.sh`),
+  données réellement présentes et à jour (index, mesures, fichiers). Un envoi réussi n'est pas une publication.
+- **Relire le journal de chaque calcul** lancé ou déclenché par une fusion : erreurs en rouge, résumé par zone, mesures
+  avant → après. Un calcul vert n'est pas une preuve.
+- **Lire le dernier « Contrôle des données »** (signalement GitHub `controle`) au début de chaque séance, et le dire.
+- **Jamais de bonnes données remplacées par de moins bonnes** : tout ce qui est publié passe par un contrôle champ par
+  champ (`check_publish.py`, `check_extras.py`) ; un état se télécharge avec `fetch_state.sh` ; toute donnée produite par
+  un calcul est listée dans `app/scripts/pages_data.txt`.
+- **Aucun échec silencieux** : pas de `|| echo` ni de `|| true` sans `::error::` et calcul en échec à la fin.
+- **Toute fonction de données testée sur plusieurs sortes de zones** (ouest de Greenwich, Corse, frontière, Amsterdam),
+  jamais seulement sur l'Île-de-France : `tests/test_build_zone.py`.
+- **Service extérieur utilisé = service surveillé sur le fond** (`health_check.py`) : un résultat juste, pas seulement
+  une réponse.
+
 ## Pratiques techniques
 - Données brutes dans `data/` (ignoré par Git). Ne jamais enregistrer de gros fichiers dans le dépôt.
 - Scripts reproductibles : une seule commande documentée pour tout relancer.
