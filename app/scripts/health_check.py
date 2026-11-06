@@ -127,13 +127,13 @@ def service_checks():
 
 
 def run_checks():
-    """Dernier passage de chaque calcul (API GitHub)."""
+    """Dernier passage de chaque calcul sur main (API GitHub ; pas ceux d'une branche de travail, 06/11/2026)."""
     probs = []
     tok = os.environ.get("GITHUB_TOKEN")
     h = {"Authorization": f"Bearer {tok}"} if tok else {}
     for wf, name in WORKFLOWS.items():
         try:
-            runs = get(f"https://api.github.com/repos/{REPO}/actions/workflows/{wf}/runs?per_page=1&status=completed", headers=h)
+            runs = get(f"https://api.github.com/repos/{REPO}/actions/workflows/{wf}/runs?per_page=1&status=completed&branch=main", headers=h)
             r = (runs.get("workflow_runs") or [None])[0]
             if r and r.get("conclusion") not in ("success", "skipped"):
                 probs.append(f"Calcul « {name} » : dernier passage en échec ({r.get('conclusion')}) — {r.get('html_url')}")
