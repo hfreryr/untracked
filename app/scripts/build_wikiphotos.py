@@ -25,6 +25,11 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 UA = "UntrackedMapsBot/0.1 (+https://untrackedmaps.app/confidentialite ; photos des lieux, une fois par semaine)"
 THUMB = "https://upload.wikimedia.org/wikipedia/commons/thumb/"
+# depuis fin octobre 2026, l'API renvoie les vignettes sur thumb.wikimedia.org, avec « ?utm_… » à la fin : sans ce second
+# préfixe, aucune photo n'était reconnue (« 0 avec photos » dans toutes les régions, constaté le 06/11/2026). On garde
+# le chemin seul (identique sur les deux hôtes) ; l'app le complète (wikiprepared.js).
+THUMBS = (THUMB, "https://thumb.wikimedia.org/wikipedia/commons/thumb/")
+MAX_URL = 6000       # au-delà, Wikimedia répond « 414 URI Too Long » (calcul de l'Île-de-France du 02/11/2026)
 WIDTH = 960          # tailles acceptées par Wikimedia : 250, 330, 500, 960, 1280… (une autre est refusée)
 MAX_PHOTOS = 6
 KEEP_DAYS = 90
@@ -32,7 +37,16 @@ PAUSE = 0.5
 
 
 def get_json(url, tries=5, pause=PAUSE, opener=urllib.request.urlopen):
-    """Une demande à Wikimedia ; attend et réessaie si on lui demande de ralentir (429, 503)."""
+    """Une demande à Wikimedia ; attend et réessaie si on lui demande de ralentir (429, 503). Toute autre erreur : None
+    (un lot perdu, pas tout le calcul : le 02/11/2026, une seule demande refusée a vidé les photos de l'Île-de-France)."""
+    try:
+        return _get_json(url, tries, pause, opener)
+    except Exception as err:
+        print("demande Wikimedia ignorée :", str(err)[:120], file=sys.stderr)
+        return None
+
+
+def _get_json(url, tries=5, pause=PAUSE, opener=urllib.request.urlopen):
     for k in range(tries):
         time.sleep(pause)
         try:
@@ -45,9 +59,15 @@ def get_json(url, tries=5, pause=PAUSE, opener=urllib.request.urlopen):
     return None
 
 
-def chunks(xs, n=50):
-    xs = list(xs)
-    return [xs[i:i + n] for i in range(0, len(xs), n)]
+def chunks(xs, n=50, size=lambda b: 0, limit=MAX_URL):
+    """Lots d'au plus n éléments, et dont la demande (size(lot), en caractères) reste sous `limit`."""
+    out, cur = [], []
+    for x in xs:
+        if cur and (len(cur) >= n or size(cur + [x]) > limit):
+            out.append(cur)
+            cur = []
+        cur.append(x)
+    return out + ([cur] if cur else [])
 
 
 def strip_tags(s):
@@ -88,13 +108,14 @@ def photo_score(page):
 def photo_of(page):
     """Page de fichier Commons (réponse imageinfo) → [chemin, crédit], ou None (pas une photo)."""
     ii = (page or {}).get("imageinfo", [{}])[0]
-    url = ii.get("thumburl") or ""
-    if not url.startswith(THUMB) or not re.search(r"\.(jpe?g|png|webp)$", page.get("title", ""), re.I):
+    url = (ii.get("thumburl") or "").split("?")[0]
+    prefix = next((t for t in THUMBS if url.startswith(t)), None)
+    if not prefix or not re.search(r"\.(jpe?g|png|webp)$", page.get("title", ""), re.I):
         return None
     meta = ii.get("extmetadata") or {}
     artist = strip_tags(meta.get("Artist", {}).get("value"))[:60]
     licence = strip_tags(meta.get("LicenseShortName", {}).get("value"))
-    return [url[len(THUMB):], " · ".join(x for x in (artist, licence) if x)]
+    return [url[len(prefix):], " · ".join(x for x in (artist, licence) if x)]
 
 
 def ranked(pages, main_title=None):
@@ -130,7 +151,7 @@ def entities(qids, get=get_json):
 def qids_of_titles(titles, get=get_json):
     """Wikipédia en français : {titre: Q} (lieux qui n'ont qu'un article, sans identifiant Wikidata dans OSM)."""
     out = {}
-    for batch in chunks(titles):
+    for batch in chunks(titles, size=lambda b: 200 + len(urllib.parse.quote("|".join(b)))):
         j = get("https://fr.wikipedia.org/w/api.php?action=query&format=json&prop=pageprops&ppprop=wikibase_item"
                 f"&redirects=1&titles={urllib.parse.quote('|'.join(batch))}") or {}
         q = j.get("query") or {}
@@ -147,7 +168,7 @@ def qids_of_titles(titles, get=get_json):
 def files_info(files, get=get_json):
     """Commons : {nom de fichier: page imageinfo} pour l'image principale de chaque lieu."""
     out = {}
-    for batch in chunks(files):
+    for batch in chunks(files, size=lambda b: 400 + len(urllib.parse.quote("|".join("File:" + f for f in b)))):
         j = get(commons_query("titles=" + urllib.parse.quote("|".join("File:" + f for f in batch)))) or {}
         q = j.get("query") or {}
         norm = {n["to"]: n["from"] for n in q.get("normalized") or []}

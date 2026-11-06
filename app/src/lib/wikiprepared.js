@@ -4,7 +4,8 @@
 // Lieux pas encore préparés : l'ancienne recherche (placeinfo.js, wikiInfo).
 import { APP_AGENT } from './config.js';
 
-const THUMB = 'https://upload.wikimedia.org/wikipedia/commons/thumb/';
+// hôte des vignettes que Wikimedia renvoie depuis fin octobre 2026 (même chemin qu'avant sur upload.wikimedia.org)
+const THUMB = 'https://thumb.wikimedia.org/wikipedia/commons/thumb/';
 const PAGE = 'https://commons.wikimedia.org/wiki/File%3A';
 
 /** [[chemin, crédit], …] des tuiles → photos au format de wikiInfo (src, full, page, title, credit). */
