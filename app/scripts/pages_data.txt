@@ -1,0 +1,12 @@
+# Données déposées sur gh-pages par les calculs automatiques : JAMAIS effacées par une publication de l'app (publish.sh).
+# Une seule liste, lue par publish.sh (06/11/2026 : data/wikiphotos.json manquait, chaque publication l'effaçait).
+# Un dossier se termine par « / ». Ajouter ici tout nouveau fichier produit par un calcul (.github/workflows/).
+data/places/
+data/zones/
+data/directory/
+data/bikes/
+data/bikes.geojson
+data/facades.json
+data/extras.json
+data/sitehours.json
+data/wikiphotos.json

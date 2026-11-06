@@ -94,3 +94,10 @@ def test_lots_sous_la_longueur_maximale():
     lots = chunks(noms, size=lambda b: len("|".join(b)), limit=2000)
     assert all(len("|".join(b)) <= 2000 for b in lots) and sum(map(len, lots)) == 50
     assert chunks(range(120)) and [len(b) for b in chunks(range(120))] == [50, 50, 20]
+
+
+def test_demande_ratee_photos_gardees():
+    """Une demande qui échoue (None) ne remplace jamais des photos connues par rien (06/11/2026)."""
+    state = {"Q1": {"d": "2026-01-01", "t": "Flore", "p": [["a/ab/F.jpg/960px-F.jpg", "x"]], "k": "Flore", "c": False}}
+    prepare({"1": ("Q1", None)}, state, "2026-11-06", get=lambda url: None)
+    assert state["Q1"]["p"] == [["a/ab/F.jpg/960px-F.jpg", "x"]]

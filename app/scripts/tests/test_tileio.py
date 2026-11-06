@@ -48,3 +48,10 @@ def test_cover_rangees_de_carres_habites():
     import tileio
     cells = {(0, 0): [1], (1, 0): [1], (2, 0): [1], (6, 0): [1], (2, 2): [1], (8, 8): []}   # zoom 14
     assert tileio.cover(cells) == [[0, 0, 1], [0, 3, 3], [1, 1, 1]]
+
+
+def test_metriques_par_champ():
+    import tileio
+    cells = {(0, 0): [[1, 0, 0, {"name": "A", "opening_hours": "24/7", "_wph": [[], "w"]}], [2, 0, 0, {}, [1, 2]]]}
+    m = tileio.metrics(cells)
+    assert (m["places"], m["named"], m["hours"], m["wiki_photos"], m["facades"]) == (2, 1, 1, 1, 1)

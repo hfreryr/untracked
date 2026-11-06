@@ -179,8 +179,11 @@ def files_info(files, get=get_json):
 
 
 def category_pages(category, get=get_json):
+    """Fichiers d'une catégorie Commons, ou None si la demande a échoué (≠ catégorie vide)."""
     j = get(commons_query("generator=categorymembers&gcmtype=file&gcmlimit=30&gcmtitle="
-                          + urllib.parse.quote("Category:" + category))) or {}
+                          + urllib.parse.quote("Category:" + category)))
+    if j is None:
+        return None
     return sorted(((j.get("query") or {}).get("pages") or {}).values(), key=lambda p: p.get("index", 0))
 
 
@@ -197,6 +200,8 @@ def prepare(wanted, state, today, get=get_json, max_new=0, max_categories=3000):
     ents = entities(todo, get)
     main = files_info(sorted({e["file"] for e in ents.values() if e["file"]}), get)
     for q in todo:
+        if q not in ents and state.get(q):
+            continue          # Wikidata n'a pas répondu pour ce lieu : on garde le résultat connu (06/11/2026)
         e = ents.get(q) or {}
         page = main.get(e.get("file"))
         state[q] = {"d": today, "t": e.get("title"), "p": ranked([page]) if page else [],
@@ -205,8 +210,11 @@ def prepare(wanted, state, today, get=get_json, max_new=0, max_categories=3000):
     for q in cats:
         s = state[q]
         try:
+            members = category_pages(s["k"], get)
+            if members is None:          # demande ratée : on réessaiera, sans effacer les photos déjà trouvées
+                continue
             pages = [s["m"]] if s.get("m") else []
-            pages += [p for p in category_pages(s["k"], get) if not s.get("m") or p.get("title") != s["m"].get("title")]
+            pages += [p for p in members if not s.get("m") or p.get("title") != s["m"].get("title")]
             s["p"] = ranked(pages, s["m"].get("title") if s.get("m") else None)[:MAX_PHOTOS]
             s["c"] = True
             s.pop("m", None)                    # (gardée seulement jusqu'au classement : l'état reste léger)
@@ -239,7 +247,11 @@ def main():
         t = (re.match(r"^fr:(.+)$", tags.get("wikipedia") or "") or [None, None])[1]
         if q or t:
             wanted[str(oid)] = (q, t)
-    found, asked, cats = prepare(wanted, state, today, max_new=a.max_new)
+    try:
+        found, asked, cats = prepare(wanted, state, today, max_new=a.max_new)
+    except Exception as err:     # réseau en panne : les photos déjà connues sont quand même remises dans les compléments
+        print("::error::photos Wikimedia : préparation interrompue, résultats précédents gardés :", err, flush=True)
+        found, asked, cats = {}, 0, 0
     n = 0
     for oid, (q, t) in wanted.items():
         s = state.get(q or found.get(t))
