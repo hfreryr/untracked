@@ -1,7 +1,7 @@
 # Contrôle quotidien de la production (06/11/2026, après l'incident des données) : ce que le site sert vraiment, zone
 # par zone (âge, fichiers, champs à zéro), les services extérieurs sur le fond (Wikimedia, recherche, transports…) et
 # l'état des derniers calculs. Problème → un signalement GitHub « Contrôle des données » (le porteur reçoit un mail),
-# mis à jour chaque jour tant que ça dure, fermé tout seul quand tout est rentré dans l'ordre.
+# commenté seulement quand la liste des problèmes change, fermé tout seul quand tout est rentré dans l'ordre.
 # Aucune donnée d'utilisateur : des lectures du site public et des requêtes fixes.
 name: Contrôle des données (quotidien)
 on:
@@ -36,10 +36,15 @@ jobs:
         run: |
           gh label create controle --color B60205 --description "Contrôle quotidien des données" 2>/dev/null || true
           n=$(gh issue list --label controle --state open --json number --jq '.[0].number')
+          # un seul mail par changement (porteur, 06/11/2026) : pas d'échec du calcul en plus du signalement, et pas de
+          # commentaire quand la liste des problèmes est la même que la veille
+          probs() { sed -n '/^- /p' | sort; }
           if [ "$CODE" != "0" ]; then
-            if [ -n "$n" ]; then gh issue comment "$n" --body-file rapport.md
+            if [ -n "$n" ]; then
+              last=$(gh issue view "$n" --json body,comments --jq '(.comments | last | .body) // .body')
+              if [ "$(printf '%s\n' "$last" | probs)" != "$(probs < rapport.md)" ]; then gh issue comment "$n" --body-file rapport.md
+              else echo "mêmes problèmes que la veille : pas de nouveau mail"; fi
             else gh issue create --title "Contrôle des données : problème(s) à corriger" --label controle --body-file rapport.md; fi
-            exit 1
           elif [ -n "$n" ]; then
             gh issue close "$n" --comment "Tout est rentré dans l'ordre : $(date -u +%F)."
           fi
