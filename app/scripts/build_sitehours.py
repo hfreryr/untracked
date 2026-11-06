@@ -464,10 +464,13 @@ def main():
     for oid, name, site, *_ in fresh:
         if site in archived:
             date, html = archived[site]
-            oh = hours_in(html, name)
-            state[site] = {**state.get(site, {}), "checked": today, "hours": oh, "via": "commoncrawl", "page": date,
-                           "photo": photo_in(html, site if "://" in site else "http://" + site)}
-            stats["archive Common Crawl"] += 1
+            try:
+                oh = hours_in(html, name)
+                state[site] = {**state.get(site, {}), "checked": today, "hours": oh, "via": "commoncrawl", "page": date,
+                               "photo": photo_in(html, site if "://" in site else "http://" + site)}
+                stats["archive Common Crawl"] += 1
+            except Exception:                  # page illisible : ce site seul est sauté, l'état précédent reste
+                stats["page illisible"] += 1
         else:
             live.append((oid, name, site))
 
@@ -486,8 +489,11 @@ def main():
         if html == "":
             return site, "page inchangée", {**prev, "checked": today}
         base = site if "://" in site else "http://" + site
-        return site, "visite", {"checked": today, "hours": hours_in(html, name), "via": "site", "etag": etag, "lastmod": lastmod,
-                                "photo": photo_in(html, base)}
+        try:
+            return site, "visite", {"checked": today, "hours": hours_in(html, name), "via": "site", "etag": etag, "lastmod": lastmod,
+                                    "photo": photo_in(html, base)}
+        except Exception:      # (06/11/2026) une page mal formée ne fait plus échouer la région : ce site garde son état
+            return site, "page illisible", None
 
     with cf.ThreadPoolExecutor(16) as ex:
         for site, status, entry in ex.map(one, live):

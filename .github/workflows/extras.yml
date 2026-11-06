@@ -35,14 +35,19 @@ jobs:
         env:
           SITES: ${{ inputs.sites }}   # vide la nuit (programmé) : 4000
         run: |
-          curl -sSfL -o out/sitehours.json https://untrackedmaps.app/data/sitehours.json || echo '{}' > out/sitehours.json
-          python app/scripts/build_sitehours.py idf.osm.pbf --extras out/extras.json --state out/sitehours.json --max-new "${SITES:-4000}" || echo "sites ignorés (le reste est publié)"
+          # état des semaines précédentes : jamais remplacé par un état vide si le site ne répond pas (fetch_state.sh, 06/11/2026)
+          bash app/scripts/fetch_state.sh https://untrackedmaps.app/data/sitehours.json out/sitehours.json
+          python app/scripts/build_sitehours.py idf.osm.pbf --extras out/extras.json --state out/sitehours.json --max-new "${SITES:-4000}" \
+            || { echo "::error::sites des lieux : échec (le contrôle avant publication décidera)"; echo "PARTIAL=1" >> "$GITHUB_ENV"; }
       - name: Photos Wikimedia des lieux, préparées à l'avance (une demande à la fois, résultats gardés 90 jours)
         run: |
-          curl -sSfL -o out/wikiphotos.json https://untrackedmaps.app/data/wikiphotos.json || echo '{}' > out/wikiphotos.json
-          python app/scripts/build_wikiphotos.py idf.osm.pbf --extras out/extras.json --state out/wikiphotos.json || echo "photos Wikimedia ignorées (le reste est publié)"
-      - name: "Garde-fou : pas de publication si les compléments paraissent vides"
-        run: python -c "import json,sys; n=len(json.load(open('out/extras.json'))['places']); print(n,'lieux complétés'); sys.exit(0 if n >= 1000 else 1)"
+          bash app/scripts/fetch_state.sh https://untrackedmaps.app/data/wikiphotos.json out/wikiphotos.json
+          python app/scripts/build_wikiphotos.py idf.osm.pbf --extras out/extras.json --state out/wikiphotos.json \
+            || { echo "::error::photos Wikimedia : échec (le contrôle avant publication décidera)"; echo "PARTIAL=1" >> "$GITHUB_ENV"; }
+      - name: "Garde-fou : pas de publication si les compléments paraissent vides, ou si un champ a fondu (06/11/2026)"
+        run: |
+          python -c "import json,sys; n=len(json.load(open('out/extras.json'))['places']); print(n,'lieux complétés'); sys.exit(0 if n >= 1000 else 1)"
+          python app/scripts/check_extras.py out/extras.json | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Publier dans gh-pages/data/extras.json
         run: |
           git fetch --depth=1 origin gh-pages
@@ -51,3 +56,6 @@ jobs:
           cd pages && git add -A data/extras.json data/sitehours.json data/wikiphotos.json
           git -c user.name=untracked-bot -c user.email=bot@untrackedmaps.app commit -qm "Compléments des lieux du $(date -u +%F)" || exit 0
           bash ../app/scripts/push_pages.sh   # réessaie si gh-pages a avancé entre-temps (04/11/2026)
+      - name: "Étape ratée en cours de route : calcul en rouge, même si le reste est publié (06/11/2026)"
+        if: env.PARTIAL == '1'
+        run: { echo "::error::une étape a échoué (voir les messages en rouge plus haut)"; exit 1; }

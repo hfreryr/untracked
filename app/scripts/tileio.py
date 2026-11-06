@@ -85,6 +85,23 @@ def cover(cells, z=COVER):
     return out
 
 
+def metrics(cells):
+    """Ce que valent les lieux, champ par champ (06/11/2026 : les photos Wikimedia d'Île-de-France ont été remplacées
+    par rien, et seul le nombre de lieux était contrôlé). Comparé à la version en ligne avant publication. Pure."""
+    m = dict.fromkeys(("places", "named", "hours", "site_photos", "wiki_photos", "articles", "facades"), 0)
+    for items in cells.values():
+        for it in items:
+            t = it[3]
+            m["places"] += 1
+            m["named"] += bool(t.get("name"))
+            m["hours"] += bool(t.get("opening_hours"))
+            m["site_photos"] += bool(t.get("_photo"))
+            m["wiki_photos"] += bool(t.get("_wph"))
+            m["articles"] += bool(t.get("_wt"))
+            m["facades"] += len(it) > 4 and bool(it[4])
+    return m
+
+
 def write(out_dir, cells, meta, **kw):
     """Écrit les fichiers et l'index ; renvoie la liste des tailles compressées."""
     files = split(cells, **kw)
@@ -94,7 +111,8 @@ def write(out_dir, cells, meta, **kw):
         with open(os.path.join(d, f"{y}.json.gz"), "wb") as f:
             f.write(data)
     index = {"v": 2, "zooms": sorted({z for z, _, _ in files}), "cells": sum(1 for v in cells.values() if v), **meta,
-             "tiles": sorted(f"{z}/{x}/{y}" for z, x, y in files), "cover": {"z": COVER, "rows": cover(cells)}}
+             "tiles": sorted(f"{z}/{x}/{y}" for z, x, y in files), "cover": {"z": COVER, "rows": cover(cells)},
+             "metrics": metrics(cells)}
     with open(os.path.join(out_dir, "index.json"), "w") as f:
         json.dump(index, f, separators=(",", ":"))
     return [len(d) for d in files.values()]

@@ -65,26 +65,32 @@ jobs:
             # compléments hors OSM (sites, téléphones, adresses, horaires d'enseignes) : Overture, All The Places, annuaire de
             # l'administration, comme à Paris (build_extras.py) ; All The Places téléchargé une seule fois par passage
             python app/scripts/build_extras.py "$id.osm.pbf" --out "$id-extras.json" --no-paris --pays "$country" $([ -f atp.zip ] && echo --atp atp.zip) \
-              || echo '{"places":{}}' > "$id-extras.json"
+              || { echo "::error::$id : compléments hors OSM non calculés"; partial=1; echo '{"places":{}}' > "$id-extras.json"; }
             # horaires et photo publiés par le site des lieux, comme en Île-de-France (porteur, 01/11/2026) ; état de la zone
             # gardé d'une semaine à l'autre dans data/zones/<zone>/sitehours.json ; une panne ici ne bloque pas la zone
-            curl -sSfL -o "$id-sitehours.json" "https://untrackedmaps.app/data/zones/$id/sitehours.json" || echo '{}' > "$id-sitehours.json"
+            # (états jamais remplacés par un état vide si le site ne répond pas : fetch_state.sh, 06/11/2026)
             centre=$(python3 -c "b=[float(x) for x in '$bbox'.split(',')]; print(f'{(b[0]+b[2])/2},{(b[1]+b[3])/2}')")
-            python app/scripts/build_sitehours.py "$id.osm.pbf" --extras "$id-extras.json" --state "$id-sitehours.json" \
-              --max-new "${SITES:-4000}" --centre="$centre" || echo "::warning::$id : sites des lieux non lus (le reste est publié)"
+            if bash app/scripts/fetch_state.sh "https://untrackedmaps.app/data/zones/$id/sitehours.json" "$id-sitehours.json"; then
+              python app/scripts/build_sitehours.py "$id.osm.pbf" --extras "$id-extras.json" --state "$id-sitehours.json" \
+                --max-new "${SITES:-4000}" --centre="$centre" || { echo "::error::$id : sites des lieux non lus"; partial=1; }
+            else partial=1; fi
             # photos Wikimedia préparées à l'avance (build_wikiphotos.py) ; état gardé dans data/zones/<zone>/wikiphotos.json
-            curl -sSfL -o "$id-wikiphotos.json" "https://untrackedmaps.app/data/zones/$id/wikiphotos.json" || echo '{}' > "$id-wikiphotos.json"
-            python app/scripts/build_wikiphotos.py "$id.osm.pbf" --extras "$id-extras.json" --state "$id-wikiphotos.json" \
-              || echo "::warning::$id : photos Wikimedia non préparées (le reste est publié)"
+            if bash app/scripts/fetch_state.sh "https://untrackedmaps.app/data/zones/$id/wikiphotos.json" "$id-wikiphotos.json"; then
+              python app/scripts/build_wikiphotos.py "$id.osm.pbf" --extras "$id-extras.json" --state "$id-wikiphotos.json" \
+                || { echo "::error::$id : photos Wikimedia non préparées"; partial=1; }
+            else partial=1; fi
             python app/scripts/build_places.py "$id.osm.pbf" --out "out/$id" --bbox="$bbox" --reviews "$id-reviews.json" --extras "$id-extras.json"
             python app/scripts/build_landmarks.py "$id.osm.pbf" --out "out/$id" --bbox="$bbox"   # lieux mis en avant sur la carte
             python app/scripts/build_search.py "out/$id" --extras "$id-extras.json"   # recherche sur le téléphone
-            if python app/scripts/check_publish.py "out/$id/index.json" "https://untrackedmaps.app/data/zones/$id/places/index.json"; then
+            # contrôle avant publication : lieux, tuiles et chaque champ (horaires, photos…), comparés à la version en ligne
+            if python app/scripts/check_publish.py "out/$id/index.json" "https://untrackedmaps.app/data/zones/$id/places/index.json" | tee "$id-verdict.txt"; then
               rm -rf "pages/data/zones/$id/places" && mkdir -p "pages/data/zones/$id" && cp -r "out/$id" "pages/data/zones/$id/places"
-              cp "$id-sitehours.json" "pages/data/zones/$id/sitehours.json"
-              cp "$id-wikiphotos.json" "pages/data/zones/$id/wikiphotos.json"
+              [ -f "$id-sitehours.json" ] && cp "$id-sitehours.json" "pages/data/zones/$id/sitehours.json"
+              [ -f "$id-wikiphotos.json" ] && cp "$id-wikiphotos.json" "pages/data/zones/$id/wikiphotos.json"
+              echo "- **$id** : publiée — $(cat "$id-verdict.txt")" >> "$GITHUB_STEP_SUMMARY"
             else
-              echo "::warning::$id non publiée (baisse anormale)"; failed=1
+              echo "::error::$id non publiée (baisse anormale) : la version en ligne reste"; failed=1
+              echo "- **$id** : NON publiée — $(cat "$id-verdict.txt")" >> "$GITHUB_STEP_SUMMARY"
             fi
             rm -f "$id.osm.pbf"
             echo "::endgroup::"
@@ -96,10 +102,11 @@ jobs:
               || { echo "zone retirée : $z"; rm -rf "$d"; }
           done
           # annuaire national des lieux par nom (toutes les régions publiées, Île-de-France comprise) : refait à chaque passage
-          python app/scripts/build_directory.py pages/data || echo "::warning::annuaire national non refait"
+          python app/scripts/build_directory.py pages/data || { echo "::error::annuaire national non refait"; partial=1; }
           bash app/scripts/site_budget.sh pages   # plafond de poids du site (700 Mo), voir docs/villes.md
           cd pages && git add -A data/zones data/directory
           if git -c user.name=untracked-bot -c user.email=bot@untrackedmaps.app commit -qm "Lieux des villes ($ZONES) : extraits OSM du $(date -u +%F)"; then
             bash ../app/scripts/push_pages.sh   # réessaie si gh-pages a avancé ; échoue bruyamment sinon (04/11/2026)
           else echo "rien de nouveau"; fi
-          [ -z "${failed:-}" ]
+          # une zone non publiée ou une étape ratée : calcul en rouge, même si le reste est publié (06/11/2026)
+          [ -z "${failed:-}" ] && [ -z "${partial:-}" ]

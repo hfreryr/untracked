@@ -46,11 +46,12 @@ jobs:
         run: bash app/scripts/fetch_idf.sh idf.osm.pbf
       - if: steps.fresh.outputs.skip != 'true'
         run: |
-          curl -sSfL -o facades.json https://untrackedmaps.app/data/facades.json || echo '{}' > facades.json
-          curl -sSfL -o extras.json https://untrackedmaps.app/data/extras.json || echo '{}' > extras.json
+          # absents (404) : vides ; illisibles : échec, plutôt que des lieux publiés sans devantures ni compléments (06/11/2026)
+          bash app/scripts/fetch_state.sh https://untrackedmaps.app/data/facades.json facades.json
+          bash app/scripts/fetch_state.sh https://untrackedmaps.app/data/extras.json extras.json
       - if: steps.fresh.outputs.skip != 'true'
         name: Avis libres Mangrove (une seule demande pour toute la région ; sans avis si Mangrove ne répond pas)
-        run: python app/scripts/fetch_reviews.py --bbox 1.44,48.12,3.56,49.24 --out reviews.json || echo '[]' > reviews.json
+        run: python app/scripts/fetch_reviews.py --bbox 1.44,48.12,3.56,49.24 --out reviews.json || { echo "::warning::avis Mangrove indisponibles"; echo '[]' > reviews.json; }
       - if: steps.fresh.outputs.skip != 'true'
         run: python app/scripts/build_places.py idf.osm.pbf --out out/places --facades facades.json --extras extras.json --reviews reviews.json
       - if: steps.fresh.outputs.skip != 'true'

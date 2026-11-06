@@ -19,14 +19,21 @@ trap 'rm -rf "$WORK"' EXIT
 git clone -q --depth 1 --branch gh-pages "$REMOTE" "$WORK/site"
 cd "$WORK/site"
 # tout retirer sauf les données produites par les actions
-git ls-files -z | grep -z -v -E '^data/places/|^data/zones/|^data/directory/|^data/bikes/|^data/bikes\.geojson$|^data/facades\.json$|^data/extras\.json$|^data/sitehours\.json$|^data/wikiphotos\.json$' | xargs -0 -r git rm -q
-# copier le site, sans les tuiles locales (celles de la nuit font foi)
-(cd "$ROOT/app/build" && find . -type f ! -path './data/places/*' ! -path './data/zones/*' ! -path './data/directory/*' ! -path './data/bikes.geojson' ! -path './data/bikes/*' -print0) | while IFS= read -r -d '' f; do
+# (liste unique : app/scripts/pages_data.txt)
+KEEP=$(grep -v -E '^\s*(#|$)' "$ROOT/app/scripts/pages_data.txt" | sed -E 's/\./\\./g; s#^#^#; s#([^/])$#\1$#' | paste -sd'|')
+git ls-files -z | grep -z -v -E "$KEEP" | xargs -0 -r git rm -q
+# copier le site, sans les données des calculs (celles en ligne font foi)
+(cd "$ROOT/app/build" && find . -type f -print0) | while IFS= read -r -d '' f; do
+  printf '%s\n' "${f#./}" | grep -q -E "$KEEP" && continue
   mkdir -p "$(dirname "$f")"; cp "$ROOT/app/build/$f" "$f"
 done
 touch .nojekyll
 bash "$ROOT/app/scripts/site_budget.sh" .
 git add -A
+# garde-fou : aucune donnée des calculs ne doit disparaître de la publication
+if git diff --cached --name-only --diff-filter=D | grep -E "$KEEP"; then echo "ERREUR : ces données des calculs disparaîtraient" >&2; exit 1; fi
 git commit -q -m "$MSG" || { echo "rien à publier"; exit 0; }
 bash "$ROOT/app/scripts/push_pages.sh"
-echo "publié : $(git rev-parse --short HEAD) (mise en ligne par GitHub dans quelques minutes : vérifier _app/version.json)"
+echo "envoyé : $(git rev-parse --short HEAD)"
+# « publié » seulement quand le site sert vraiment cette version (05/11/2026 : mise en ligne refusée par GitHub, non vue)
+bash "$ROOT/app/scripts/wait_live.sh" "$(python3 -c "import json;print(json.load(open('$ROOT/app/build/_app/version.json'))['version'])")"

@@ -42,3 +42,14 @@ def test_garde_fou_de_nuit_compte_les_carres():
     yml = (Path(__file__).resolve().parents[3] / ".github/workflows/places.yml").read_text()
     line = next(l for l in yml.splitlines() if "n >= 2000" in l)
     assert "cells" in line
+
+
+def test_champ_qui_fond_publication_refusee():
+    """06/11/2026 : le nombre de lieux ne suffit pas ; un champ qui fond (photos Wikimedia) arrête la publication."""
+    from check_publish import verdict
+    old = {"cells": 100, "count": 1000, "metrics": {"wiki_photos": 400, "hours": 300}}
+    new = {"cells": 100, "count": 1000, "metrics": {"wiki_photos": 0, "hours": 300}}
+    ok, why = verdict(new, old)
+    assert not ok and "photos Wikimedia" in why
+    assert verdict({**new, "metrics": {"wiki_photos": 395, "hours": 300}}, old)[0]
+    assert verdict(new, {"cells": 100, "count": 1000})[0]          # ancien index sans champs : pas de comparaison
