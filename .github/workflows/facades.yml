@@ -31,4 +31,4 @@ jobs:
           mkdir -p pages/data && cp out/facades.json pages/data/facades.json
           cd pages && git add -A data/facades.json
           git -c user.name=untracked-bot -c user.email=bot@untrackedmaps.app commit -qm "Devantures Panoramax du $(date -u +%F)" || exit 0
-          git push origin HEAD:gh-pages
+          bash ../app/scripts/push_pages.sh   # réessaie si gh-pages a avancé entre-temps (04/11/2026)

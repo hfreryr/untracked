@@ -71,7 +71,7 @@ jobs:
             curl -sSfL -o "$id-sitehours.json" "https://untrackedmaps.app/data/zones/$id/sitehours.json" || echo '{}' > "$id-sitehours.json"
             centre=$(python3 -c "b=[float(x) for x in '$bbox'.split(',')]; print(f'{(b[0]+b[2])/2},{(b[1]+b[3])/2}')")
             python app/scripts/build_sitehours.py "$id.osm.pbf" --extras "$id-extras.json" --state "$id-sitehours.json" \
-              --max-new "${SITES:-4000}" --centre "$centre" || echo "::warning::$id : sites des lieux non lus (le reste est publié)"
+              --max-new "${SITES:-4000}" --centre="$centre" || echo "::warning::$id : sites des lieux non lus (le reste est publié)"
             # photos Wikimedia préparées à l'avance (build_wikiphotos.py) ; état gardé dans data/zones/<zone>/wikiphotos.json
             curl -sSfL -o "$id-wikiphotos.json" "https://untrackedmaps.app/data/zones/$id/wikiphotos.json" || echo '{}' > "$id-wikiphotos.json"
             python app/scripts/build_wikiphotos.py "$id.osm.pbf" --extras "$id-extras.json" --state "$id-wikiphotos.json" \
@@ -99,5 +99,7 @@ jobs:
           python app/scripts/build_directory.py pages/data || echo "::warning::annuaire national non refait"
           bash app/scripts/site_budget.sh pages   # plafond de poids du site (700 Mo), voir docs/villes.md
           cd pages && git add -A data/zones data/directory
-          git -c user.name=untracked-bot -c user.email=bot@untrackedmaps.app commit -qm "Lieux des villes ($ZONES) : extraits OSM du $(date -u +%F)" && git push origin HEAD:gh-pages || echo "rien de nouveau"
+          if git -c user.name=untracked-bot -c user.email=bot@untrackedmaps.app commit -qm "Lieux des villes ($ZONES) : extraits OSM du $(date -u +%F)"; then
+            bash ../app/scripts/push_pages.sh   # réessaie si gh-pages a avancé ; échoue bruyamment sinon (04/11/2026)
+          else echo "rien de nouveau"; fi
           [ -z "${failed:-}" ]

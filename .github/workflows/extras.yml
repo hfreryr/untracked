@@ -50,4 +50,4 @@ jobs:
           mkdir -p pages/data && cp out/extras.json pages/data/extras.json && cp out/sitehours.json pages/data/sitehours.json && cp out/wikiphotos.json pages/data/wikiphotos.json
           cd pages && git add -A data/extras.json data/sitehours.json data/wikiphotos.json
           git -c user.name=untracked-bot -c user.email=bot@untrackedmaps.app commit -qm "Compléments des lieux du $(date -u +%F)" || exit 0
-          git push origin HEAD:gh-pages
+          bash ../app/scripts/push_pages.sh   # réessaie si gh-pages a avancé entre-temps (04/11/2026)
