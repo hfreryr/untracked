@@ -8,10 +8,15 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[3]
 
 
-def test_cadre_toujours_colle_a_l_option():
-    yml = (ROOT / ".github/workflows/places-zones.yml").read_text()
-    assert re.search(r'--bbox[ =]"?\$bbox', yml)
-    assert not re.search(r'--bbox\s+"?\$', yml), "écrire --bbox=\"$bbox\" (cadre négatif à l'ouest)"
+def test_coordonnees_toujours_collees_a_l_option():
+    """Cadre et centre peuvent commencer par « - » à l'ouest de Greenwich : toujours « --option=valeur ». Le centre ne
+    l'était pas (05/11/2026 : 5 régions de l'Ouest sans sites lus). Calcul d'une zone : build_zone.sh (06/11/2026)."""
+    for f in (ROOT / "app/scripts/build_zone.sh", ROOT / ".github/workflows/places-zones.yml"):
+        txt = f.read_text()
+        bad = re.findall(r'--(?:bbox|centre|center)\s+"?\$\w+', txt)
+        assert not bad, f"{f.name} : {bad} — écrire --option=\"$valeur\""
+    assert re.search(r'--bbox="\$bbox"', (ROOT / "app/scripts/build_zone.sh").read_text())
+    assert re.search(r'--centre="\$centre"', (ROOT / "app/scripts/build_zone.sh").read_text())
 
 
 def test_cadre_negatif_accepte():

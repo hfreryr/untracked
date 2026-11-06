@@ -26,6 +26,7 @@ La décision est dite au porteur avec sa raison (« je lance X parce que… » o
 | **Lieux par tuile (nuit)** | chaque nuit, 3 h 45 (secours à 6 h 15), et après les deux précédents | Île-de-France : assemble OSM, compléments, devantures et avis dans les données de l'app ; carte, recherche, vélo | publication des données |
 | **Lieux des régions et autres villes (hebdomadaire)** | chaque nuit, 4 h 35, les zones du jour (chaque zone a son jour) | pour ces zones, tout d'un coup : compléments, sites (4 000 par semaine), photos Wikimedia, lieux, recherche ; puis l'annuaire national | publication des données |
 | **Sonde des services** | toutes les 15 min | vérifie que les services utilisés répondent | — |
+| **Contrôle des données (quotidien)** | chaque jour, 7 h 23 | ce que le site sert, zone par zone ; services sur le fond ; derniers calculs | signalement GitHub « Contrôle des données » si problème |
 
 Deux calculs du même groupe (les lieux d'Île-de-France et ceux des régions) ne tournent jamais en même temps :
 le second attend la fin du premier.
