@@ -474,7 +474,7 @@ const tests = {
       route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(j) });
     });
     const asked = [];
-    await ctx.route('https://upload.wikimedia.org/**', (route) => route.fulfill({ status: 200, contentType: 'image/png', body: png }));
+    await ctx.route(/https:\/\/(upload|thumb)\.wikimedia\.org\//, (route) => route.fulfill({ status: 200, contentType: 'image/png', body: png }));
     await ctx.route(/wikidata\.org|commons\.wikimedia\.org\/w\/api/, (route) => { asked.push(route.request().url()); route.abort(); });
     await ctx.route('https://fr.wikipedia.org/**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ extract: 'Un restaurant.', content_urls: { mobile: { page: 'https://fr.m.wikipedia.org/wiki/Piment' } } }) }));
     const p = await ctx.newPage(); const errors = []; p.on('pageerror', (e) => errors.push(e.message));

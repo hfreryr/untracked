@@ -85,7 +85,9 @@ def photo_candidates(html, base):
                 stack += [d["@graph"]] if "@graph" in d else []
                 for im in (d.get("image") if isinstance(d.get("image"), list) else [d.get("image")]):
                     u = im if isinstance(im, str) else im.get("url") if isinstance(im, dict) else None
-                    if u:
+                    if isinstance(u, list):          # « url » donnée en liste : la première adresse (Auvergne, 05/11/2026)
+                        u = next((x for x in u if isinstance(x, str)), None)
+                    if isinstance(u, str) and u.strip():
                         out.append(u.strip())
     seen, urls = set(), []
     for u in out:
@@ -121,10 +123,14 @@ def image_size(raw):
 
 
 def photo_in(html, base, check=photo_ok):
-    """Première image de présentation affichable, ou None."""
-    for u in photo_candidates(html, base)[:3]:
-        if check(u):
-            return u
+    """Première image de présentation affichable, ou None. Une page mal formée ne doit jamais arrêter la lecture des
+    autres : le 05/11/2026, une seule page a fait échouer tous les sites de l'Auvergne."""
+    try:
+        for u in photo_candidates(html, base)[:3]:
+            if check(u):
+                return u
+    except Exception:
+        return None
     return None
 
 
@@ -252,6 +258,22 @@ def fetch(url, etag=None, lastmod=None):
         if e.code == 304:
             return "", etag, lastmod
         raise
+
+
+def why_unreachable(e):
+    """Pourquoi un site n'a pas répondu, en un mot (06/11/2026 : 40 à 50 % d'« injoignables » à expliquer). Pure."""
+    if isinstance(e, urllib.error.HTTPError):
+        return "refus 403" if e.code in (401, 403, 429) else "page absente" if e.code in (404, 410) else f"erreur {e.code // 100}xx"
+    text = f"{type(e).__name__} {getattr(e, 'reason', '')} {e}".lower()
+    if "timed out" in text or "timeout" in text:
+        return "trop lent"
+    if "certificate" in text or "ssl" in text:
+        return "certificat"
+    if "name or service" in text or "nodename" in text or "getaddrinfo" in text or "no address" in text:
+        return "adresse inconnue"
+    if "refused" in text or "reset" in text:
+        return "connexion refusée"
+    return "autre"
 
 
 # ——— Rythme des lectures ———
@@ -457,8 +479,8 @@ def main():
             # (une page lue avant le 01/11 est relue en entier une fois, pour y chercher la photo)
             known = "photo" in prev
             html, etag, lastmod = fetch(site, prev.get("etag") if known else None, prev.get("lastmod") if known else None)
-        except Exception:
-            return site, "injoignable", {**prev, "checked": today, "via": "échec", "hours": prev.get("hours")}
+        except Exception as e:
+            return site, f"injoignable ({why_unreachable(e)})", {**prev, "checked": today, "via": "échec", "hours": prev.get("hours")}
         if html is None:
             return site, "refusé ou pas une page", {**prev, "checked": today, "via": "échec", "hours": prev.get("hours")}
         if html == "":

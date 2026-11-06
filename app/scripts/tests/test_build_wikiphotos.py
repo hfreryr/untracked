@@ -78,3 +78,19 @@ def test_classement_comme_maps_la_gravure_en_dernier_meme_choisie_par_wikidata()
 def test_photo_ancienne_par_sa_date():
     from build_wikiphotos import photo_score
     assert photo_score(page("Rue.jpg", 1925)) < photo_score(page("Rue.jpg", 2021))
+
+
+def test_vignette_sur_thumb_wikimedia():
+    """Nouvel hôte des vignettes (fin octobre 2026), avec « ?utm_… » : reconnue, chemin seul gardé."""
+    from build_wikiphotos import THUMBS
+    p = {"title": "File:Chambord.jpg", "imageinfo": [{"thumburl": THUMBS[1] + "3/35/Chambord.jpg/960px-Chambord.jpg?utm_source=commons.wikimedia.org"}]}
+    assert photo_of(p)[0] == "3/35/Chambord.jpg/960px-Chambord.jpg"
+
+
+def test_lots_sous_la_longueur_maximale():
+    """Pas de demande trop longue (« 414 URI Too Long », 02/11/2026) : les lots longs sont coupés."""
+    from build_wikiphotos import chunks
+    noms = ["x" * 400] * 50
+    lots = chunks(noms, size=lambda b: len("|".join(b)), limit=2000)
+    assert all(len("|".join(b)) <= 2000 for b in lots) and sum(map(len, lots)) == 50
+    assert chunks(range(120)) and [len(b) for b in chunks(range(120))] == [50, 50, 20]

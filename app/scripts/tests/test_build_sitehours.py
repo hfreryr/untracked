@@ -54,3 +54,23 @@ def test_regions_du_centre_de_la_zone_vers_l_exterieur():
     fresh = [("1", "Brest", "brest.fr", -4.49, 48.39, True), ("2", "Rennes", "rennes.fr", -1.68, 48.11, True)]
     assert [j[0] for j in pick_fresh(fresh, {}, 1, centre=(-4.4, 48.4))] == ["1"]
     assert [j[0] for j in pick_fresh(fresh, {}, 1)] == ["2"]
+
+
+def test_image_dont_l_adresse_est_une_liste():
+    """JSON-LD avec « image: {url: [...]} » (Auvergne, 05/11/2026) : pas d'erreur, la première adresse."""
+    from build_sitehours import photo_candidates, photo_in
+    html = '<script type="application/ld+json">{"@type":"Restaurant","image":{"url":["https://x.fr/a.jpg","https://x.fr/b.jpg"]}}</script>'
+    assert photo_candidates(html, "https://x.fr/")[0] == "https://x.fr/a.jpg"
+    assert photo_in('<script type="application/ld+json">{"image": {"url": [1, 2]}}</script>', "https://x.fr/", check=lambda u: True) is None
+
+
+def test_raison_injoignable():
+    """Les « injoignables » sont classés (06/11/2026) : refus de robot, page absente, trop lent, certificat…"""
+    import socket, ssl, urllib.error
+    from build_sitehours import why_unreachable
+    assert why_unreachable(urllib.error.HTTPError("u", 403, "Forbidden", {}, None)) == "refus 403"
+    assert why_unreachable(urllib.error.HTTPError("u", 404, "Not Found", {}, None)) == "page absente"
+    assert why_unreachable(urllib.error.HTTPError("u", 503, "x", {}, None)) == "erreur 5xx"
+    assert why_unreachable(urllib.error.URLError(socket.timeout("timed out"))) == "trop lent"
+    assert why_unreachable(urllib.error.URLError(ssl.SSLCertVerificationError("certificate verify failed"))) == "certificat"
+    assert why_unreachable(urllib.error.URLError(socket.gaierror("Name or service not known"))) == "adresse inconnue"
