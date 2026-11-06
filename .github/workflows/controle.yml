@@ -1,7 +1,7 @@
 # Contrôle quotidien de la production (06/11/2026, après l'incident des données) : ce que le site sert vraiment, zone
 # par zone (âge, fichiers, champs à zéro), les services extérieurs sur le fond (Wikimedia, recherche, transports…) et
 # l'état des derniers calculs. Problème → un signalement GitHub « Contrôle des données » (le porteur reçoit un mail),
-# mis à jour chaque jour tant que ça dure, fermé tout seul quand tout est rentré dans l'ordre.
+# commenté seulement quand la liste des problèmes change, fermé tout seul quand tout est rentré dans l'ordre.
 # Aucune donnée d'utilisateur : des lectures du site public et des requêtes fixes.
 name: Contrôle des données (quotidien)
 on:
