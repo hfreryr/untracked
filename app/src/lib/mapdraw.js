@@ -2,7 +2,8 @@
 // Code sorti de +page.svelte : il lit et modifie l'état de l'écran par l'objet « app » (bloc « app » de la page).
 import { tx } from '#lib/i18n/index.js';
 import { addPlaceLayers, addRouteLayers, empty, routeTags as tagsFor } from '#lib/maplayers.js';
-import { darken, osmRef, pinFor, pinImageId } from '#lib/mapstyle.js';
+import { darken, osmRef, pinFor, pinImageId, VISIBLE_AT_ZOOM } from '#lib/mapstyle.js';
+import { withoutSaved } from '#lib/favname.js';
 import * as maplibregl from 'maplibre-gl';
 import { reverseAddress } from '#lib/geocode.js';
 import { streetOpts } from '#lib/routeview.js';
@@ -14,7 +15,12 @@ import { loadTransitLines } from '#lib/transitlines.js';
 
 /** @param {any} app */
 export function createMapDraw(app) {
-  const favData = () => ({ type: 'FeatureCollection', features: app.favorites.map((f, i) => {
+  const favData = () => {
+    // les lieux enregistrés ont leur épingle et leur nom : on retire leur doublon des lieux mis en avant (favname.js)
+    if (app.map?.getLayer('landmark')) app.map.setFilter('landmark', withoutSaved(VISIBLE_AT_ZOOM, app.favorites));
+    return favDataOnly();
+  };
+  const favDataOnly = () => ({ type: 'FeatureCollection', features: app.favorites.map((f, i) => {
     const l = app.listOf(f.lists?.[0]);
     return { type: 'Feature', id: i, geometry: { type: 'Point', coordinates: [f.lon, f.lat] },
       properties: { i, name: f.name, icon: app.listIcon(l), tc: labelColor(l.color) } };
