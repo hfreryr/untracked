@@ -33,9 +33,23 @@ function loadIndex(src = SOURCES[0]) {
 
 /** Index v2 (fichiers adaptatifs « z/x/y », compressés) ou v1 (un fichier .json par carré « x/y » de zoom 14). */
 export function readIndex(j) {
-  if (j.v >= 2) return { zooms: [...j.zooms].sort((a, b) => a - b), built: j.built, tiles: new Set(j.tiles), ext: '.json.gz' };
+  if (j.v >= 2) return { zooms: [...j.zooms].sort((a, b) => a - b), built: j.built, tiles: new Set(j.tiles), ext: '.json.gz', cover: j.cover || null };
   return { zooms: [j.zoom], built: j.built, tiles: new Set(j.tiles.map((k) => `${j.zoom}/${k}`)), ext: '.json' };
 }
+
+/**
+ * Rectangles [ouest, sud, est, nord] où la zone a des lieux (rangées de carrés de zoom 13, tileio.cover), ou null pour
+ * un index plus ancien (06/11/2026). Pure.
+ */
+export function coverRects(index) {
+  const c = index?.cover;
+  if (!c?.rows?.length) return null;
+  const n = 2 ** c.z, lon = (v) => (v / n) * 360 - 180;
+  const lat = (v) => (Math.atan(Math.sinh(Math.PI * (1 - (2 * v) / n))) * 180) / Math.PI;
+  return c.rows.map(([y, x0, x1]) => [lon(x0), lat(y + 1), lon(x1 + 1), lat(y)]);
+}
+/** Rectangles habités d'une source (voir coverRects), ou null. */
+export const coverOf = async (src) => coverRects(await loadIndex(src));
 
 /** Le fichier qui contient ce carré de zoom 14 (« z/x/y »), ou null. */
 export function fileOf(index, x, y) {
@@ -120,10 +134,13 @@ export async function placesInBounds({ west, south, east, north }, maxTiles = 6)
   const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
   const keys = [];
   for (let x = x0; x <= x1; x++) for (let y = y0; y <= y1; y++) {
-    const where = await sourceOf(x, y);
     // un fichier d'un seul carré n'existe que s'il a des lieux ; un grand fichier (campagne) peut avoir des carrés vides :
-    // on le charge (il est petit, et sera lu de toute façon) pour ne garder que les carrés habités
-    if (where && (where.file.startsWith(`${ZOOM}/`) || (await loadFile(where)).has(`${x}/${y}`))) keys.push([x, y]);
+    // on le charge (il est petit, et sera lu de toute façon) pour ne garder que les carrés habités. Toutes les sources
+    // sont regardées, pas seulement la première : à Jonzac ou Marans (Charente-Maritime), le grand fichier vide de
+    // l'Aquitaine ou des Pays de la Loire faisait écarter le carré, plein dans Poitou-Charentes (porteur, 06/11/2026)
+    for (const where of await sourcesWith(x, y)) {
+      if (where.file.startsWith(`${ZOOM}/`) || (await loadFile(where)).has(`${x}/${y}`)) { keys.push([x, y]); break; }
+    }
   }
   keys.sort((a, b) => Math.hypot(a[0] - cx, a[1] - cy) - Math.hypot(b[0] - cx, b[1] - cy));
   const lists = await Promise.all(keys.slice(0, maxTiles).map(([x, y]) => loadTile(x, y)));
@@ -141,16 +158,22 @@ export async function placeById(osmType, osmId, lat, lon) {
   return null;
 }
 
-/** La zone couverte par les données ? */
+/**
+ * La zone couverte par les données ? Un carré habité, ou un voisin habité (06/11/2026 : à Genève, le grand fichier
+ * de Rhône-Alpes couvrait le carré, et un lieu du fond de carte y était dit « introuvable : il a peut-être fermé »).
+ */
 export async function covers(lat, lon) {
   const [x, y] = tileXY(lon, lat, ZOOM);
-  return !!(await sourceOf(x, y));
+  for (const [dx, dy] of [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]]) if ((await loadTile(x + dx, y + dy)).length) return true;
+  return false;
 }
 
 /** Date de l'extrait OSM dont viennent les lieux : ceux d'Île-de-France, ou ceux du point donné (null si non couvert). */
 export async function dataDate(lat, lon) {
   if (lat == null) return (await loadIndex()).built;
   const [x, y] = tileXY(lon, lat, ZOOM);
+  // la région qui a vraiment des lieux ici (à une frontière, la première trouvée peut être la voisine, vide ici)
+  for (const where of await sourcesWith(x, y)) if ((await loadFile(where)).has(`${x}/${y}`)) return (await loadIndex(where.src)).built;
   const where = await sourceOf(x, y);
   return where ? (await loadIndex(where.src)).built : null;
 }

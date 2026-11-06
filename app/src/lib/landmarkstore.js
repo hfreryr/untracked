@@ -3,7 +3,7 @@
 // charge que les carrés à l'écran, depuis notre hébergement. Remplace l'ancien fichier unique de l'Île-de-France.
 import { dataBase } from './config.js';
 import { readJson } from './gzjson.js';
-import { SOURCES, tileXY } from './placestore.js';
+import { SOURCES, tileXY, coverOf } from './placestore.js';
 import { outsideFilter } from './mapstyle.js';
 import { city } from './cities/index.js';
 
@@ -18,7 +18,9 @@ function index(src) {
       // v2 (01/11/2026) : les lieux qui n'apparaissent que de près sont dans des carrés plus petits (« fine »)
       .then((j) => (j ? { zoom: j.zoom, tiles: new Set(j.tiles), fine: j.fine ? { ...j.fine, tiles: new Set(j.fine.tiles) } : null }
         : { zoom: 10, tiles: new Set(), fine: null }))
-      .then((ix) => { if (ix.tiles.size && src.bbox) covered(src.bbox); return ix; })
+      // le fond de carte s'efface là où la zone a des lieux (ses carrés habités), pas dans tout son cadre rectangulaire,
+      // qui déborde à l'étranger (Genève, Bâle, Kehl… : carte vide, 06/11/2026) ; index plus ancien : le cadre
+      .then(async (ix) => { if (ix.tiles.size && src.bbox) covered(src.id, (await coverOf(src).catch(() => null)) || [src.bbox]); return ix; })
       .catch(() => ({ zoom: 10, tiles: new Set() })));
   }
   return indexes.get(src.id);
@@ -26,8 +28,9 @@ function index(src) {
 
 // zones dont les carrés existent : le fond de carte s'y efface (avant leur première construction, il reste en secours)
 const boxes = [city.searchBbox];
+const done = new Set();
 let onCovered = () => {};
-function covered(bbox) { if (!boxes.includes(bbox)) { boxes.push(bbox); onCovered(); } }
+function covered(id, rects) { if (!done.has(id)) { done.add(id); boxes.push(...rects); onCovered(); } }
 
 /** Une ligne d'un carré → entité GeoJSON (mêmes propriétés que l'ancien fichier : le calque et le clic ne changent pas). */
 // identifiant unique d'une zone à l'autre (identifiant OSM × 10 + type), pour masquer le lieu choisi sous son épingle
